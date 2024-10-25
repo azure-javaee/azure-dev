@@ -126,20 +126,22 @@ module postgreServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.1.4
   }
 }
 {{- end}}
-{{- if (and .AzureEventHubs .AzureEventHubs.AuthUsingManagedIdentity) }}
+{{- if .AzureEventHubs }}
 
-module eventHubs 'br/public:avm/res/event-hub/namespace:0.7.1' = {
-  name: 'eventHubs'
+module eventHubNamespace 'br/public:avm/res/event-hub/namespace:0.7.1' = {
+  name: 'eventHubNamespace'
   params: {
     name: '${abbrs.eventHubNamespaces}${resourceToken}'
     location: location
     roleAssignments: [
+      {{- if (and .AzureEventHubs .AzureEventHubs.AuthUsingManagedIdentity) }}
       {{- range .Services}}
       {
         principalId: {{bicepName .Name}}Identity.outputs.principalId
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec')
       }
+      {{- end}}
       {{- end}}
     ]
     eventhubs: [
@@ -307,14 +309,16 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
             secretRef: 'redis-pass'
           }
           {{- end}}
+          {{- if .AzureEventHubs }}
+          {
+            name: 'SPRING_CLOUD_AZURE_EVENTHUBS_NAMESPACE'
+            value: eventHubNamespace.outputs.name
+          }
+          {{- end}}
           {{- if (and .AzureEventHubs .AzureEventHubs.AuthUsingManagedIdentity) }}
           {
             name: 'SPRING_CLOUD_AZURE_EVENTHUBS_CONNECTION_STRING'
             value: ''
-          }
-          {
-            name: 'SPRING_CLOUD_AZURE_EVENTHUBS_NAMESPACE'
-            value: eventHubs.outputs.name
           }
           {
             name: 'SPRING_CLOUD_AZURE_EVENTHUBS_CREDENTIAL_MANAGEDIDENTITYENABLED'
@@ -323,6 +327,20 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {
             name: 'SPRING_CLOUD_AZURE_EVENTHUBS_CREDENTIAL_CLIENTID'
             value: {{bicepName .Name}}Identity.outputs.clientId
+          }
+          {{- end}}
+          {{- if (and .AzureEventHubs .AzureEventHubs.AuthUsingConnectionString) }}
+          {
+            name: 'SPRING_CLOUD_AZURE_EVENTHUBS_CONNECTION_STRING'
+            value: listKeys('${eventHubNamespace.outputs.resourceId}/AuthorizationRules/RootManageSharedAccessKey', '2024-01-01').primaryConnectionString  # Issue: https://github.com/Azure/bicep-registry-modules/issues/3638
+          }
+          {
+            name: 'SPRING_CLOUD_AZURE_EVENTHUBS_CREDENTIAL_MANAGEDIDENTITYENABLED'
+            value: 'false'
+          }
+          {
+            name: 'SPRING_CLOUD_AZURE_EVENTHUBS_CREDENTIAL_CLIENTID'
+            value: ''
           }
           {{- end}}
           {{- if .Frontend}}
@@ -434,5 +452,8 @@ output AZURE_CACHE_REDIS_ID string = redis.outputs.resourceId
 {{- end}}
 {{- if .DbPostgres}}
 output AZURE_POSTGRES_FLEXIBLE_SERVER_ID string = postgreServer.outputs.resourceId
+{{- end}}
+{{- if .AzureEventHubs }}
+output AZURE_EVENT_HUBS_ID string = eventHubNamespace.outputs.resourceId
 {{- end}}
 {{ end}}
