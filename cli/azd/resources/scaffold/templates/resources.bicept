@@ -144,6 +144,9 @@ module eventHubNamespace 'br/public:avm/res/event-hub/namespace:0.7.1' = {
       {{- end}}
       {{- end}}
     ]
+    {{- if (and .AzureEventHubs .AzureEventHubs.AuthUsingConnectionString) }}
+    disableLocalAuth: false
+    {{- end}}
     eventhubs: [
       {{- range $eventHubName := .AzureEventHubs.EventHubNames}}
       {
@@ -153,6 +156,16 @@ module eventHubNamespace 'br/public:avm/res/event-hub/namespace:0.7.1' = {
     ]
   }
 }
+{{- if (and .AzureEventHubs .AzureEventHubs.AuthUsingConnectionString) }}
+module eventHubsConnectionString './modules/set-event-hubs-namespace-connection-string.bicep' = {
+  name: 'eventHubsConnectionString'
+  params: {
+    eventHubsNamespaceName: eventHubNamespace.outputs.name
+    connectionStringSecretName: 'EVENT-HUBS-CONNECTION-STRING'
+    keyVaultName: keyVault.outputs.name
+  }
+}
+{{end}}
 {{end}}
 {{- range .Services}}
 
@@ -230,6 +243,13 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           name: 'redis-url'
           identity:{{bicepName .Name}}Identity.outputs.resourceId
           keyVaultUrl: '${keyVault.outputs.uri}secrets/REDIS-URL'
+        }
+        {{- end}}
+        {{- if (and .AzureEventHubs .AzureEventHubs.AuthUsingConnectionString) }}
+        {
+          name: 'event-hubs-connection-string'
+          identity:{{bicepName .Name}}Identity.outputs.resourceId
+          keyVaultUrl: '${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING'
         }
         {{- end}}
       ],
@@ -332,7 +352,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {{- if (and .AzureEventHubs .AzureEventHubs.AuthUsingConnectionString) }}
           {
             name: 'SPRING_CLOUD_AZURE_EVENTHUBS_CONNECTION_STRING'
-            value: listKeys('${eventHubNamespace.outputs.resourceId}/AuthorizationRules/RootManageSharedAccessKey', '2024-01-01').primaryConnectionString  # Issue: https://github.com/Azure/bicep-registry-modules/issues/3638
+            secretRef: 'event-hubs-connection-string'
           }
           {
             name: 'SPRING_CLOUD_AZURE_EVENTHUBS_CREDENTIAL_MANAGEDIDENTITYENABLED'
