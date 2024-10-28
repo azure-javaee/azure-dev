@@ -379,7 +379,7 @@ azureDepPrompt:
 func (i *Initializer) getAuthTypeByPrompt(ctx context.Context, serviceName string) (scaffold.AuthType, error) {
 	portOptions := []string{
 		"User assigned managed identity",
-		"Password",
+		"Connection string",
 	}
 	selection, err := i.console.Select(ctx, input.ConsoleOptions{
 		Message: "Choose auth type for '" + serviceName + "'?",
