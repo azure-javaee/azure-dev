@@ -348,7 +348,7 @@ azureDepPrompt:
 
 		switch azureDep.(type) {
 		case appdetect.AzureDepServiceBus:
-			authType, err := i.getAuthTypeByPrompt(ctx, azureDepName)
+			authType, err := i.chooseAuthType(ctx, azureDepName)
 			if err != nil {
 				return err
 			}
@@ -359,7 +359,7 @@ azureDepPrompt:
 				AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
 			}
 		case appdetect.AzureDepEventHubs:
-			authType, err := i.getAuthTypeByPrompt(ctx, azureDepName)
+			authType, err := i.chooseAuthType(ctx, azureDepName)
 			if err != nil {
 				return err
 			}
@@ -376,7 +376,7 @@ azureDepPrompt:
 	return nil
 }
 
-func (i *Initializer) getAuthTypeByPrompt(ctx context.Context, serviceName string) (scaffold.AuthType, error) {
+func (i *Initializer) chooseAuthType(ctx context.Context, serviceName string) (scaffold.AuthType, error) {
 	portOptions := []string{
 		"User assigned managed identity",
 		"Connection string",
