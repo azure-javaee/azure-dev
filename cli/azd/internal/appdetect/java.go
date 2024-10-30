@@ -127,9 +127,11 @@ func readMavenProject(filePath string) (*mavenProject, error) {
 func detectDependencies(mavenProject *mavenProject, project *Project) (*Project, error) {
 	// how can we tell it's a Spring Boot project?
 	// 1. It has a parent with a groupId of org.springframework.boot and an artifactId of spring-boot-starter-parent
-	// 2. It has a dependency with a groupId of org.springframework.boot and an artifactId that starts with spring-boot-starter
+	// 2. It has a dependency with a groupId of org.springframework.boot and an artifactId that starts with
+	// spring-boot-starter
 	isSpringBoot := false
-	if mavenProject.Parent.GroupId == "org.springframework.boot" && mavenProject.Parent.ArtifactId == "spring-boot-starter-parent" {
+	if mavenProject.Parent.GroupId == "org.springframework.boot" &&
+		mavenProject.Parent.ArtifactId == "spring-boot-starter-parent" {
 		isSpringBoot = true
 	}
 	for _, dep := range mavenProject.Dependencies {
@@ -197,7 +199,8 @@ func detectDependencies(mavenProject *mavenProject, project *Project) (*Project,
 			})
 			if containsInBinding {
 				project.AzureDeps = append(project.AzureDeps, AzureDepStorageAccount{
-					ContainerNames: []string{applicationProperties["spring.cloud.azure.eventhubs.processor.checkpoint-store.container-name"]},
+					ContainerNames: []string{
+						applicationProperties["spring.cloud.azure.eventhubs.processor.checkpoint-store.container-name"]},
 				})
 			}
 		}
@@ -221,7 +224,8 @@ func readProperties(projectPath string) map[string]string {
 	readPropertiesInYamlFile(filepath.Join(projectPath, "/src/main/resources/application.yaml"), result)
 	profile, profileSet := result["spring.profiles.active"]
 	if profileSet {
-		readPropertiesInPropertiesFile(filepath.Join(projectPath, "/src/main/resources/application-"+profile+".properties"), result)
+		readPropertiesInPropertiesFile(
+			filepath.Join(projectPath, "/src/main/resources/application-"+profile+".properties"), result)
 		readPropertiesInYamlFile(filepath.Join(projectPath, "/src/main/resources/application-"+profile+".yml"), result)
 		readPropertiesInYamlFile(filepath.Join(projectPath, "/src/main/resources/application-"+profile+".yaml"), result)
 	}

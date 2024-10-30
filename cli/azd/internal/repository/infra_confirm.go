@@ -352,7 +352,8 @@ azureDepPrompt:
 		switch azureDep.(type) {
 		case appdetect.AzureDepServiceBus:
 			_authType, err := i.console.Prompt(ctx, input.ConsoleOptions{
-				Message: fmt.Sprintf("Input the authentication type you want for (%s), 1 for connection string, 2 for managed identity", azureDep.ResourceDisplay()),
+				Message: fmt.Sprintf("Input the authentication type you want for (%s), "+
+					"1 for connection string, 2 for managed identity", azureDep.ResourceDisplay()),
 				Help: "Authentication type:\n\n" +
 					"Enter 1 if you want to use connection string to connect to the Service Bus.\n" +
 					"Enter 2 if you want to use user assigned managed identity to connect to the Service Bus.",
@@ -372,11 +373,11 @@ azureDepPrompt:
 			}
 		}
 
-		switch azureDep.(type) {
+		switch dependency := azureDep.(type) {
 		case appdetect.AzureDepServiceBus:
 			spec.AzureServiceBus = &scaffold.AzureDepServiceBus{
 				Name:                      azureDepName,
-				Queues:                    azureDep.(appdetect.AzureDepServiceBus).Queues,
+				Queues:                    dependency.Queues,
 				AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
 				AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
 			}
