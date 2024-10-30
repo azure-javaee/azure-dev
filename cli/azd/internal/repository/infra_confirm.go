@@ -214,6 +214,8 @@ func (i *Initializer) infraSpecFromDetect(
 				serviceSpec.AzureServiceBus = spec.AzureServiceBus
 			case appdetect.AzureDepEventHubs:
 				serviceSpec.AzureEventHubs = spec.AzureEventHubs
+			case appdetect.AzureDepStorageAccount:
+				serviceSpec.AzureStorageAccount = spec.AzureStorageAccount
 			}
 		}
 		spec.Services = append(spec.Services, serviceSpec)
@@ -358,6 +360,7 @@ azureDepPrompt:
 				AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
 				AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
 			}
+			break azureDepPrompt
 		case appdetect.AzureDepEventHubs:
 			authType, err := i.chooseAuthType(ctx, azureDepName)
 			if err != nil {
@@ -366,6 +369,18 @@ azureDepPrompt:
 			spec.AzureEventHubs = &scaffold.AzureDepEventHubs{
 				Name:                      azureDepName,
 				EventHubNames:             azureDep.(appdetect.AzureDepEventHubs).Names,
+				AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
+				AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
+			}
+			break azureDepPrompt
+		case appdetect.AzureDepStorageAccount:
+			authType, err := i.chooseAuthType(ctx, azureDepName)
+			if err != nil {
+				return err
+			}
+			spec.AzureStorageAccount = &scaffold.AzureDepStorageAccount{
+				Name:                      azureDepName,
+				ContainerNames:            azureDep.(appdetect.AzureDepStorageAccount).ContainerNames,
 				AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
 				AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
 			}

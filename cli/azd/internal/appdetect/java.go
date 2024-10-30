@@ -181,14 +181,25 @@ func detectDependencies(mavenProject *mavenProject, project *Project) (*Project,
 
 		if dep.GroupId == "com.azure.spring" && dep.ArtifactId == "spring-cloud-azure-stream-binder-eventhubs" {
 			bindingDestinations := findBindingDestinations(applicationProperties)
-			destinations := make([]string, 0, len(bindingDestinations))
+			var destinations []string
+			containsInBinding := false
 			for bindingName, destination := range bindingDestinations {
-				destinations = append(destinations, destination)
-				log.Printf("Event Hubs [%s] found for binding [%s]", destination, bindingName)
+				if strings.Contains(bindingName, "-in-") { // Example: consume-in-0
+					containsInBinding = true
+				}
+				if !contains(destinations, destination) {
+					destinations = append(destinations, destination)
+					log.Printf("Event Hubs [%s] found for binding [%s]", destination, bindingName)
+				}
 			}
 			project.AzureDeps = append(project.AzureDeps, AzureDepEventHubs{
 				Names: destinations,
 			})
+			if containsInBinding {
+				project.AzureDeps = append(project.AzureDeps, AzureDepStorageAccount{
+					ContainerNames: []string{applicationProperties["spring.cloud.azure.eventhubs.processor.checkpoint-store.container-name"]},
+				})
+			}
 		}
 	}
 
@@ -320,4 +331,13 @@ func findBindingDestinations(properties map[string]string) map[string]string {
 	}
 
 	return result
+}
+
+func contains(array []string, str string) bool {
+	for _, v := range array {
+		if v == str {
+			return true
+		}
+	}
+	return false
 }
