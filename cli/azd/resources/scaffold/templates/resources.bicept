@@ -197,10 +197,21 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.14.3' = {
     ]
     networkAcls: {
       defaultAction: 'Allow'
-  }
+    }
     tags: tags
   }
 }
+
+{{- if (and .AzureStorageAccount .AzureStorageAccount.AuthUsingConnectionString) }}
+module storageAccountConnectionString './modules/set-storage-account-connection-string.bicep' = {
+  name: 'storageAccountConnectionString'
+  params: {
+    storageAccountName: storageAccountName
+    connectionStringSecretName: 'STORAGE-ACCOUNT-CONNECTION-STRING'
+    keyVaultName: keyVault.outputs.name
+  }
+}
+{{end}}
 {{end}}
 
 {{- if .AzureServiceBus }}
@@ -340,6 +351,13 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           keyVaultUrl: '${keyVault.outputs.uri}secrets/SERVICEBUS-CONNECTION-STRING'
         }
         {{- end}}
+        {{- if (and .AzureStorageAccount .AzureStorageAccount.AuthUsingConnectionString) }}
+        {
+          name: 'storage-account-connection-string'
+          identity:{{bicepName .Name}}Identity.outputs.resourceId
+          keyVaultUrl: '${keyVault.outputs.uri}secrets/STORAGE-ACCOUNT-CONNECTION-STRING'
+        }
+        {{- end}}
       ],
       map({{bicepName .Name}}Secrets, secret => {
         name: secret.secretRef
@@ -465,6 +483,20 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {
             name: 'SPRING_CLOUD_AZURE_STORAGE_CREDENTIAL_CLIENTID'
             value: {{bicepName .Name}}Identity.outputs.clientId
+          }
+          {{- end}}
+          {{- if (and .AzureStorageAccount .AzureStorageAccount.AuthUsingConnectionString) }}
+          {
+            name: 'SPRING_CLOUD_AZURE_STORAGE_CONNECTION_STRING'
+            secretRef: 'storage-account-connection-string'
+          }
+          {
+            name: 'SPRING_CLOUD_AZURE_STORAGE_CREDENTIAL_MANAGEDIDENTITYENABLED'
+            value: 'false'
+          }
+          {
+            name: 'SPRING_CLOUD_AZURE_STORAGE_CREDENTIAL_CLIENTID'
+            value: ''
           }
           {{- end}}
 
