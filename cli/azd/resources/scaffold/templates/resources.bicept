@@ -116,7 +116,7 @@ module postgreServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.1.4
     tier: 'Burstable'
     // Non-required parameters
     administratorLogin: postgreSqlDatabaseUser
-    administratorLoginPassword: databasePassword
+    administratorLoginPassword: postgreSqlDatabasePassword
     geoRedundantBackup: 'Disabled'
     passwordAuth:'Enabled'
     firewallRules: [
@@ -375,12 +375,12 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
         {{- end}}
         {{- if (and .DbPostgres .DbPostgres.AuthUsingUsernamePassword) }}
         {
-          name: 'db-pass'
-          value: databasePassword
+          name: 'postgresql-password'
+          value: postgreSqlDatabasePassword
         }
         {
-          name: 'db-url'
-          value: 'postgresql://${postgreSqlDatabaseUser}:${databasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'
+          name: 'postgresql-db-url'
+          value: 'postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'
         }
         {{- end}}
         {{- if .DbRedis}}
@@ -455,10 +455,6 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
             value: postgreSqlDatabaseName
           }
           {
-            name: 'POSTGRES_URL'
-            secretRef: 'db-url'
-          }
-          {
             name: 'POSTGRES_PORT'
             value: '5432'
           }
@@ -469,12 +465,16 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {{- end}}
           {{- if (and .DbPostgres .DbPostgres.AuthUsingUsernamePassword) }}
           {
+            name: 'POSTGRES_URL'
+            secretRef: 'postgresql-db-url'
+          }
+          {
             name: 'POSTGRES_USERNAME'
             value: postgreSqlDatabaseUser
           }
           {
             name: 'POSTGRES_PASSWORD'
-            secretRef: 'db-pass'
+            secretRef: 'postgresql-password'
           }
           {
             name: 'SPRING_DATASOURCE_USERNAME'
@@ -482,7 +482,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           }
           {
             name: 'SPRING_DATASOURCE_PASSWORD'
-            secretRef: 'db-pass'
+            secretRef: 'postgresql-password'
           }
           {{- end}}
           {{- if .DbRedis}}
@@ -710,8 +710,8 @@ module keyVault 'br/public:avm/res/key-vault/vault:0.6.1' = {
     secrets: [
       {{- if (and .DbPostgres .DbPostgres.AuthUsingUsernamePassword) }}
       {
-        name: 'db-pass'
-        value: databasePassword
+        name: 'postgresql-password'
+        value: postgreSqlDatabasePassword
       }
       {{- end}}
     ]
