@@ -482,6 +482,11 @@ var {{bicepName .Name}}Env = map(filter({{bicepName .Name}}AppSettingsArray, i =
 
 module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
   name: '{{bicepName .Name}}'
+  dependsOn: [
+      {{- if .DbCosmosMongo}}
+      cosmos
+      {{- end}}
+  ]
   params: {
     name: '{{containerAppName .Name}}'
     {{- if ne .Port 0}}
