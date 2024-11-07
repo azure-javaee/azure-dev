@@ -499,6 +499,12 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
         'https://{{.Name}}.${containerAppsEnvironment.outputs.defaultDomain}'
         {{- end}}
       ]
+      allowedMethods: [
+        'GET'
+        'PUT'
+        'POST'
+        'DELETE'
+      ]
     }
     {{- end}}
     scaleMinReplicas: 1
@@ -592,6 +598,14 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {
             name: 'MONGODB_URL'
             secretRef: 'mongodb-url'
+          }
+          {
+            name: 'SPRING_DATA_MONGODB_URI'
+            secretRef: 'mongodb-url'
+          }
+          {
+            name: 'SPRING_DATA_MONGODB_DATABASE'
+            value: '{{ .DbCosmosMongo.DatabaseName }}'
           }
           {{- end}}
           {{- if .DbPostgres}}
@@ -810,7 +824,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {{- range $i, $e := .Frontend.Backends}}
           {
             name: '{{upper .Name}}_BASE_URL'
-            value: 'https://{{.Name}}.internal.${containerAppsEnvironment.outputs.defaultDomain}'
+            value: 'https://{{.Name}}.${containerAppsEnvironment.outputs.defaultDomain}'
           }
           {{- end}}
           {{- end}}
