@@ -36,6 +36,7 @@ var dbMap = map[appdetect.DatabaseDep]struct{}{
 	appdetect.DbMongo:    {},
 	appdetect.DbPostgres: {},
 	appdetect.DbMySql:    {},
+	appdetect.DbCosmos:   {},
 	appdetect.DbRedis:    {},
 }
 

@@ -12,6 +12,7 @@ type InfraSpec struct {
 	// Databases to create
 	DbPostgres    *DatabasePostgres
 	DbMySql       *DatabaseMySql
+	DbCosmos      *DatabaseCosmosAccount
 	DbCosmosMongo *DatabaseCosmosMongo
 	DbRedis       *DatabaseRedis
 
@@ -39,6 +40,17 @@ type DatabaseMySql struct {
 	DatabaseName              string
 	AuthUsingManagedIdentity  bool
 	AuthUsingUsernamePassword bool
+}
+
+type CosmosSqlDatabaseContainer struct {
+	ContainerName     string
+	PartitionKeyPaths []string
+}
+
+type DatabaseCosmosAccount struct {
+	AccountName  string
+	DatabaseName string
+	Containers   []CosmosSqlDatabaseContainer
 }
 
 type DatabaseCosmosMongo struct {
@@ -95,6 +107,7 @@ type ServiceSpec struct {
 	DbPostgres    *DatabaseReference
 	DbMySql       *DatabaseReference
 	DbCosmosMongo *DatabaseReference
+	DbCosmos      *DatabaseCosmosAccount
 	DbRedis       *DatabaseReference
 
 	AzureServiceBus     *AzureDepServiceBus
