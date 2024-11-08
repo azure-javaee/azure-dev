@@ -75,9 +75,11 @@ module containerAppsEnvironment 'br/public:avm/res/app/managed-environment:0.4.5
 {{- end}}
 
 {{- if .DbCosmosMongo}}
-module cosmos 'br/public:avm/res/document-db/database-account:0.4.0' = {
+module cosmos 'br/public:avm/res/document-db/database-account:0.8.1' = {
   name: 'cosmos'
   params: {
+    name: '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
+    location: location
     tags: tags
     locations: [
       {
@@ -86,8 +88,11 @@ module cosmos 'br/public:avm/res/document-db/database-account:0.4.0' = {
         locationName: location
       }
     ]
-    name: '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
-    location: location
+    networkRestrictions: {
+      ipRules: []
+      virtualNetworkRules: []
+      publicNetworkAccess: 'Enabled'
+    }
     {{- if .DbCosmosMongo.DatabaseName}}
     mongodbDatabases: [
       {
@@ -95,8 +100,8 @@ module cosmos 'br/public:avm/res/document-db/database-account:0.4.0' = {
       }
     ]
     {{- end}}
-    secretsKeyVault: {
-      keyVaultName: keyVault.outputs.name
+    secretsExportConfiguration: {
+      keyVaultResourceId: keyVault.outputs.resourceId
       primaryWriteConnectionStringSecretName: 'MONGODB-URL'
     }
     capabilitiesToAdd: [ 'EnableServerless' ]
@@ -482,11 +487,6 @@ var {{bicepName .Name}}Env = map(filter({{bicepName .Name}}AppSettingsArray, i =
 
 module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
   name: '{{bicepName .Name}}'
-  dependsOn: [
-      {{- if .DbCosmosMongo}}
-      cosmos
-      {{- end}}
-  ]
   params: {
     name: '{{containerAppName .Name}}'
     {{- if ne .Port 0}}
@@ -500,10 +500,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
         {{- end}}
       ]
       allowedMethods: [
-        'GET'
-        'PUT'
-        'POST'
-        'DELETE'
+        '*'
       ]
     }
     {{- end}}
@@ -515,7 +512,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
         {
           name: 'mongodb-url'
           identity:{{bicepName .Name}}Identity.outputs.resourceId
-          keyVaultUrl: '${keyVault.outputs.uri}secrets/MONGODB-URL'
+          keyVaultUrl: cosmos.outputs.exportedSecrets['MONGODB-URL'].secretUri
         }
         {{- end}}
         {{- if (and .DbPostgres .DbPostgres.AuthUsingUsernamePassword) }}
