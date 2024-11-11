@@ -22,7 +22,6 @@ type InfraSpec struct {
 	AzureServiceBus     *AzureDepServiceBus
 	AzureEventHubs      *AzureDepEventHubs
 	AzureStorageAccount *AzureDepStorageAccount
-
 }
 
 type Parameter struct {
@@ -84,6 +83,7 @@ type AzureDepServiceBus struct {
 	TopicsAndSubscriptions    map[string][]string
 	AuthUsingConnectionString bool
 	AuthUsingManagedIdentity  bool
+	IsJms                     bool
 }
 
 type AzureDepEventHubs struct {

@@ -406,6 +406,7 @@ azureDepPrompt:
 			spec.AzureServiceBus = &scaffold.AzureDepServiceBus{
 				Name:                      azureDepName,
 				Queues:                    dependency.Queues,
+				IsJms:                     dependency.IsJms,
 				AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
 				AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
 			}
