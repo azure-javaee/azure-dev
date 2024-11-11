@@ -130,6 +130,10 @@ func detectDependencies(mavenProject *mavenProject, project *Project) (*Project,
 		if dep.GroupId == "org.postgresql" && dep.ArtifactId == "postgresql" {
 			databaseDepMap[DbPostgres] = struct{}{}
 		}
+
+		if dep.GroupId == "org.springframework.boot" && dep.ArtifactId == "spring-boot-starter-data-redis" {
+			databaseDepMap[DbRedis] = struct{}{}
+		}
 	}
 
 	if len(databaseDepMap) > 0 {
