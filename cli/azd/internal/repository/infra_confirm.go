@@ -33,46 +33,9 @@ func (i *Initializer) infraSpecFromDetect(
 
 	dbPrompt:
 		for {
-			dbName, err := i.console.Prompt(ctx, input.ConsoleOptions{
-				Message: fmt.Sprintf("Input the name of the app database (%s)", database.Display()),
-				Help: "Hint: App database name\n\n" +
-					"Name of the database that the app connects to. " +
-					"This database will be created after running azd provision or azd up." +
-					"\nYou may be able to skip this step by hitting enter, in which case the database will not be created.",
-			})
+			dbName, err := promptDbName(i.console, ctx, database)
 			if err != nil {
 				return scaffold.InfraSpec{}, err
-			}
-
-			if strings.ContainsAny(dbName, " ") {
-				i.console.MessageUxItem(ctx, &ux.WarningMessage{
-					Description: "Database name contains whitespace. This might not be allowed by the database server.",
-				})
-				confirm, err := i.console.Confirm(ctx, input.ConsoleOptions{
-					Message: fmt.Sprintf("Continue with name '%s'?", dbName),
-				})
-				if err != nil {
-					return scaffold.InfraSpec{}, err
-				}
-
-				if !confirm {
-					continue dbPrompt
-				}
-			} else if !wellFormedDbNameRegex.MatchString(dbName) {
-				i.console.MessageUxItem(ctx, &ux.WarningMessage{
-					Description: "Database name contains special characters. " +
-						"This might not be allowed by the database server.",
-				})
-				confirm, err := i.console.Confirm(ctx, input.ConsoleOptions{
-					Message: fmt.Sprintf("Continue with name '%s'?", dbName),
-				})
-				if err != nil {
-					return scaffold.InfraSpec{}, err
-				}
-
-				if !confirm {
-					continue dbPrompt
-				}
 			}
 
 			switch database {
@@ -86,12 +49,40 @@ func (i *Initializer) infraSpecFromDetect(
 					i.console.Message(ctx, "Database name is required.")
 					continue
 				}
-
-				spec.DbPostgres = &scaffold.DatabasePostgres{
-					DatabaseName: dbName,
+				authType, err := i.getAuthType(ctx)
+				if err != nil {
+					return scaffold.InfraSpec{}, err
 				}
+				spec.DbPostgres = &scaffold.DatabasePostgres{
+					DatabaseName:              dbName,
+					AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
+					AuthUsingUsernamePassword: authType == scaffold.AuthType_PASSWORD,
+				}
+				break dbPrompt
+			case appdetect.DbMySql:
+				if dbName == "" {
+					i.console.Message(ctx, "Database name is required.")
+					continue
+				}
+				authType, err := i.getAuthType(ctx)
+				if err != nil {
+					return scaffold.InfraSpec{}, err
+				}
+				spec.DbMySql = &scaffold.DatabaseMySql{
+					DatabaseName:              dbName,
+					AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
+					AuthUsingUsernamePassword: authType == scaffold.AuthType_PASSWORD,
+				}
+				break dbPrompt
 			}
 			break dbPrompt
+		}
+	}
+
+	for _, azureDep := range detect.AzureDeps {
+		err := i.promptForAzureResource(ctx, azureDep.first, &spec)
+		if err != nil {
+			return scaffold.InfraSpec{}, err
 		}
 	}
 
@@ -102,47 +93,11 @@ func (i *Initializer) infraSpecFromDetect(
 			Port: -1,
 		}
 
-		if svc.Docker == nil || svc.Docker.Path == "" {
-			// default builder always specifies port 80
-			serviceSpec.Port = 80
-			if svc.Language == appdetect.Java {
-				serviceSpec.Port = 8080
-			}
-		} else {
-			ports := svc.Docker.Ports
-			if len(ports) == 0 {
-				port, err := i.getPortByPrompt(ctx, "What port does '"+serviceSpec.Name+"' listen on?")
-				if err != nil {
-					return scaffold.InfraSpec{}, err
-				}
-				serviceSpec.Port = port
-			} else if len(ports) == 1 {
-				serviceSpec.Port = ports[0].Number
-			} else {
-				var portOptions []string
-				for _, port := range ports {
-					portOptions = append(portOptions, strconv.Itoa(port.Number))
-				}
-				inputAnotherPortOption := "Other"
-				portOptions = append(portOptions, inputAnotherPortOption)
-				selection, err := i.console.Select(ctx, input.ConsoleOptions{
-					Message: "What port does '" + serviceSpec.Name + "' listen on?",
-					Options: portOptions,
-				})
-				if err != nil {
-					return scaffold.InfraSpec{}, err
-				}
-				if selection < len(ports) {
-					serviceSpec.Port = ports[selection].Number
-				} else {
-					port, err := i.getPortByPrompt(ctx, "Provide the port number for '"+serviceSpec.Name+"':")
-					if err != nil {
-						return scaffold.InfraSpec{}, err
-					}
-					serviceSpec.Port = port
-				}
-			}
+		port, err := promptPort(i.console, ctx, name, svc)
+		if err != nil {
+			return scaffold.InfraSpec{}, err
 		}
+		serviceSpec.Port = port
 
 		for _, framework := range svc.Dependencies {
 			if framework.IsWebUIFramework() {
@@ -163,12 +118,31 @@ func (i *Initializer) infraSpecFromDetect(
 				}
 			case appdetect.DbPostgres:
 				serviceSpec.DbPostgres = &scaffold.DatabaseReference{
-					DatabaseName: spec.DbPostgres.DatabaseName,
+					DatabaseName:              spec.DbPostgres.DatabaseName,
+					AuthUsingManagedIdentity:  spec.DbPostgres.AuthUsingManagedIdentity,
+					AuthUsingUsernamePassword: spec.DbPostgres.AuthUsingUsernamePassword,
+				}
+			case appdetect.DbMySql:
+				serviceSpec.DbMySql = &scaffold.DatabaseReference{
+					DatabaseName:              spec.DbMySql.DatabaseName,
+					AuthUsingManagedIdentity:  spec.DbMySql.AuthUsingManagedIdentity,
+					AuthUsingUsernamePassword: spec.DbMySql.AuthUsingUsernamePassword,
 				}
 			case appdetect.DbRedis:
 				serviceSpec.DbRedis = &scaffold.DatabaseReference{
 					DatabaseName: "redis",
 				}
+			}
+		}
+
+		for _, azureDep := range svc.AzureDeps {
+			switch azureDep.(type) {
+			case appdetect.AzureDepServiceBus:
+				serviceSpec.AzureServiceBus = spec.AzureServiceBus
+			case appdetect.AzureDepEventHubs:
+				serviceSpec.AzureEventHubs = spec.AzureEventHubs
+			case appdetect.AzureDepStorageAccount:
+				serviceSpec.AzureStorageAccount = spec.AzureStorageAccount
 			}
 		}
 		spec.Services = append(spec.Services, serviceSpec)
@@ -204,10 +178,10 @@ func (i *Initializer) infraSpecFromDetect(
 	return spec, nil
 }
 
-func (i *Initializer) getPortByPrompt(ctx context.Context, promptMessage string) (int, error) {
+func promptPortNumber(console input.Console, ctx context.Context, promptMessage string) (int, error) {
 	var port int
 	for {
-		val, err := i.console.Prompt(ctx, input.ConsoleOptions{
+		val, err := console.Prompt(ctx, input.ConsoleOptions{
 			Message: promptMessage,
 		})
 		if err != nil {
@@ -216,16 +190,247 @@ func (i *Initializer) getPortByPrompt(ctx context.Context, promptMessage string)
 
 		port, err = strconv.Atoi(val)
 		if err != nil {
-			i.console.Message(ctx, "Port must be an integer.")
+			console.Message(ctx, "Port must be an integer.")
 			continue
 		}
 
 		if port < 1 || port > 65535 {
-			i.console.Message(ctx, "Port must be a value between 1 and 65535.")
+			console.Message(ctx, "Port must be a value between 1 and 65535.")
 			continue
 		}
 
 		break
 	}
 	return port, nil
+}
+
+func promptDbName(console input.Console, ctx context.Context, database appdetect.DatabaseDep) (string, error) {
+	for {
+		dbName, err := console.Prompt(ctx, input.ConsoleOptions{
+			Message: fmt.Sprintf("Input the name of the app database (%s)", database.Display()),
+			Help: "Hint: App database name\n\n" +
+				"Name of the database that the app connects to. " +
+				"This database will be created after running azd provision or azd up." +
+				"\nYou may be able to skip this step by hitting enter, in which case the database will not be created.",
+		})
+		if err != nil {
+			return "", err
+		}
+
+		if strings.ContainsAny(dbName, " ") {
+			console.MessageUxItem(ctx, &ux.WarningMessage{
+				Description: "Database name contains whitespace. This might not be allowed by the database server.",
+			})
+			confirm, err := console.Confirm(ctx, input.ConsoleOptions{
+				Message: fmt.Sprintf("Continue with name '%s'?", dbName),
+			})
+			if err != nil {
+				return "", err
+			}
+
+			if !confirm {
+				continue
+			}
+		} else if !wellFormedDbNameRegex.MatchString(dbName) {
+			console.MessageUxItem(ctx, &ux.WarningMessage{
+				Description: "Database name contains special characters. " +
+					"This might not be allowed by the database server.",
+			})
+			confirm, err := console.Confirm(ctx, input.ConsoleOptions{
+				Message: fmt.Sprintf("Continue with name '%s'?", dbName),
+			})
+			if err != nil {
+				return "", err
+			}
+
+			if !confirm {
+				continue
+			}
+		}
+
+		return dbName, nil
+	}
+}
+
+func promptPort(
+	console input.Console,
+	ctx context.Context,
+	name string,
+	svc appdetect.Project) (int, error) {
+	if svc.Docker == nil || svc.Docker.Path == "" { // using default builder from azd
+		if svc.Language == appdetect.Java {
+			return 8080, nil
+		}
+		return 80, nil
+	}
+
+	// a custom Dockerfile is provided
+	ports := svc.Docker.Ports
+	switch len(ports) {
+	case 1: // only one port was exposed, that's the one
+		return ports[0].Number, nil
+	case 0: // no ports exposed, prompt for port
+		port, err := promptPortNumber(console, ctx, "What port does '"+name+"' listen on?")
+		if err != nil {
+			return -1, err
+		}
+		return port, nil
+	}
+
+	// multiple ports exposed, prompt for selection
+	var portOptions []string
+	for _, port := range ports {
+		portOptions = append(portOptions, strconv.Itoa(port.Number))
+	}
+	portOptions = append(portOptions, "Other")
+
+	selection, err := console.Select(ctx, input.ConsoleOptions{
+		Message: "What port does '" + name + "' listen on?",
+		Options: portOptions,
+	})
+	if err != nil {
+		return -1, err
+	}
+
+	if selection < len(ports) { // user selected a port
+		return ports[selection].Number, nil
+	}
+
+	// user selected 'Other', prompt for port
+	port, err := promptPortNumber(console, ctx, "Provide the port number for '"+name+"':")
+	if err != nil {
+		return -1, err
+	}
+
+	return port, nil
+}
+
+func (i *Initializer) getAuthType(ctx context.Context) (scaffold.AuthType, error) {
+	authType := scaffold.AuthType(0)
+	selection, err := i.console.Select(ctx, input.ConsoleOptions{
+		Message: "Input the authentication type you want:",
+		Options: []string{
+			"Use user assigned managed identity",
+			"Use username and password",
+		},
+	})
+	if err != nil {
+		return authType, err
+	}
+	switch selection {
+	case 0:
+		authType = scaffold.AuthType_TOKEN_CREDENTIAL
+	case 1:
+		authType = scaffold.AuthType_PASSWORD
+	default:
+		panic("unhandled selection")
+	}
+	return authType, nil
+}
+
+func (i *Initializer) promptForAzureResource(
+	ctx context.Context,
+	azureDep appdetect.AzureDep,
+	spec *scaffold.InfraSpec) error {
+azureDepPrompt:
+	for {
+		azureDepName, err := i.console.Prompt(ctx, input.ConsoleOptions{
+			Message: fmt.Sprintf("Input the name of the Azure dependency (%s)", azureDep.ResourceDisplay()),
+			Help: "Azure dependency name\n\n" +
+				"Name of the Azure dependency that the app connects to. " +
+				"This dependency will be created after running azd provision or azd up." +
+				"\nYou may be able to skip this step by hitting enter, in which case the dependency will not be created.",
+		})
+		if err != nil {
+			return err
+		}
+
+		if strings.ContainsAny(azureDepName, " ") {
+			i.console.MessageUxItem(ctx, &ux.WarningMessage{
+				Description: "Dependency name contains whitespace. This might not be allowed by the Azure service.",
+			})
+			confirm, err := i.console.Confirm(ctx, input.ConsoleOptions{
+				Message: fmt.Sprintf("Continue with name '%s'?", azureDepName),
+			})
+			if err != nil {
+				return err
+			}
+
+			if !confirm {
+				continue azureDepPrompt
+			}
+		} else if !wellFormedDbNameRegex.MatchString(azureDepName) {
+			i.console.MessageUxItem(ctx, &ux.WarningMessage{
+				Description: "Dependency name contains special characters. " +
+					"This might not be allowed by the Azure service.",
+			})
+			confirm, err := i.console.Confirm(ctx, input.ConsoleOptions{
+				Message: fmt.Sprintf("Continue with name '%s'?", azureDepName),
+			})
+			if err != nil {
+				return err
+			}
+
+			if !confirm {
+				continue azureDepPrompt
+			}
+		}
+
+		switch dependency := azureDep.(type) {
+		case appdetect.AzureDepServiceBus:
+			authType, err := i.chooseAuthType(ctx, azureDepName)
+			if err != nil {
+				return err
+			}
+			spec.AzureServiceBus = &scaffold.AzureDepServiceBus{
+				Name:                      azureDepName,
+				Queues:                    dependency.Queues,
+				AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
+				AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
+			}
+		case appdetect.AzureDepEventHubs:
+			authType, err := i.chooseAuthType(ctx, azureDepName)
+			if err != nil {
+				return err
+			}
+			spec.AzureEventHubs = &scaffold.AzureDepEventHubs{
+				Name:                      azureDepName,
+				EventHubNames:             dependency.Names,
+				AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
+				AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
+			}
+		case appdetect.AzureDepStorageAccount:
+			authType, err := i.chooseAuthType(ctx, azureDepName)
+			if err != nil {
+				return err
+			}
+			spec.AzureStorageAccount = &scaffold.AzureDepStorageAccount{
+				Name:                      azureDepName,
+				ContainerNames:            dependency.ContainerNames,
+				AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
+				AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
+			}
+		}
+		break azureDepPrompt
+	}
+	return nil
+}
+
+func (i *Initializer) chooseAuthType(ctx context.Context, serviceName string) (scaffold.AuthType, error) {
+	portOptions := []string{
+		"User assigned managed identity",
+		"Connection string",
+	}
+	selection, err := i.console.Select(ctx, input.ConsoleOptions{
+		Message: "Choose auth type for '" + serviceName + "'?",
+		Options: portOptions,
+	})
+	if err != nil {
+		return scaffold.AUTH_TYPE_UNSPECIFIED, err
+	}
+	if selection == 0 {
+		return scaffold.AuthType_TOKEN_CREDENTIAL, nil
+	} else {
+		return scaffold.AuthType_PASSWORD, nil
+	}
 }
