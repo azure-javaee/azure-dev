@@ -803,7 +803,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
             value: ''
           }
           {{- end}}
-          {{- if and .AzureEventHubs .AzureEventHubs.AuthUsingConnectionString }}
+          {{- if (and .AzureEventHubs .AzureEventHubs.AuthUsingConnectionString) }}
           {
             name: 'spring.cloud.azure.eventhubs.connection-string'
             secretRef: 'event-hubs-connection-string'
