@@ -193,6 +193,7 @@ func detectDependencies(mavenProject *mavenProject, project *Project) (*Project,
 			}
 			project.AzureDeps = append(project.AzureDeps, AzureDepServiceBus{
 				Queues: destinations,
+				IsJms:  false,
 			})
 		}
 
