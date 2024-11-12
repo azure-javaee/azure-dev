@@ -75,9 +75,11 @@ module containerAppsEnvironment 'br/public:avm/res/app/managed-environment:0.4.5
 {{- end}}
 
 {{- if .DbCosmosMongo}}
-module cosmos 'br/public:avm/res/document-db/database-account:0.4.0' = {
+module cosmos 'br/public:avm/res/document-db/database-account:0.8.1' = {
   name: 'cosmos'
   params: {
+    name: '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
+    location: location
     tags: tags
     locations: [
       {
@@ -86,8 +88,11 @@ module cosmos 'br/public:avm/res/document-db/database-account:0.4.0' = {
         locationName: location
       }
     ]
-    name: '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
-    location: location
+    networkRestrictions: {
+      ipRules: []
+      virtualNetworkRules: []
+      publicNetworkAccess: 'Enabled'
+    }
     {{- if .DbCosmosMongo.DatabaseName}}
     mongodbDatabases: [
       {
@@ -95,11 +100,61 @@ module cosmos 'br/public:avm/res/document-db/database-account:0.4.0' = {
       }
     ]
     {{- end}}
-    secretsKeyVault: {
-      keyVaultName: keyVault.outputs.name
+    secretsExportConfiguration: {
+      keyVaultResourceId: keyVault.outputs.resourceId
       primaryWriteConnectionStringSecretName: 'MONGODB-URL'
     }
     capabilitiesToAdd: [ 'EnableServerless' ]
+  }
+}
+{{- end}}
+{{- if .DbCosmos }}
+
+module cosmos 'br/public:avm/res/document-db/database-account:0.8.1' = {
+  name: 'cosmos'
+  params: {
+    name: '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
+    tags: tags
+    location: location
+    locations: [
+      {
+        failoverPriority: 0
+        isZoneRedundant: false
+        locationName: location
+      }
+    ]
+    networkRestrictions: {
+      ipRules: []
+      virtualNetworkRules: []
+      publicNetworkAccess: 'Enabled'
+    }
+    sqlDatabases: [
+      {
+        name: '{{ .DbCosmos.DatabaseName }}'
+        containers: [
+          {{- range .DbCosmos.Containers}}
+          {
+            name: '{{ .ContainerName }}'
+            paths: [
+              {{- range $path := .PartitionKeyPaths}}
+              '{{ $path }}'
+              {{- end}}
+            ]
+          }
+          {{- end}}
+        ]
+      }
+    ]
+    sqlRoleAssignmentsPrincipalIds: [
+      {{- range .Services}}
+      {{bicepName .Name}}Identity.outputs.principalId
+      {{- end}}
+    ]
+    sqlRoleDefinitions: [
+      {
+        name: 'service-access-cosmos-sql-role'
+      }
+    ]
   }
 }
 {{- end}}
@@ -503,6 +558,9 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
         'https://{{.Name}}.${containerAppsEnvironment.outputs.defaultDomain}'
         {{- end}}
       ]
+      allowedMethods: [
+        '*'
+      ]
     }
     {{- end}}
     scaleMinReplicas: 1
@@ -513,7 +571,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
         {
           name: 'mongodb-url'
           identity:{{bicepName .Name}}Identity.outputs.resourceId
-          keyVaultUrl: '${keyVault.outputs.uri}secrets/MONGODB-URL'
+          keyVaultUrl: cosmos.outputs.exportedSecrets['MONGODB-URL'].secretUri
         }
         {{- end}}
         {{- if (and .DbPostgres .DbPostgres.AuthUsingUsernamePassword) }}
@@ -597,6 +655,14 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
             name: 'MONGODB_URL'
             secretRef: 'mongodb-url'
           }
+          {
+            name: 'SPRING_DATA_MONGODB_URI'
+            secretRef: 'mongodb-url'
+          }
+          {
+            name: 'SPRING_DATA_MONGODB_DATABASE'
+            value: '{{ .DbCosmosMongo.DatabaseName }}'
+          }
           {{- end}}
           {{- if .DbPostgres}}
           {
@@ -678,6 +744,16 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
             secretRef: 'mysql-password'
           }
           {{- end}}
+          {{- if .DbCosmos }}
+          {
+            name: 'SPRING_CLOUD_AZURE_COSMOS_ENDPOINT'
+            value: cosmos.outputs.endpoint
+          }
+          {
+            name: 'SPRING_CLOUD_AZURE_COSMOS_DATABASE'
+            value: '{{ .DbCosmos.DatabaseName }}'
+          }
+          {{- end}}
           {{- if .DbRedis}}
           {
             name: 'REDIS_HOST'
@@ -698,6 +774,10 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {
             name: 'REDIS_PASSWORD'
             secretRef: 'redis-pass'
+          }
+          {
+            name: 'SPRING_DATA_REDIS_URL'
+            secretRef: 'redis-url'
           }
           {{- end}}
           {{- if .AIModels}}
@@ -769,7 +849,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           }
           {{- end}}
 
-          {{- if .AzureServiceBus }}
+          {{- if and .AzureServiceBus (not .AzureServiceBus.IsJms)}}
           {
             name: 'SPRING_CLOUD_AZURE_SERVICEBUS_NAMESPACE'
             value: serviceBusNamespace.outputs.name
@@ -789,7 +869,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
             value: {{bicepName .Name}}Identity.outputs.clientId
           }
           {{- end}}
-          {{- if (and .AzureServiceBus .AzureServiceBus.AuthUsingConnectionString) }}
+          {{- if (and (and .AzureServiceBus .AzureServiceBus.AuthUsingConnectionString) (not .AzureServiceBus.IsJms)) }}
           {
             name: 'SPRING_CLOUD_AZURE_SERVICEBUS_CONNECTIONSTRING'
             secretRef: 'servicebus-connection-string'
@@ -803,12 +883,22 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
             value: ''
           }
           {{- end}}
+          {{- if (and (and .AzureServiceBus .AzureServiceBus.AuthUsingConnectionString) .AzureServiceBus.IsJms) }}
+          {
+            name: 'SPRING_JMS_SERVICEBUS_CONNECTIONSTRING'
+            secretRef: 'servicebus-connection-string'
+          }
+          {
+            name: 'SPRING_JMS_SERVICEBUS_PRICINGTIER'
+            value: 'premium'
+          }
+          {{- end}}
 
           {{- if .Frontend}}
           {{- range $i, $e := .Frontend.Backends}}
           {
             name: '{{upper .Name}}_BASE_URL'
-            value: 'https://{{.Name}}.internal.${containerAppsEnvironment.outputs.defaultDomain}'
+            value: 'https://{{.Name}}.${containerAppsEnvironment.outputs.defaultDomain}'
           }
           {{- end}}
           {{- end}}

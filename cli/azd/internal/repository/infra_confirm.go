@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -74,13 +75,27 @@ func (i *Initializer) infraSpecFromDetect(
 					AuthUsingUsernamePassword: authType == scaffold.AuthType_PASSWORD,
 				}
 				break dbPrompt
+			case appdetect.DbCosmos:
+				if dbName == "" {
+					i.console.Message(ctx, "Database name is required.")
+					continue
+				}
+				containers, err := detectCosmosSqlDatabaseContainersInDirectory(detect.root)
+				if err != nil {
+					return scaffold.InfraSpec{}, err
+				}
+				spec.DbCosmos = &scaffold.DatabaseCosmosAccount{
+					DatabaseName: dbName,
+					Containers:   containers,
+				}
+				break dbPrompt
 			}
 			break dbPrompt
 		}
 	}
 
 	for _, azureDep := range detect.AzureDeps {
-		err := i.promptForAzureResource(ctx, azureDep.first, &spec)
+		err := i.buildInfraSpecByAzureDep(ctx, azureDep.first, &spec)
 		if err != nil {
 			return scaffold.InfraSpec{}, err
 		}
@@ -128,6 +143,8 @@ func (i *Initializer) infraSpecFromDetect(
 					AuthUsingManagedIdentity:  spec.DbMySql.AuthUsingManagedIdentity,
 					AuthUsingUsernamePassword: spec.DbMySql.AuthUsingUsernamePassword,
 				}
+			case appdetect.DbCosmos:
+				serviceSpec.DbCosmos = spec.DbCosmos
 			case appdetect.DbRedis:
 				serviceSpec.DbRedis = &scaffold.DatabaseReference{
 					DatabaseName: "redis",
@@ -330,106 +347,47 @@ func (i *Initializer) getAuthType(ctx context.Context) (scaffold.AuthType, error
 	return authType, nil
 }
 
-func (i *Initializer) promptForAzureResource(
+func (i *Initializer) buildInfraSpecByAzureDep(
 	ctx context.Context,
 	azureDep appdetect.AzureDep,
 	spec *scaffold.InfraSpec) error {
-azureDepPrompt:
-	for {
-		azureDepName, err := i.console.Prompt(ctx, input.ConsoleOptions{
-			Message: fmt.Sprintf("Input the name of the Azure dependency (%s)", azureDep.ResourceDisplay()),
-			Help: "Azure dependency name\n\n" +
-				"Name of the Azure dependency that the app connects to. " +
-				"This dependency will be created after running azd provision or azd up." +
-				"\nYou may be able to skip this step by hitting enter, in which case the dependency will not be created.",
-		})
+	switch dependency := azureDep.(type) {
+	case appdetect.AzureDepServiceBus:
+		authType, err := i.chooseAuthTypeByPrompt(ctx, azureDep.ResourceDisplay())
 		if err != nil {
 			return err
 		}
-
-		if strings.ContainsAny(azureDepName, " ") {
-			i.console.MessageUxItem(ctx, &ux.WarningMessage{
-				Description: "Dependency name contains whitespace. This might not be allowed by the Azure service.",
-			})
-			confirm, err := i.console.Confirm(ctx, input.ConsoleOptions{
-				Message: fmt.Sprintf("Continue with name '%s'?", azureDepName),
-			})
-			if err != nil {
-				return err
-			}
-
-			if !confirm {
-				continue azureDepPrompt
-			}
-		} else if !wellFormedDbNameRegex.MatchString(azureDepName) {
-			i.console.MessageUxItem(ctx, &ux.WarningMessage{
-				Description: "Dependency name contains special characters. " +
-					"This might not be allowed by the Azure service.",
-			})
-			confirm, err := i.console.Confirm(ctx, input.ConsoleOptions{
-				Message: fmt.Sprintf("Continue with name '%s'?", azureDepName),
-			})
-			if err != nil {
-				return err
-			}
-
-			if !confirm {
-				continue azureDepPrompt
-			}
+		spec.AzureServiceBus = &scaffold.AzureDepServiceBus{
+			IsJms:                     dependency.IsJms,
+			Queues:                    dependency.Queues,
+			AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
+			AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
 		}
-
-		switch dependency := azureDep.(type) {
-		case appdetect.AzureDepServiceBus:
-			authType, err := i.chooseAuthType(ctx, azureDepName)
-			if err != nil {
-				return err
-			}
-			spec.AzureServiceBus = &scaffold.AzureDepServiceBus{
-				Name:                      azureDepName,
-				Queues:                    dependency.Queues,
-				AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
-				AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
-			}
-		case appdetect.AzureDepEventHubs:
-			authType, err := i.chooseAuthType(ctx, azureDepName)
-			if err != nil {
-				return err
-			}
-			spec.AzureEventHubs = &scaffold.AzureDepEventHubs{
-				Name:                      azureDepName,
-				EventHubNames:             dependency.Names,
-				AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
-				AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
-			}
-		case appdetect.AzureDepEventHubsForKafka:
-			authType, err := i.chooseAuthType(ctx, azureDepName)
-			if err != nil {
-				return err
-			}
-			spec.AzureEventHubsForKafka = &scaffold.AzureDepEventHubsForKafka{
-				Name:                      azureDepName,
-				EventHubNames:             dependency.Names,
-				AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
-				AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
-			}
-		case appdetect.AzureDepStorageAccount:
-			authType, err := i.chooseAuthType(ctx, azureDepName)
-			if err != nil {
-				return err
-			}
-			spec.AzureStorageAccount = &scaffold.AzureDepStorageAccount{
-				Name:                      azureDepName,
-				ContainerNames:            dependency.ContainerNames,
-				AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
-				AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
-			}
+	case appdetect.AzureDepEventHubs:
+		authType, err := i.chooseAuthTypeByPrompt(ctx, azureDep.ResourceDisplay())
+		if err != nil {
+			return err
 		}
-		break azureDepPrompt
+		spec.AzureEventHubs = &scaffold.AzureDepEventHubs{
+			EventHubNames:             dependency.Names,
+			AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
+			AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
+		}
+	case appdetect.AzureDepStorageAccount:
+		authType, err := i.chooseAuthTypeByPrompt(ctx, azureDep.ResourceDisplay())
+		if err != nil {
+			return err
+		}
+		spec.AzureStorageAccount = &scaffold.AzureDepStorageAccount{
+			ContainerNames:            dependency.ContainerNames,
+			AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
+			AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
+		}
 	}
 	return nil
 }
 
-func (i *Initializer) chooseAuthType(ctx context.Context, serviceName string) (scaffold.AuthType, error) {
+func (i *Initializer) chooseAuthTypeByPrompt(ctx context.Context, serviceName string) (scaffold.AuthType, error) {
 	portOptions := []string{
 		"User assigned managed identity",
 		"Connection string",
@@ -446,4 +404,50 @@ func (i *Initializer) chooseAuthType(ctx context.Context, serviceName string) (s
 	} else {
 		return scaffold.AuthType_PASSWORD, nil
 	}
+}
+
+func detectCosmosSqlDatabaseContainersInDirectory(root string) ([]scaffold.CosmosSqlDatabaseContainer, error) {
+	var result []scaffold.CosmosSqlDatabaseContainer
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && filepath.Ext(path) == ".java" {
+			container, err := detectCosmosSqlDatabaseContainerInFile(path)
+			if err != nil {
+				return err
+			}
+			if len(container.ContainerName) != 0 {
+				result = append(result, container)
+			}
+		}
+		return nil
+	})
+	return result, err
+}
+
+func detectCosmosSqlDatabaseContainerInFile(filePath string) (scaffold.CosmosSqlDatabaseContainer, error) {
+	var result scaffold.CosmosSqlDatabaseContainer
+	result.PartitionKeyPaths = make([]string, 0)
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return result, err
+	}
+	// todo:
+	// 1. Maybe "@Container" is not "com.azure.spring.data.cosmos.core.mapping.Container"
+	// 2. Maybe "@Container" is imported by "com.azure.spring.data.cosmos.core.mapping.*"
+	containerRegex := regexp.MustCompile(`@Container\s*\(containerName\s*=\s*"([^"]+)"\)`)
+	partitionKeyRegex := regexp.MustCompile(`@PartitionKey\s*(?:\n\s*)?(?:private|public|protected)?\s*\w+\s+(\w+);`)
+
+	matches := containerRegex.FindAllStringSubmatch(string(content), -1)
+	if len(matches) != 1 {
+		return result, nil
+	}
+	result.ContainerName = matches[0][1]
+
+	matches = partitionKeyRegex.FindAllStringSubmatch(string(content), -1)
+	for _, match := range matches {
+		result.PartitionKeyPaths = append(result.PartitionKeyPaths, match[1])
+	}
+	return result, nil
 }

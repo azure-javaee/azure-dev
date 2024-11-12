@@ -12,6 +12,7 @@ type InfraSpec struct {
 	// Databases to create
 	DbPostgres    *DatabasePostgres
 	DbMySql       *DatabaseMySql
+	DbCosmos      *DatabaseCosmosAccount
 	DbCosmosMongo *DatabaseCosmosMongo
 	DbRedis       *DatabaseRedis
 
@@ -45,6 +46,16 @@ type DatabaseMySql struct {
 	AuthUsingUsernamePassword bool
 }
 
+type CosmosSqlDatabaseContainer struct {
+	ContainerName     string
+	PartitionKeyPaths []string
+}
+
+type DatabaseCosmosAccount struct {
+	DatabaseName string
+	Containers   []CosmosSqlDatabaseContainer
+}
+
 type DatabaseCosmosMongo struct {
 	DatabaseName string
 }
@@ -67,15 +78,14 @@ type AIModelModel struct {
 }
 
 type AzureDepServiceBus struct {
-	Name                      string
 	Queues                    []string
 	TopicsAndSubscriptions    map[string][]string
 	AuthUsingConnectionString bool
 	AuthUsingManagedIdentity  bool
+	IsJms                     bool
 }
 
 type AzureDepEventHubs struct {
-	Name                      string
 	EventHubNames             []string
 	AuthUsingConnectionString bool
 	AuthUsingManagedIdentity  bool
@@ -89,7 +99,6 @@ type AzureDepEventHubsForKafka struct {
 }
 
 type AzureDepStorageAccount struct {
-	Name                      string
 	ContainerNames            []string
 	AuthUsingConnectionString bool
 	AuthUsingManagedIdentity  bool
@@ -122,6 +131,7 @@ type ServiceSpec struct {
 	DbPostgres    *DatabaseReference
 	DbMySql       *DatabaseReference
 	DbCosmosMongo *DatabaseReference
+	DbCosmos      *DatabaseCosmosAccount
 	DbRedis       *DatabaseReference
 
 	// AI model connections
