@@ -150,19 +150,12 @@ func (a AzureDepServiceBus) ResourceDisplay() string {
 }
 
 type AzureDepEventHubs struct {
-	Names []string
+	Names    []string
+	UseKafka bool
 }
 
 func (a AzureDepEventHubs) ResourceDisplay() string {
 	return "Azure Event Hubs"
-}
-
-type AzureDepEventHubsForKafka struct {
-	Names []string
-}
-
-func (a AzureDepEventHubsForKafka) ResourceDisplay() string {
-	return "Azure Event Hubs for Apache Kafka"
 }
 
 type AzureDepStorageAccount struct {

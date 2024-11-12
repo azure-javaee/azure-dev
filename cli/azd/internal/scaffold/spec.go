@@ -19,10 +19,9 @@ type InfraSpec struct {
 	// ai models
 	AIModels []AIModel
 
-	AzureServiceBus        *AzureDepServiceBus
-	AzureEventHubs         *AzureDepEventHubs
-	AzureEventHubsForKafka *AzureDepEventHubsForKafka
-	AzureStorageAccount    *AzureDepStorageAccount
+	AzureServiceBus     *AzureDepServiceBus
+	AzureEventHubs      *AzureDepEventHubs
+	AzureStorageAccount *AzureDepStorageAccount
 }
 
 type Parameter struct {
@@ -89,13 +88,7 @@ type AzureDepEventHubs struct {
 	EventHubNames             []string
 	AuthUsingConnectionString bool
 	AuthUsingManagedIdentity  bool
-}
-
-type AzureDepEventHubsForKafka struct {
-	Name                      string
-	EventHubNames             []string
-	AuthUsingConnectionString bool
-	AuthUsingManagedIdentity  bool
+	UseKafka                  bool
 }
 
 type AzureDepStorageAccount struct {
@@ -137,10 +130,9 @@ type ServiceSpec struct {
 	// AI model connections
 	AIModels []AIModelReference
 
-	AzureServiceBus        *AzureDepServiceBus
-	AzureEventHubs         *AzureDepEventHubs
-	AzureEventHubsForKafka *AzureDepEventHubsForKafka
-	AzureStorageAccount    *AzureDepStorageAccount
+	AzureServiceBus     *AzureDepServiceBus
+	AzureEventHubs      *AzureDepEventHubs
+	AzureStorageAccount *AzureDepStorageAccount
 }
 
 type Frontend struct {

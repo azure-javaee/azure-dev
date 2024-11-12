@@ -211,7 +211,8 @@ func detectDependencies(mavenProject *mavenProject, project *Project) (*Project,
 				}
 			}
 			project.AzureDeps = append(project.AzureDeps, AzureDepEventHubs{
-				Names: destinations,
+				Names:    destinations,
+				UseKafka: false,
 			})
 			if containsInBinding {
 				project.AzureDeps = append(project.AzureDeps, AzureDepStorageAccount{
@@ -230,8 +231,9 @@ func detectDependencies(mavenProject *mavenProject, project *Project) (*Project,
 					log.Printf("Kafka Topic [%s] found for binding [%s]", destination, bindingName)
 				}
 			}
-			project.AzureDeps = append(project.AzureDeps, AzureDepEventHubsForKafka{
-				Names: destinations,
+			project.AzureDeps = append(project.AzureDeps, AzureDepEventHubs{
+				Names:    destinations,
+				UseKafka: true,
 			})
 		}
 	}
