@@ -518,13 +518,24 @@ func (i *Initializer) prjConfigFromDetect(
 						},
 					}
 				case appdetect.AzureDepEventHubs:
-					config.Resources["eventhubs"] = &project.ResourceConfig{
-						Type: project.ResourceTypeMessagingEventHubs,
-						Props: project.EventHubsProps{
-							EventHubNames: spec.AzureEventHubs.EventHubNames,
-							AuthType:      spec.AzureEventHubs.AuthType,
-						},
+					if spec.AzureEventHubs.UseKafka {
+						config.Resources["kafka"] = &project.ResourceConfig{
+							Type: project.ResourceTypeMessagingKafka,
+							Props: project.KafkaProps{
+								Topics:   spec.AzureEventHubs.EventHubNames,
+								AuthType: spec.AzureEventHubs.AuthType,
+							},
+						}
+					} else {
+						config.Resources["eventhubs"] = &project.ResourceConfig{
+							Type: project.ResourceTypeMessagingEventHubs,
+							Props: project.EventHubsProps{
+								EventHubNames: spec.AzureEventHubs.EventHubNames,
+								AuthType:      spec.AzureEventHubs.AuthType,
+							},
+						}
 					}
+
 				}
 			}
 		}

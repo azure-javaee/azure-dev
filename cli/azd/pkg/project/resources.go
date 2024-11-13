@@ -230,12 +230,17 @@ type CosmosDBContainerProps struct {
 }
 
 type ServiceBusProps struct {
-	Queues   []string          `yaml:"queueName,omitempty"`
+	Queues   []string          `yaml:"queues,omitempty"`
 	IsJms    bool              `yaml:"isJms,omitempty"`
 	AuthType internal.AuthType `yaml:"authType,omitempty"`
 }
 
 type EventHubsProps struct {
-	EventHubNames []string          `yaml:"eventHubName,omitempty"`
+	EventHubNames []string          `yaml:"EventHubNames,omitempty"`
 	AuthType      internal.AuthType `yaml:"authType,omitempty"`
+}
+
+type KafkaProps struct {
+	Topics   []string          `yaml:"topics,omitempty"`
+	AuthType internal.AuthType `yaml:"authType,omitempty"`
 }
