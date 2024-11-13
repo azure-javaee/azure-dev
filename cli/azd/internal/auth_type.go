@@ -4,11 +4,11 @@ package internal
 type AuthType string
 
 const (
-	AUTH_TYPE_UNSPECIFIED AuthType = "UNSPECIFIED"
+	AuthTypeUnspecified AuthType = "UNSPECIFIED"
 	// Username and password, or key based authentication
-	AuthType_PASSWORD AuthType = "PASSWORD"
+	AuthtypePassword AuthType = "PASSWORD"
 	// Connection string authentication
-	AuthType_CONNECTION_STRING AuthType = "CONNECTION_STRING"
+	AuthtypeConnectionString AuthType = "CONNECTION_STRING"
 	// Microsoft EntraID token credential
-	AuthType_MANAGED_IDENTITY AuthType = "MANAGED_IDENTITY"
+	AuthtypeManagedIdentity AuthType = "MANAGED_IDENTITY"
 )

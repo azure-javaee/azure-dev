@@ -367,17 +367,17 @@ func (i *Initializer) chooseAuthTypeByPrompt(ctx context.Context, serviceName st
 		Options: portOptions,
 	})
 	if err != nil {
-		return internal.AUTH_TYPE_UNSPECIFIED, err
+		return internal.AuthTypeUnspecified, err
 	}
 	if selection == 0 {
-		return internal.AuthType_MANAGED_IDENTITY, nil
+		return internal.AuthtypeManagedIdentity, nil
 	} else {
-		return internal.AuthType_CONNECTION_STRING, nil
+		return internal.AuthtypeConnectionString, nil
 	}
 }
 
 func (i *Initializer) getAuthType(ctx context.Context) (internal.AuthType, error) {
-	authType := internal.AUTH_TYPE_UNSPECIFIED
+	authType := internal.AuthTypeUnspecified
 	selection, err := i.console.Select(ctx, input.ConsoleOptions{
 		Message: "Input the authentication type you want:",
 		Options: []string{
@@ -390,9 +390,9 @@ func (i *Initializer) getAuthType(ctx context.Context) (internal.AuthType, error
 	}
 	switch selection {
 	case 0:
-		authType = internal.AuthType_MANAGED_IDENTITY
+		authType = internal.AuthtypeManagedIdentity
 	case 1:
-		authType = internal.AuthType_PASSWORD
+		authType = internal.AuthtypePassword
 	default:
 		panic("unhandled selection")
 	}
