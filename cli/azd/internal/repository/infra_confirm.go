@@ -400,7 +400,7 @@ func (i *Initializer) chooseAuthTypeByPrompt(ctx context.Context, serviceName st
 	if selection == 0 {
 		return scaffold.AuthType_TOKEN_CREDENTIAL, nil
 	} else {
-		return scaffold.AuthType_PASSWORD, nil
+		return scaffold.AuthType_CONNECTION_STRING, nil
 	}
 }
 

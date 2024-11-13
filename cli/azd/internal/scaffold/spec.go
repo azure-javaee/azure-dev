@@ -101,10 +101,12 @@ type AuthType int32
 
 const (
 	AUTH_TYPE_UNSPECIFIED AuthType = 0
-	// Username and password, or key based authentication, or connection string
+	// Username and password, or key based authentication
 	AuthType_PASSWORD AuthType = 1
+	// Connection string authentication
+	AuthType_CONNECTION_STRING AuthType = 2
 	// Microsoft EntraID token credential
-	AuthType_TOKEN_CREDENTIAL AuthType = 2
+	AuthType_TOKEN_CREDENTIAL AuthType = 3
 )
 
 type ServiceSpec struct {

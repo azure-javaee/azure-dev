@@ -276,7 +276,7 @@ func (i *Initializer) InitFromApp(
 
 	title = "Generating " + output.WithHighLightFormat("./"+azdcontext.ProjectFileName)
 	i.console.ShowSpinner(ctx, title, input.Step)
-	err = i.genProjectFile(ctx, azdCtx, detect, *infraSpec, composeEnabled)
+	err = i.genProjectFile(ctx, azdCtx, detect, infraSpec, composeEnabled)
 	if err != nil {
 		i.console.StopSpinner(ctx, title, input.GetStepResultFormat(err))
 		return err
@@ -370,7 +370,7 @@ func (i *Initializer) genProjectFile(
 	ctx context.Context,
 	azdCtx *azdcontext.AzdContext,
 	detect detectConfirm,
-	spec scaffold.InfraSpec,
+	spec *scaffold.InfraSpec,
 	addResources bool) error {
 	config, err := i.prjConfigFromDetect(ctx, azdCtx.ProjectDirectory(), detect, spec, addResources)
 	if err != nil {
@@ -389,11 +389,24 @@ func (i *Initializer) genProjectFile(
 
 const InitGenTemplateId = "azd-init"
 
+func decideAuthType(authUsingManagedIdentity bool, authUsingPassword bool, authUsingConnectionString bool) string {
+	if authUsingManagedIdentity {
+		return "managedIdentity"
+	}
+	if authUsingPassword {
+		return "password"
+	}
+	if authUsingConnectionString {
+		return "connectionString"
+	}
+	return ""
+}
+
 func (i *Initializer) prjConfigFromDetect(
 	ctx context.Context,
 	root string,
 	detect detectConfirm,
-	spec scaffold.InfraSpec,
+	spec *scaffold.InfraSpec,
 	addResources bool) (project.ProjectConfig, error) {
 	config := project.ProjectConfig{
 		Name: azdcontext.ProjectName(root),
@@ -472,23 +485,74 @@ func (i *Initializer) prjConfigFromDetect(
 					config.Resources["postgres"] = &project.ResourceConfig{
 						Type: project.ResourceTypeDbPostgres,
 						Name: spec.DbPostgres.DatabaseName,
+						Props: project.PostgresProps{
+							DatabaseName: spec.DbPostgres.DatabaseName,
+							AuthType: decideAuthType(
+								spec.DbPostgres.AuthUsingManagedIdentity,
+								spec.DbPostgres.AuthUsingUsernamePassword,
+								false),
+						},
 					}
 				case appdetect.DbMySql:
 					config.Resources["mysql"] = &project.ResourceConfig{
 						Type: project.ResourceTypeDbMySQL,
 						Props: project.MySQLProps{
 							DatabaseName: spec.DbMySql.DatabaseName,
-							AuthType:     "managedIdentity",
+							AuthType: decideAuthType(
+								spec.DbMySql.AuthUsingManagedIdentity,
+								spec.DbMySql.AuthUsingUsernamePassword,
+								false),
 						},
 					}
 				case appdetect.DbRedis:
 					config.Resources["redis"] = &project.ResourceConfig{
 						Type: project.ResourceTypeDbRedis,
 					}
+				case appdetect.DbCosmos:
+					cosmosDBProps := project.CosmosDBProps{
+						DatabaseName: spec.DbCosmos.DatabaseName,
+					}
+					for _, container := range spec.DbCosmos.Containers {
+						cosmosDBProps.Containers = append(cosmosDBProps.Containers, project.CosmosDBContainerProps{
+							ContainerName:     container.ContainerName,
+							PartitionKeyPaths: container.PartitionKeyPaths,
+						})
+					}
+					config.Resources["cosmos"] = &project.ResourceConfig{
+						Type:  project.ResourceTypeDbCosmos,
+						Props: cosmosDBProps,
+					}
+				}
+
+			}
+			for _, azureDep := range prj.AzureDeps {
+				switch azureDep.(type) {
+				case appdetect.AzureDepServiceBus:
+					config.Resources["servicebus"] = &project.ResourceConfig{
+						Type: project.ResourceTypeMessagingServiceBus,
+						Props: project.ServiceBusProps{
+							Queues: spec.AzureServiceBus.Queues,
+							IsJms:  spec.AzureServiceBus.IsJms,
+							AuthType: decideAuthType(
+								spec.AzureServiceBus.AuthUsingManagedIdentity,
+								false,
+								spec.AzureServiceBus.AuthUsingConnectionString),
+						},
+					}
+				case appdetect.AzureDepEventHubs:
+					config.Resources["eventhubs"] = &project.ResourceConfig{
+						Type: project.ResourceTypeMessagingEventHubs,
+						Props: project.EventHubsProps{
+							EventHubNames: spec.AzureEventHubs.EventHubNames,
+							AuthType: decideAuthType(
+								spec.AzureServiceBus.AuthUsingManagedIdentity,
+								false,
+								spec.AzureServiceBus.AuthUsingConnectionString),
+						},
+					}
 				}
 			}
 		}
-
 		name := filepath.Base(rel)
 		if name == "." {
 			name = config.Name
@@ -526,6 +590,10 @@ func (i *Initializer) prjConfigFromDetect(
 				dbType = project.ResourceTypeDbMongo
 			case appdetect.DbPostgres:
 				dbType = project.ResourceTypeDbPostgres
+			case appdetect.DbMySql:
+				dbType = project.ResourceTypeDbMySQL
+			case appdetect.DbCosmos:
+				dbType = project.ResourceTypeDbCosmos
 			}
 
 			db := project.ResourceConfig{
@@ -549,6 +617,44 @@ func (i *Initializer) prjConfigFromDetect(
 
 			config.Resources[db.Name] = &db
 			dbNames[database] = db.Name
+		}
+
+		for _, azureDepPair := range detect.AzureDeps {
+			azureDep := azureDepPair.first
+			_authType, err := i.chooseAuthTypeByPrompt(ctx, azureDep.ResourceDisplay())
+			if err != nil {
+				return config, err
+			}
+			authType := "connectionString"
+			if _authType == scaffold.AuthType_PASSWORD {
+				authType = "password"
+			} else if _authType == scaffold.AuthType_TOKEN_CREDENTIAL {
+				authType = "managedIdentity"
+			}
+			switch azureDep.(type) {
+			case appdetect.AzureDepServiceBus:
+				azureDepServiceBus := azureDep.(appdetect.AzureDepServiceBus)
+				config.Resources["servicebus"] = &project.ResourceConfig{
+					Type: project.ResourceTypeMessagingServiceBus,
+					Props: project.ServiceBusProps{
+						Queues:   azureDepServiceBus.Queues,
+						IsJms:    azureDepServiceBus.IsJms,
+						AuthType: authType,
+					},
+				}
+			case appdetect.AzureDepEventHubs:
+				config.Resources["eventhubs"] = &project.ResourceConfig{
+					Type: project.ResourceTypeMessagingEventHubs,
+					Props: project.EventHubsProps{
+						EventHubNames: spec.AzureEventHubs.EventHubNames,
+						AuthType:      authType,
+					},
+				}
+			case appdetect.AzureDepStorageAccount:
+				config.Resources["storage"] = &project.ResourceConfig{
+					Type: project.ResourceTypeStorage,
+				}
+			}
 		}
 
 		backends := []*project.ResourceConfig{}
