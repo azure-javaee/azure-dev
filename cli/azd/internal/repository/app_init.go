@@ -389,19 +389,6 @@ func (i *Initializer) genProjectFile(
 
 const InitGenTemplateId = "azd-init"
 
-func decideAuthType(authUsingManagedIdentity bool, authUsingPassword bool, authUsingConnectionString bool) string {
-	if authUsingManagedIdentity {
-		return "managedIdentity"
-	}
-	if authUsingPassword {
-		return "password"
-	}
-	if authUsingConnectionString {
-		return "connectionString"
-	}
-	return ""
-}
-
 func (i *Initializer) prjConfigFromDetect(
 	ctx context.Context,
 	root string,
@@ -487,10 +474,7 @@ func (i *Initializer) prjConfigFromDetect(
 						Name: spec.DbPostgres.DatabaseName,
 						Props: project.PostgresProps{
 							DatabaseName: spec.DbPostgres.DatabaseName,
-							AuthType: decideAuthType(
-								spec.DbPostgres.AuthUsingManagedIdentity,
-								spec.DbPostgres.AuthUsingUsernamePassword,
-								false),
+							AuthType:     spec.DbPostgres.AuthType,
 						},
 					}
 				case appdetect.DbMySql:
@@ -498,10 +482,7 @@ func (i *Initializer) prjConfigFromDetect(
 						Type: project.ResourceTypeDbMySQL,
 						Props: project.MySQLProps{
 							DatabaseName: spec.DbMySql.DatabaseName,
-							AuthType: decideAuthType(
-								spec.DbMySql.AuthUsingManagedIdentity,
-								spec.DbMySql.AuthUsingUsernamePassword,
-								false),
+							AuthType:     spec.DbMySql.AuthType,
 						},
 					}
 				case appdetect.DbRedis:
@@ -531,12 +512,9 @@ func (i *Initializer) prjConfigFromDetect(
 					config.Resources["servicebus"] = &project.ResourceConfig{
 						Type: project.ResourceTypeMessagingServiceBus,
 						Props: project.ServiceBusProps{
-							Queues: spec.AzureServiceBus.Queues,
-							IsJms:  spec.AzureServiceBus.IsJms,
-							AuthType: decideAuthType(
-								spec.AzureServiceBus.AuthUsingManagedIdentity,
-								false,
-								spec.AzureServiceBus.AuthUsingConnectionString),
+							Queues:   spec.AzureServiceBus.Queues,
+							IsJms:    spec.AzureServiceBus.IsJms,
+							AuthType: spec.AzureServiceBus.AuthType,
 						},
 					}
 				case appdetect.AzureDepEventHubs:
@@ -544,10 +522,7 @@ func (i *Initializer) prjConfigFromDetect(
 						Type: project.ResourceTypeMessagingEventHubs,
 						Props: project.EventHubsProps{
 							EventHubNames: spec.AzureEventHubs.EventHubNames,
-							AuthType: decideAuthType(
-								spec.AzureServiceBus.AuthUsingManagedIdentity,
-								false,
-								spec.AzureServiceBus.AuthUsingConnectionString),
+							AuthType:      spec.AzureEventHubs.AuthType,
 						},
 					}
 				}
@@ -621,15 +596,9 @@ func (i *Initializer) prjConfigFromDetect(
 
 		for _, azureDepPair := range detect.AzureDeps {
 			azureDep := azureDepPair.first
-			_authType, err := i.chooseAuthTypeByPrompt(ctx, azureDep.ResourceDisplay())
+			authType, err := i.chooseAuthTypeByPrompt(ctx, azureDep.ResourceDisplay())
 			if err != nil {
 				return config, err
-			}
-			authType := "connectionString"
-			if _authType == scaffold.AuthType_PASSWORD {
-				authType = "password"
-			} else if _authType == scaffold.AuthType_TOKEN_CREDENTIAL {
-				authType = "managedIdentity"
 			}
 			switch azureDep.(type) {
 			case appdetect.AzureDepServiceBus:

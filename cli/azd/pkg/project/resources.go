@@ -5,6 +5,7 @@ package project
 
 import (
 	"fmt"
+	"github.com/azure/azure-dev/cli/azd/internal"
 
 	"github.com/braydonk/yaml"
 )
@@ -204,13 +205,13 @@ type AIModelPropsModel struct {
 }
 
 type MySQLProps struct {
-	DatabaseName string `yaml:"databaseName,omitempty"`
-	AuthType     string `yaml:"authType,omitempty"`
+	DatabaseName string            `yaml:"databaseName,omitempty"`
+	AuthType     internal.AuthType `yaml:"authType,omitempty"`
 }
 
 type PostgresProps struct {
-	DatabaseName string `yaml:"databaseName,omitempty"`
-	AuthType     string `yaml:"authType,omitempty"`
+	DatabaseName string            `yaml:"databaseName,omitempty"`
+	AuthType     internal.AuthType `yaml:"authType,omitempty"`
 }
 
 type MongoDBProps struct {
@@ -220,7 +221,7 @@ type MongoDBProps struct {
 type CosmosDBProps struct {
 	Containers   []CosmosDBContainerProps `yaml:"containers,omitempty"`
 	DatabaseName string                   `yaml:"databaseName,omitempty"`
-	AuthType     string                   `yaml:"authType,omitempty"`
+	AuthType     internal.AuthType        `yaml:"authType,omitempty"`
 }
 
 type CosmosDBContainerProps struct {
@@ -229,12 +230,12 @@ type CosmosDBContainerProps struct {
 }
 
 type ServiceBusProps struct {
-	Queues   []string `yaml:"queueName,omitempty"`
-	IsJms    bool     `yaml:"isJms,omitempty"`
-	AuthType string   `yaml:"authType,omitempty"`
+	Queues   []string          `yaml:"queueName,omitempty"`
+	IsJms    bool              `yaml:"isJms,omitempty"`
+	AuthType internal.AuthType `yaml:"authType,omitempty"`
 }
 
 type EventHubsProps struct {
-	EventHubNames []string `yaml:"eventHubName,omitempty"`
-	AuthType      string   `yaml:"authType,omitempty"`
+	EventHubNames []string          `yaml:"eventHubName,omitempty"`
+	AuthType      internal.AuthType `yaml:"authType,omitempty"`
 }

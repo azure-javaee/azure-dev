@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"github.com/azure/azure-dev/cli/azd/internal"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -55,9 +56,8 @@ func (i *Initializer) infraSpecFromDetect(
 					return scaffold.InfraSpec{}, err
 				}
 				spec.DbPostgres = &scaffold.DatabasePostgres{
-					DatabaseName:              dbName,
-					AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
-					AuthUsingUsernamePassword: authType == scaffold.AuthType_PASSWORD,
+					DatabaseName: dbName,
+					AuthType:     authType,
 				}
 				break dbPrompt
 			case appdetect.DbMySql:
@@ -70,9 +70,8 @@ func (i *Initializer) infraSpecFromDetect(
 					return scaffold.InfraSpec{}, err
 				}
 				spec.DbMySql = &scaffold.DatabaseMySql{
-					DatabaseName:              dbName,
-					AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
-					AuthUsingUsernamePassword: authType == scaffold.AuthType_PASSWORD,
+					DatabaseName: dbName,
+					AuthType:     authType,
 				}
 				break dbPrompt
 			case appdetect.DbCosmos:
@@ -133,15 +132,13 @@ func (i *Initializer) infraSpecFromDetect(
 				}
 			case appdetect.DbPostgres:
 				serviceSpec.DbPostgres = &scaffold.DatabaseReference{
-					DatabaseName:              spec.DbPostgres.DatabaseName,
-					AuthUsingManagedIdentity:  spec.DbPostgres.AuthUsingManagedIdentity,
-					AuthUsingUsernamePassword: spec.DbPostgres.AuthUsingUsernamePassword,
+					DatabaseName: spec.DbPostgres.DatabaseName,
+					AuthType:     spec.DbPostgres.AuthType,
 				}
 			case appdetect.DbMySql:
 				serviceSpec.DbMySql = &scaffold.DatabaseReference{
-					DatabaseName:              spec.DbMySql.DatabaseName,
-					AuthUsingManagedIdentity:  spec.DbMySql.AuthUsingManagedIdentity,
-					AuthUsingUsernamePassword: spec.DbMySql.AuthUsingUsernamePassword,
+					DatabaseName: spec.DbMySql.DatabaseName,
+					AuthType:     spec.DbMySql.AuthType,
 				}
 			case appdetect.DbCosmos:
 				serviceSpec.DbCosmos = spec.DbCosmos
@@ -322,8 +319,64 @@ func promptPort(
 	return port, nil
 }
 
-func (i *Initializer) getAuthType(ctx context.Context) (scaffold.AuthType, error) {
-	authType := scaffold.AuthType(0)
+func (i *Initializer) buildInfraSpecByAzureDep(
+	ctx context.Context,
+	azureDep appdetect.AzureDep,
+	spec *scaffold.InfraSpec) error {
+	switch dependency := azureDep.(type) {
+	case appdetect.AzureDepServiceBus:
+		authType, err := i.chooseAuthTypeByPrompt(ctx, azureDep.ResourceDisplay())
+		if err != nil {
+			return err
+		}
+		spec.AzureServiceBus = &scaffold.AzureDepServiceBus{
+			IsJms:    dependency.IsJms,
+			Queues:   dependency.Queues,
+			AuthType: authType,
+		}
+	case appdetect.AzureDepEventHubs:
+		authType, err := i.chooseAuthTypeByPrompt(ctx, azureDep.ResourceDisplay())
+		if err != nil {
+			return err
+		}
+		spec.AzureEventHubs = &scaffold.AzureDepEventHubs{
+			EventHubNames: dependency.Names,
+			AuthType:      authType,
+		}
+	case appdetect.AzureDepStorageAccount:
+		authType, err := i.chooseAuthTypeByPrompt(ctx, azureDep.ResourceDisplay())
+		if err != nil {
+			return err
+		}
+		spec.AzureStorageAccount = &scaffold.AzureDepStorageAccount{
+			ContainerNames: dependency.ContainerNames,
+			AuthType:       authType,
+		}
+	}
+	return nil
+}
+
+func (i *Initializer) chooseAuthTypeByPrompt(ctx context.Context, serviceName string) (internal.AuthType, error) {
+	portOptions := []string{
+		"User assigned managed identity",
+		"Connection string",
+	}
+	selection, err := i.console.Select(ctx, input.ConsoleOptions{
+		Message: "Choose auth type for '" + serviceName + "'?",
+		Options: portOptions,
+	})
+	if err != nil {
+		return internal.AUTH_TYPE_UNSPECIFIED, err
+	}
+	if selection == 0 {
+		return internal.AuthType_MANAGED_IDENTITY, nil
+	} else {
+		return internal.AuthType_CONNECTION_STRING, nil
+	}
+}
+
+func (i *Initializer) getAuthType(ctx context.Context) (internal.AuthType, error) {
+	authType := internal.AUTH_TYPE_UNSPECIFIED
 	selection, err := i.console.Select(ctx, input.ConsoleOptions{
 		Message: "Input the authentication type you want:",
 		Options: []string{
@@ -336,72 +389,13 @@ func (i *Initializer) getAuthType(ctx context.Context) (scaffold.AuthType, error
 	}
 	switch selection {
 	case 0:
-		authType = scaffold.AuthType_TOKEN_CREDENTIAL
+		authType = internal.AuthType_MANAGED_IDENTITY
 	case 1:
-		authType = scaffold.AuthType_PASSWORD
+		authType = internal.AuthType_PASSWORD
 	default:
 		panic("unhandled selection")
 	}
 	return authType, nil
-}
-
-func (i *Initializer) buildInfraSpecByAzureDep(
-	ctx context.Context,
-	azureDep appdetect.AzureDep,
-	spec *scaffold.InfraSpec) error {
-	switch dependency := azureDep.(type) {
-	case appdetect.AzureDepServiceBus:
-		authType, err := i.chooseAuthTypeByPrompt(ctx, azureDep.ResourceDisplay())
-		if err != nil {
-			return err
-		}
-		spec.AzureServiceBus = &scaffold.AzureDepServiceBus{
-			IsJms:                     dependency.IsJms,
-			Queues:                    dependency.Queues,
-			AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
-			AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
-		}
-	case appdetect.AzureDepEventHubs:
-		authType, err := i.chooseAuthTypeByPrompt(ctx, azureDep.ResourceDisplay())
-		if err != nil {
-			return err
-		}
-		spec.AzureEventHubs = &scaffold.AzureDepEventHubs{
-			EventHubNames:             dependency.Names,
-			AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
-			AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
-		}
-	case appdetect.AzureDepStorageAccount:
-		authType, err := i.chooseAuthTypeByPrompt(ctx, azureDep.ResourceDisplay())
-		if err != nil {
-			return err
-		}
-		spec.AzureStorageAccount = &scaffold.AzureDepStorageAccount{
-			ContainerNames:            dependency.ContainerNames,
-			AuthUsingConnectionString: authType == scaffold.AuthType_PASSWORD,
-			AuthUsingManagedIdentity:  authType == scaffold.AuthType_TOKEN_CREDENTIAL,
-		}
-	}
-	return nil
-}
-
-func (i *Initializer) chooseAuthTypeByPrompt(ctx context.Context, serviceName string) (scaffold.AuthType, error) {
-	portOptions := []string{
-		"User assigned managed identity",
-		"Connection string",
-	}
-	selection, err := i.console.Select(ctx, input.ConsoleOptions{
-		Message: "Choose auth type for '" + serviceName + "'?",
-		Options: portOptions,
-	})
-	if err != nil {
-		return scaffold.AUTH_TYPE_UNSPECIFIED, err
-	}
-	if selection == 0 {
-		return scaffold.AuthType_TOKEN_CREDENTIAL, nil
-	} else {
-		return scaffold.AuthType_CONNECTION_STRING, nil
-	}
 }
 
 func detectCosmosSqlDatabaseContainersInDirectory(root string) ([]scaffold.CosmosSqlDatabaseContainer, error) {
