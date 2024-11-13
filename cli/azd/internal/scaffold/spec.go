@@ -85,6 +85,7 @@ type AzureDepServiceBus struct {
 type AzureDepEventHubs struct {
 	EventHubNames []string
 	AuthType      internal.AuthType
+	UseKafka      bool
 }
 
 type AzureDepStorageAccount struct {

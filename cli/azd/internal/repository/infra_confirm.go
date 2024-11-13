@@ -342,6 +342,7 @@ func (i *Initializer) buildInfraSpecByAzureDep(
 		spec.AzureEventHubs = &scaffold.AzureDepEventHubs{
 			EventHubNames: dependency.Names,
 			AuthType:      authType,
+			UseKafka:      dependency.UseKafka,
 		}
 	case appdetect.AzureDepStorageAccount:
 		authType, err := i.chooseAuthTypeByPrompt(ctx, azureDep.ResourceDisplay())
