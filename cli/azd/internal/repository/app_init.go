@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -128,9 +129,31 @@ func (i *Initializer) InitFromApp(
 	i.console.StopSpinner(ctx, title, input.StepDone)
 
 	var prjAppHost []appdetect.Project
-	for _, prj := range projects {
+	for index, prj := range projects {
 		if prj.Language == appdetect.DotNetAppHost {
 			prjAppHost = append(prjAppHost, prj)
+		}
+
+		if prj.Language == appdetect.Java {
+			var hasKafkaDep bool
+			var springBootVersion string
+			var hasSpringCloudAzureDep bool
+			for _, dep := range prj.AzureDeps {
+				if eventHubs, ok := dep.(appdetect.AzureDepEventHubs); ok && eventHubs.UseKafka {
+					hasKafkaDep = true
+					springBootVersion = eventHubs.SpringBootVersion
+				}
+				if _, ok := dep.(appdetect.SpringCloudAzureDep); ok {
+					hasSpringCloudAzureDep = true
+				}
+			}
+
+			if hasKafkaDep && !hasSpringCloudAzureDep {
+				err := processSpringCloudAzureDepByPrompt(i.console, ctx, &projects[index], springBootVersion)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 
@@ -599,4 +622,121 @@ func (i *Initializer) prjConfigFromDetect(
 	}
 
 	return config, nil
+}
+
+func processSpringCloudAzureDepByPrompt(console input.Console, ctx context.Context, project *appdetect.Project, springBootVersion string) error {
+	continueOption, err := console.Select(ctx, input.ConsoleOptions{
+		Message: "Detected Kafka dependency but no spring-cloud-azure-starter found. Select an option",
+		Options: []string{
+			"Exit then I will manually add this dependency",
+			"Continue and help me add this dependency",
+			"Continue and do not add this dependency",
+			"Continue and do not provision Azure Event Hubs for Kafka",
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	switch continueOption {
+	case 0:
+		return errors.New("you have to manually add dependency com.azure.spring:spring-cloud-azure-starter by following https://github.com/Azure/azure-sdk-for-java/wiki/Spring-Versions-Mapping")
+	case 1:
+		// determine spring cloud azure version by spring boot version
+		version := ""
+		if strings.HasPrefix(springBootVersion, "2.") {
+			version = "4.19.0"
+		} else if strings.HasPrefix(springBootVersion, "3.") {
+			version = "5.18.0"
+		} else {
+			version, err = promptSpringBootVersion(console, ctx)
+			if err != nil {
+				return err
+			}
+		}
+		// append spring cloud azure dependency
+		packageFile := filepath.Join(project.Path, project.PackageFileRelPath)
+		err := appendSpringCloudAzureDep(packageFile, version)
+		if err != nil {
+			return err
+		}
+		return nil
+	case 2:
+		return nil
+	case 3:
+		// remove Kafka Azure Dep
+		var result []appdetect.AzureDep
+		for _, dep := range project.AzureDeps {
+			if eventHubs, ok := dep.(appdetect.AzureDepEventHubs); !(ok && eventHubs.UseKafka) {
+				result = append(result, dep)
+			}
+		}
+		project.AzureDeps = result
+		return nil
+	}
+	return nil
+}
+
+func promptSpringBootVersion(console input.Console, ctx context.Context) (string, error) {
+	selection, err := console.Select(ctx, input.ConsoleOptions{
+		Message: "No spring boot version detected, what is your spring boot version?",
+		Options: []string{
+			"Spring Boot 2.x",
+			"Spring Boot 3.x",
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	switch selection {
+	case 0:
+		return "2.x", nil
+	case 1:
+		return "3.x", nil
+	default:
+		panic("unhandled selection")
+	}
+}
+
+func createDependencyEntry(version string) string {
+	return fmt.Sprintf(`
+        <dependency>
+            <groupId>com.azure.spring</groupId>
+            <artifactId>spring-cloud-azure-starter</artifactId>
+			<version>%s</version>
+        </dependency>
+    `, version)
+}
+
+func appendSpringCloudAzureDep(packageFilePath string, version string) error {
+	fileData, err := os.ReadFile(packageFilePath)
+	if err != nil {
+		fmt.Printf("Failed to read file: %v\n", err)
+		return err
+	}
+	pomContent := string(fileData)
+
+	dependencyEntry := createDependencyEntry(version)
+	depMgmtSectionStart := "<dependencyManagement>"
+	depMgmtSectionEnd := "</dependencyManagement>"
+	if depMgmtStartIdx := strings.Index(pomContent, depMgmtSectionStart); depMgmtStartIdx != -1 {
+		depMgmtEndIdx := strings.Index(pomContent, depMgmtSectionEnd)
+		pomContent1 := appendDep(pomContent[:depMgmtStartIdx], dependencyEntry)
+		pomContent2 := appendDep(pomContent[depMgmtEndIdx:], dependencyEntry)
+		pomContent = pomContent1 + pomContent[depMgmtStartIdx:depMgmtEndIdx] + pomContent2
+	} else {
+		pomContent = appendDep(pomContent, dependencyEntry)
+	}
+
+	err = os.WriteFile(packageFilePath, []byte(pomContent), 0644)
+	if err != nil {
+		return nil
+	}
+	return nil
+}
+
+func appendDep(content string, insertion string) string {
+	depSectionEnd := "</dependencies>"
+	return strings.Replace(content, depSectionEnd, insertion+"\n    "+depSectionEnd, 1)
 }

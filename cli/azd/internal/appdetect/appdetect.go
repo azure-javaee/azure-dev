@@ -150,8 +150,9 @@ func (a AzureDepServiceBus) ResourceDisplay() string {
 }
 
 type AzureDepEventHubs struct {
-	Names    []string
-	UseKafka bool
+	Names             []string
+	UseKafka          bool
+	SpringBootVersion string
 }
 
 func (a AzureDepEventHubs) ResourceDisplay() string {
@@ -164,6 +165,14 @@ type AzureDepStorageAccount struct {
 
 func (a AzureDepStorageAccount) ResourceDisplay() string {
 	return "Azure Storage Account"
+}
+
+type SpringCloudAzureDep struct {
+	Version string
+}
+
+func (a SpringCloudAzureDep) ResourceDisplay() string {
+	return "Spring Cloud Azure Starter"
 }
 
 type Project struct {
@@ -181,6 +190,9 @@ type Project struct {
 
 	// The path to the project directory.
 	Path string
+
+	// The package file relative path to the project path
+	PackageFileRelPath string
 
 	// A short description of the detection rule applied.
 	DetectionRule string

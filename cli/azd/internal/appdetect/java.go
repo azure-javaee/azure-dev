@@ -52,10 +52,11 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 			}
 
 			_ = currentRoot // use currentRoot here in the analysis
-			result, err := detectDependencies(project, &Project{
-				Language:      Java,
-				Path:          path,
-				DetectionRule: "Inferred by presence of: pom.xml",
+			result, err := detectDependencies(currentRoot, project, &Project{
+				Language:           Java,
+				Path:               path,
+				PackageFileRelPath: entry.Name(),
+				DetectionRule:      "Inferred by presence of: pom.xml",
 			})
 			if err != nil {
 				return nil, fmt.Errorf("detecting dependencies: %w", err)
@@ -128,7 +129,7 @@ func readMavenProject(filePath string) (*mavenProject, error) {
 	return &project, nil
 }
 
-func detectDependencies(mavenProject *mavenProject, project *Project) (*Project, error) {
+func detectDependencies(currentRoot *mavenProject, mavenProject *mavenProject, project *Project) (*Project, error) {
 	// how can we tell it's a Spring Boot project?
 	// 1. It has a parent with a groupId of org.springframework.boot and an artifactId of spring-boot-starter-parent
 	// 2. It has a dependency with a groupId of org.springframework.boot and an artifactId that starts with
@@ -145,7 +146,9 @@ func detectDependencies(mavenProject *mavenProject, project *Project) (*Project,
 		}
 	}
 	applicationProperties := make(map[string]string)
+	var springBootVersion string
 	if isSpringBoot {
+		springBootVersion = detectSpringBootVersion(currentRoot, mavenProject)
 		applicationProperties = readProperties(project.Path)
 	}
 
@@ -232,8 +235,15 @@ func detectDependencies(mavenProject *mavenProject, project *Project) (*Project,
 				}
 			}
 			project.AzureDeps = append(project.AzureDeps, AzureDepEventHubs{
-				Names:    destinations,
-				UseKafka: true,
+				Names:             destinations,
+				UseKafka:          true,
+				SpringBootVersion: springBootVersion,
+			})
+		}
+
+		if dep.GroupId == "com.azure.spring" && dep.ArtifactId == "spring-cloud-azure-starter" {
+			project.AzureDeps = append(project.AzureDeps, SpringCloudAzureDep{
+				Version: dep.Version,
 			})
 		}
 	}
@@ -246,6 +256,31 @@ func detectDependencies(mavenProject *mavenProject, project *Project) (*Project,
 	}
 
 	return project, nil
+}
+
+func detectSpringBootVersion(currentRoot *mavenProject, mavenProject *mavenProject) string {
+	if currentRoot != nil {
+		if currentRoot.Parent.ArtifactId == "spring-boot-starter-parent" {
+			return currentRoot.Parent.Version
+		} else {
+			for _, dep := range currentRoot.DependencyManagement.Dependencies {
+				if dep.ArtifactId == "spring-boot-dependencies" {
+					return dep.Version
+				}
+			}
+		}
+	} else {
+		if mavenProject.Parent.ArtifactId == "spring-boot-starter-parent" {
+			return mavenProject.Parent.Version
+		} else {
+			for _, dep := range mavenProject.DependencyManagement.Dependencies {
+				if dep.ArtifactId == "spring-boot-dependencies" {
+					return dep.Version
+				}
+			}
+		}
+	}
+	return "unknown"
 }
 
 func readProperties(projectPath string) map[string]string {
