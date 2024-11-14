@@ -150,9 +150,8 @@ func (a AzureDepServiceBus) ResourceDisplay() string {
 }
 
 type AzureDepEventHubs struct {
-	Names             []string
-	UseKafka          bool
-	SpringBootVersion string
+	Names    []string
+	UseKafka bool
 }
 
 func (a AzureDepEventHubs) ResourceDisplay() string {
@@ -190,9 +189,6 @@ type Project struct {
 
 	// The path to the project directory.
 	Path string
-
-	// The package file relative path to the project path
-	PackageFileRelPath string
 
 	// A short description of the detection rule applied.
 	DetectionRule string

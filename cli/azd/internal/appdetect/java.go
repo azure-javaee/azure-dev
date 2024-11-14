@@ -53,10 +53,9 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 
 			_ = currentRoot // use currentRoot here in the analysis
 			result, err := detectDependencies(currentRoot, project, &Project{
-				Language:           Java,
-				Path:               path,
-				PackageFileRelPath: entry.Name(),
-				DetectionRule:      "Inferred by presence of: pom.xml",
+				Language:      Java,
+				Path:          path,
+				DetectionRule: "Inferred by presence of: pom.xml",
 			})
 			if err != nil {
 				return nil, fmt.Errorf("detecting dependencies: %w", err)
@@ -151,6 +150,7 @@ func detectDependencies(currentRoot *mavenProject, mavenProject *mavenProject, p
 		springBootVersion = detectSpringBootVersion(currentRoot, mavenProject)
 		applicationProperties = readProperties(project.Path)
 	}
+	_ = springBootVersion
 
 	databaseDepMap := map[DatabaseDep]struct{}{}
 	for _, dep := range mavenProject.Dependencies {
@@ -235,9 +235,8 @@ func detectDependencies(currentRoot *mavenProject, mavenProject *mavenProject, p
 				}
 			}
 			project.AzureDeps = append(project.AzureDeps, AzureDepEventHubs{
-				Names:             destinations,
-				UseKafka:          true,
-				SpringBootVersion: springBootVersion,
+				Names:    destinations,
+				UseKafka: true,
 			})
 		}
 
