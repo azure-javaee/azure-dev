@@ -10,7 +10,7 @@ const (
 	// Connection string authentication
 	AuthTypeConnectionString AuthType = "CONNECTION_STRING"
 	// Microsoft EntraID token credential
-	AuthTypeManagedIdentity AuthType = "MANAGED_IDENTITY"
+	AuthTypeUserAssignedManagedIdentity AuthType = "USER_ASSIGNED_MANAGED_IDENTITY"
 )
 
 func GetAuthTypeDescription(authType AuthType) string {
@@ -21,7 +21,7 @@ func GetAuthTypeDescription(authType AuthType) string {
 		return "Username and password"
 	case AuthTypeConnectionString:
 		return "Connection string"
-	case AuthTypeManagedIdentity:
+	case AuthTypeUserAssignedManagedIdentity:
 		return "User assigned managed identity"
 	}
 	panic("unknown auth type")

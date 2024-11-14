@@ -576,7 +576,7 @@ func (i *Initializer) prjConfigFromDetect(
 				var err error
 				authType, err = chooseAuthTypeByPrompt(
 					databaseName,
-					[]internal.AuthType{internal.AuthTypeManagedIdentity, internal.AuthTypePassword},
+					[]internal.AuthType{internal.AuthTypeUserAssignedManagedIdentity, internal.AuthTypePassword},
 					ctx,
 					i.console)
 				if err != nil {
@@ -632,7 +632,7 @@ func (i *Initializer) prjConfigFromDetect(
 			azureDep := azureDepPair.first
 			authType, err := chooseAuthTypeByPrompt(
 				azureDep.ResourceDisplay(),
-				[]internal.AuthType{internal.AuthTypeManagedIdentity, internal.AuthTypeConnectionString},
+				[]internal.AuthType{internal.AuthTypeUserAssignedManagedIdentity, internal.AuthTypeConnectionString},
 				ctx,
 				i.console)
 			if err != nil {
