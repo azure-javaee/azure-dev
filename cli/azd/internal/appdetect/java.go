@@ -268,7 +268,7 @@ func detectSpringBootVersion(currentRoot *mavenProject, mavenProject *mavenProje
 				}
 			}
 		}
-	} else {
+	} else if mavenProject != nil {
 		if mavenProject.Parent.ArtifactId == "spring-boot-starter-parent" {
 			return mavenProject.Parent.Version
 		} else {
