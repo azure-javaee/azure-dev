@@ -161,7 +161,7 @@ module cosmos 'br/public:avm/res/document-db/database-account:0.8.1' = {
 {{- if .DbPostgres}}
 
 var postgreSqlDatabaseName = '{{ .DbPostgres.DatabaseName }}'
-var postgreSqlDatabaseUser = 'psqladmin'
+var postgreSqlDatabaseUser = '{{ .DbPostgres.DatabaseUser }}'
 module postgreServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.1.4' = {
   name: 'postgreServer'
   params: {
@@ -202,7 +202,7 @@ module postgreServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.1.4
 {{- if .DbMySql}}
 
 var mysqlDatabaseName = '{{ .DbMySql.DatabaseName }}'
-var mysqlDatabaseUser = 'mysqladmin'
+var mysqlDatabaseUser = '{{ .DbMySql.DatabaseUser }}'
 {{- if (and .DbMySql (eq .DbMySql.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) }}
 module mysqlIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.2.1' = {
   name: 'mysqlIdentity'
