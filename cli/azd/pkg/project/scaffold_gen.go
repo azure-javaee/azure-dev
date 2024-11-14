@@ -141,12 +141,51 @@ func infraSpec(projectConfig *ProjectConfig) (*scaffold.InfraSpec, error) {
 			infraSpec.DbRedis = &scaffold.DatabaseRedis{}
 		case ResourceTypeDbMongo:
 			infraSpec.DbCosmosMongo = &scaffold.DatabaseCosmosMongo{
-				DatabaseName: res.Name,
+				DatabaseName: res.Props.(CosmosDBProps).DatabaseName,
 			}
 		case ResourceTypeDbPostgres:
 			infraSpec.DbPostgres = &scaffold.DatabasePostgres{
-				DatabaseName: res.Name,
+				DatabaseName: res.Props.(PostgresProps).DatabaseName,
 				DatabaseUser: "pgadmin",
+				AuthType:     res.Props.(PostgresProps).AuthType,
+			}
+		case ResourceTypeDbMySQL:
+			infraSpec.DbMySql = &scaffold.DatabaseMySql{
+				DatabaseName: res.Props.(MySQLProps).DatabaseName,
+				DatabaseUser: "mysqladmin",
+				AuthType:     res.Props.(MySQLProps).AuthType,
+			}
+		case ResourceTypeDbCosmos:
+			infraSpec.DbCosmos = &scaffold.DatabaseCosmosAccount{
+				DatabaseName: res.Props.(CosmosDBProps).DatabaseName,
+			}
+			containers := res.Props.(CosmosDBProps).Containers
+			for _, container := range containers {
+				infraSpec.DbCosmos.Containers = append(infraSpec.DbCosmos.Containers, scaffold.CosmosSqlDatabaseContainer{
+					ContainerName:     container.ContainerName,
+					PartitionKeyPaths: container.PartitionKeyPaths,
+				})
+			}
+		case ResourceTypeMessagingServiceBus:
+			props := res.Props.(ServiceBusProps)
+			infraSpec.AzureServiceBus = &scaffold.AzureDepServiceBus{
+				Queues:   props.Queues,
+				AuthType: props.AuthType,
+				IsJms:    props.IsJms,
+			}
+		case ResourceTypeMessagingEventHubs:
+			props := res.Props.(EventHubsProps)
+			infraSpec.AzureEventHubs = &scaffold.AzureDepEventHubs{
+				EventHubNames: props.EventHubNames,
+				AuthType:      props.AuthType,
+				UseKafka:      false,
+			}
+		case ResourceTypeMessagingKafka:
+			props := res.Props.(KafkaProps)
+			infraSpec.AzureEventHubs = &scaffold.AzureDepEventHubs{
+				EventHubNames: props.Topics,
+				AuthType:      props.AuthType,
+				UseKafka:      true,
 			}
 		case ResourceTypeHostContainerApp:
 			svcSpec := scaffold.ServiceSpec{
@@ -186,13 +225,41 @@ func infraSpec(projectConfig *ProjectConfig) (*scaffold.InfraSpec, error) {
 	}
 
 	// create reverse frontends -> backends mapping
-	for _, svc := range infraSpec.Services {
+	for i := range infraSpec.Services {
+		svc := &infraSpec.Services[i]
 		if front, ok := backendMapping[svc.Name]; ok {
 			if svc.Backend == nil {
 				svc.Backend = &scaffold.Backend{}
 			}
-
 			svc.Backend.Frontends = append(svc.Backend.Frontends, scaffold.ServiceReference{Name: front})
+		}
+		if infraSpec.DbPostgres != nil {
+			svc.DbPostgres = &scaffold.DatabaseReference{
+				DatabaseName: infraSpec.DbPostgres.DatabaseName,
+				AuthType:     infraSpec.DbPostgres.AuthType,
+			}
+		}
+		if infraSpec.DbMySql != nil {
+			svc.DbMySql = &scaffold.DatabaseReference{
+				DatabaseName: infraSpec.DbMySql.DatabaseName,
+				AuthType:     infraSpec.DbMySql.AuthType,
+			}
+		}
+		if infraSpec.DbRedis != nil {
+			svc.DbRedis = &scaffold.DatabaseReference{
+				DatabaseName: "redis",
+			}
+		}
+		if infraSpec.DbCosmosMongo != nil {
+			svc.DbCosmosMongo = &scaffold.DatabaseReference{
+				DatabaseName: infraSpec.DbCosmosMongo.DatabaseName,
+			}
+		}
+		if infraSpec.DbCosmos != nil {
+			svc.DbCosmos = &scaffold.DatabaseCosmosAccount{
+				DatabaseName: infraSpec.DbCosmos.DatabaseName,
+				Containers:   infraSpec.DbCosmos.Containers,
+			}
 		}
 	}
 
@@ -270,6 +337,8 @@ func mapHostUses(
 			svcSpec.Frontend.Backends = append(svcSpec.Frontend.Backends,
 				scaffold.ServiceReference{Name: use})
 			backendMapping[use] = res.Name // record the backend -> frontend mapping
+		case ResourceTypeOpenAiModel:
+			svcSpec.AIModels = append(svcSpec.AIModels, scaffold.AIModelReference{Name: use})
 		}
 	}
 

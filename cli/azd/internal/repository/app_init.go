@@ -29,7 +29,7 @@ import (
 	"github.com/otiai10/copy"
 )
 
-var languageMap = map[appdetect.Language]project.ServiceLanguageKind{
+var LanguageMap = map[appdetect.Language]project.ServiceLanguageKind{
 	appdetect.DotNet:     project.ServiceLanguageDotNet,
 	appdetect.Java:       project.ServiceLanguageJava,
 	appdetect.JavaScript: project.ServiceLanguageJavaScript,
@@ -297,7 +297,7 @@ func (i *Initializer) InitFromApp(
 
 	title = "Generating " + output.WithHighLightFormat("./"+azdcontext.ProjectFileName)
 	i.console.ShowSpinner(ctx, title, input.Step)
-	err = i.genProjectFile(ctx, azdCtx, detect, *infraSpec, composeEnabled)
+	err = i.genProjectFile(ctx, azdCtx, detect, infraSpec, composeEnabled)
 	if err != nil {
 		i.console.StopSpinner(ctx, title, input.GetStepResultFormat(err))
 		return err
@@ -391,7 +391,7 @@ func (i *Initializer) genProjectFile(
 	ctx context.Context,
 	azdCtx *azdcontext.AzdContext,
 	detect detectConfirm,
-	spec scaffold.InfraSpec,
+	spec *scaffold.InfraSpec,
 	addResources bool) error {
 	config, err := i.prjConfigFromDetect(ctx, azdCtx.ProjectDirectory(), detect, spec, addResources)
 	if err != nil {
@@ -414,7 +414,7 @@ func (i *Initializer) prjConfigFromDetect(
 	ctx context.Context,
 	root string,
 	detect detectConfirm,
-	spec scaffold.InfraSpec,
+	spec *scaffold.InfraSpec,
 	addResources bool) (project.ProjectConfig, error) {
 	config := project.ProjectConfig{
 		Name: azdcontext.ProjectName(root),
@@ -427,58 +427,9 @@ func (i *Initializer) prjConfigFromDetect(
 
 	svcMapping := map[string]string{}
 	for _, prj := range detect.Services {
-		rel, err := filepath.Rel(root, prj.Path)
+		svc, err := ServiceFromDetect(root, "", prj)
 		if err != nil {
-			return project.ProjectConfig{}, err
-		}
-
-		svc := project.ServiceConfig{}
-		svc.Host = project.ContainerAppTarget
-		svc.RelativePath = rel
-
-		language, supported := languageMap[prj.Language]
-		if !supported {
-			continue
-		}
-		svc.Language = language
-
-		if prj.Docker != nil {
-			relDocker, err := filepath.Rel(prj.Path, prj.Docker.Path)
-			if err != nil {
-				return project.ProjectConfig{}, err
-			}
-
-			svc.Docker = project.DockerProjectOptions{
-				Path: relDocker,
-			}
-		}
-
-		if prj.HasWebUIFramework() {
-			// By default, use 'dist'. This is common for frameworks such as:
-			// - TypeScript
-			// - Vite
-			svc.OutputPath = "dist"
-
-		loop:
-			for _, dep := range prj.Dependencies {
-				switch dep {
-				case appdetect.JsNext:
-					// next.js works as SSR with default node configuration without static build output
-					svc.OutputPath = ""
-					break loop
-				case appdetect.JsVite:
-					svc.OutputPath = "dist"
-					break loop
-				case appdetect.JsReact:
-					// react from create-react-app uses 'build' when used, but this can be overridden
-					// by choice of build tool, such as when using Vite.
-					svc.OutputPath = "build"
-				case appdetect.JsAngular:
-					// angular uses dist/<project name>
-					svc.OutputPath = "dist/" + filepath.Base(rel)
-					break loop
-				}
-			}
+			return config, err
 		}
 
 		if !addResources {
@@ -493,32 +444,76 @@ func (i *Initializer) prjConfigFromDetect(
 					config.Resources["postgres"] = &project.ResourceConfig{
 						Type: project.ResourceTypeDbPostgres,
 						Name: spec.DbPostgres.DatabaseName,
+						Props: project.PostgresProps{
+							DatabaseName: spec.DbPostgres.DatabaseName,
+							AuthType:     spec.DbPostgres.AuthType,
+						},
 					}
 				case appdetect.DbMySql:
 					config.Resources["mysql"] = &project.ResourceConfig{
 						Type: project.ResourceTypeDbMySQL,
 						Props: project.MySQLProps{
 							DatabaseName: spec.DbMySql.DatabaseName,
-							AuthType:     "managedIdentity",
+							AuthType:     spec.DbMySql.AuthType,
 						},
 					}
 				case appdetect.DbRedis:
 					config.Resources["redis"] = &project.ResourceConfig{
 						Type: project.ResourceTypeDbRedis,
 					}
+				case appdetect.DbCosmos:
+					cosmosDBProps := project.CosmosDBProps{
+						DatabaseName: spec.DbCosmos.DatabaseName,
+					}
+					for _, container := range spec.DbCosmos.Containers {
+						cosmosDBProps.Containers = append(cosmosDBProps.Containers, project.CosmosDBContainerProps{
+							ContainerName:     container.ContainerName,
+							PartitionKeyPaths: container.PartitionKeyPaths,
+						})
+					}
+					config.Resources["cosmos"] = &project.ResourceConfig{
+						Type:  project.ResourceTypeDbCosmos,
+						Props: cosmosDBProps,
+					}
+				}
+
+			}
+			for _, azureDep := range prj.AzureDeps {
+				switch azureDep.(type) {
+				case appdetect.AzureDepServiceBus:
+					config.Resources["servicebus"] = &project.ResourceConfig{
+						Type: project.ResourceTypeMessagingServiceBus,
+						Props: project.ServiceBusProps{
+							Queues:   spec.AzureServiceBus.Queues,
+							IsJms:    spec.AzureServiceBus.IsJms,
+							AuthType: spec.AzureServiceBus.AuthType,
+						},
+					}
+				case appdetect.AzureDepEventHubs:
+					if spec.AzureEventHubs.UseKafka {
+						config.Resources["kafka"] = &project.ResourceConfig{
+							Type: project.ResourceTypeMessagingKafka,
+							Props: project.KafkaProps{
+								Topics:   spec.AzureEventHubs.EventHubNames,
+								AuthType: spec.AzureEventHubs.AuthType,
+							},
+						}
+					} else {
+						config.Resources["eventhubs"] = &project.ResourceConfig{
+							Type: project.ResourceTypeMessagingEventHubs,
+							Props: project.EventHubsProps{
+								EventHubNames: spec.AzureEventHubs.EventHubNames,
+								AuthType:      spec.AzureEventHubs.AuthType,
+							},
+						}
+					}
+
 				}
 			}
 		}
 
-		name := filepath.Base(rel)
-		if name == "." {
-			name = config.Name
-		}
-		name = names.LabelName(name)
-		svc.Name = name
-		config.Services[name] = &svc
-
-		svcMapping[prj.Path] = name
+		config.Services[svc.Name] = &svc
+		svcMapping[prj.Path] = svc.Name
 	}
 
 	if addResources {
@@ -531,45 +526,108 @@ func (i *Initializer) prjConfigFromDetect(
 			})
 
 		for _, database := range databases {
+			var resourceConfig project.ResourceConfig
+			var databaseName string
 			if database == appdetect.DbRedis {
-				redis := project.ResourceConfig{
-					Type: project.ResourceTypeDbRedis,
-					Name: "redis",
-				}
-				config.Resources[redis.Name] = &redis
-				dbNames[database] = redis.Name
-				continue
-			}
-
-			var dbType project.ResourceType
-			switch database {
-			case appdetect.DbMongo:
-				dbType = project.ResourceTypeDbMongo
-			case appdetect.DbPostgres:
-				dbType = project.ResourceTypeDbPostgres
-			}
-
-			db := project.ResourceConfig{
-				Type: dbType,
-			}
-
-			for {
-				dbName, err := promptDbName(i.console, ctx, database)
+				databaseName = "redis"
+			} else {
+				var err error
+				databaseName, err = i.getDatabaseNameByPrompt(ctx, database)
 				if err != nil {
 					return config, err
 				}
-
-				if dbName == "" {
-					i.console.Message(ctx, "Database name is required.")
-					continue
-				}
-
-				db.Name = dbName
-				break
 			}
+			var authType = internal.AuthTypeUnspecified
+			if database == appdetect.DbPostgres || database == appdetect.DbMySql {
+				var err error
+				authType, err = chooseAuthTypeByPrompt(
+					databaseName,
+					[]internal.AuthType{internal.AuthTypeUserAssignedManagedIdentity, internal.AuthTypePassword},
+					ctx,
+					i.console)
+				if err != nil {
+					return config, err
+				}
+			}
+			switch database {
+			case appdetect.DbRedis:
+				resourceConfig = project.ResourceConfig{
+					Type: project.ResourceTypeDbRedis,
+					Name: "redis",
+				}
+			case appdetect.DbMongo:
+				resourceConfig = project.ResourceConfig{
+					Type: project.ResourceTypeDbMongo,
+					Name: "mongo",
+					Props: project.MongoDBProps{
+						DatabaseName: databaseName,
+					},
+				}
+			case appdetect.DbCosmos:
+				resourceConfig = project.ResourceConfig{
+					Type: project.ResourceTypeDbCosmos,
+					Name: "cosmos",
+					Props: project.CosmosDBProps{
+						DatabaseName: databaseName,
+					},
+				}
+			case appdetect.DbPostgres:
+				resourceConfig = project.ResourceConfig{
+					Type: project.ResourceTypeDbPostgres,
+					Name: "postgresql",
+					Props: project.PostgresProps{
+						DatabaseName: databaseName,
+						AuthType:     authType,
+					},
+				}
+			case appdetect.DbMySql:
+				resourceConfig = project.ResourceConfig{
+					Type: project.ResourceTypeDbMySQL,
+					Name: "mysql",
+					Props: project.MySQLProps{
+						DatabaseName: databaseName,
+						AuthType:     authType,
+					},
+				}
+			}
+			config.Resources[resourceConfig.Name] = &resourceConfig
+			dbNames[database] = resourceConfig.Name
+		}
 
-			config.Resources[db.Name] = &db
-			dbNames[database] = db.Name
+		for _, azureDepPair := range detect.AzureDeps {
+			azureDep := azureDepPair.first
+			authType, err := chooseAuthTypeByPrompt(
+				azureDep.ResourceDisplay(),
+				[]internal.AuthType{internal.AuthTypeUserAssignedManagedIdentity, internal.AuthTypeConnectionString},
+				ctx,
+				i.console)
+			if err != nil {
+				return config, err
+			}
+			switch azureDep.(type) {
+			case appdetect.AzureDepServiceBus:
+				azureDepServiceBus := azureDep.(appdetect.AzureDepServiceBus)
+				config.Resources["servicebus"] = &project.ResourceConfig{
+					Type: project.ResourceTypeMessagingServiceBus,
+					Props: project.ServiceBusProps{
+						Queues:   azureDepServiceBus.Queues,
+						IsJms:    azureDepServiceBus.IsJms,
+						AuthType: authType,
+					},
+				}
+			case appdetect.AzureDepEventHubs:
+				config.Resources["eventhubs"] = &project.ResourceConfig{
+					Type: project.ResourceTypeMessagingEventHubs,
+					Props: project.EventHubsProps{
+						EventHubNames: spec.AzureEventHubs.EventHubNames,
+						AuthType:      authType,
+					},
+				}
+			case appdetect.AzureDepStorageAccount:
+				config.Resources["storage"] = &project.ResourceConfig{
+					Type: project.ResourceTypeStorage,
+				}
+			}
 		}
 
 		backends := []*project.ResourceConfig{}
@@ -585,7 +643,7 @@ func (i *Initializer) prjConfigFromDetect(
 				Port: -1,
 			}
 
-			port, err := promptPort(i.console, ctx, name, svc)
+			port, err := PromptPort(i.console, ctx, name, svc)
 			if err != nil {
 				return config, err
 			}
@@ -620,6 +678,116 @@ func (i *Initializer) prjConfigFromDetect(
 	}
 
 	return config, nil
+}
+
+func (i *Initializer) getDatabaseNameByPrompt(ctx context.Context, database appdetect.DatabaseDep) (string, error) {
+	var result string
+	for {
+		dbName, err := promptDbName(i.console, ctx, database)
+		if err != nil {
+			return dbName, err
+		}
+		if dbName == "" {
+			i.console.Message(ctx, "Database name is required.")
+			continue
+		}
+		result = dbName
+		break
+	}
+	return result, nil
+}
+
+func chooseAuthTypeByPrompt(
+	name string,
+	authOptions []internal.AuthType,
+	ctx context.Context,
+	console input.Console) (internal.AuthType, error) {
+	var options []string
+	for _, option := range authOptions {
+		options = append(options, internal.GetAuthTypeDescription(option))
+	}
+	selection, err := console.Select(ctx, input.ConsoleOptions{
+		Message: "Choose auth type for '" + name + "'?",
+		Options: options,
+	})
+	if err != nil {
+		return internal.AuthTypeUnspecified, err
+	}
+	return authOptions[selection], nil
+}
+
+// ServiceFromDetect creates a ServiceConfig from an appdetect project.
+func ServiceFromDetect(
+	root string,
+	svcName string,
+	prj appdetect.Project) (project.ServiceConfig, error) {
+	svc := project.ServiceConfig{
+		Name: svcName,
+	}
+	rel, err := filepath.Rel(root, prj.Path)
+	if err != nil {
+		return svc, err
+	}
+
+	if svc.Name == "" {
+		dirName := filepath.Base(rel)
+		if dirName == "." {
+			dirName = filepath.Base(root)
+		}
+
+		svc.Name = names.LabelName(dirName)
+	}
+
+	svc.Host = project.ContainerAppTarget
+	svc.RelativePath = rel
+
+	language, supported := LanguageMap[prj.Language]
+	if !supported {
+		return svc, fmt.Errorf("unsupported language: %s", prj.Language)
+	}
+
+	svc.Language = language
+
+	if prj.Docker != nil {
+		relDocker, err := filepath.Rel(prj.Path, prj.Docker.Path)
+		if err != nil {
+			return svc, err
+		}
+
+		svc.Docker = project.DockerProjectOptions{
+			Path: relDocker,
+		}
+	}
+
+	if prj.HasWebUIFramework() {
+		// By default, use 'dist'. This is common for frameworks such as:
+		// - TypeScript
+		// - Vite
+		svc.OutputPath = "dist"
+
+	loop:
+		for _, dep := range prj.Dependencies {
+			switch dep {
+			case appdetect.JsNext:
+				// next.js works as SSR with default node configuration without static build output
+				svc.OutputPath = ""
+				break loop
+			case appdetect.JsVite:
+				svc.OutputPath = "dist"
+				break loop
+			case appdetect.JsReact:
+				// react from create-react-app uses 'build' when used, but this can be overridden
+				// by choice of build tool, such as when using Vite.
+				svc.OutputPath = "build"
+			case appdetect.JsAngular:
+				// angular uses dist/<project name>
+				svc.OutputPath = "dist/" + filepath.Base(rel)
+				break loop
+			}
+		}
+	}
+
+	return svc, nil
 }
 
 func processSpringCloudAzureDepByPrompt(console input.Console, ctx context.Context, project *appdetect.Project) error {

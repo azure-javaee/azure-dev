@@ -169,13 +169,13 @@ func TestInitializer_infraSpecFromDetect(t *testing.T) {
 				"n",
 				"my$special$db",
 				"n",
-				"myappdb",                            // fill in db name
-				"Use user assigned managed identity", // confirm db authentication
+				"myappdb",                        // fill in db name
+				"User assigned managed identity", // confirm db authentication
 			},
 			want: scaffold.InfraSpec{
 				DbPostgres: &scaffold.DatabasePostgres{
-					DatabaseName:             "myappdb",
-					AuthUsingManagedIdentity: true,
+					DatabaseName: "myappdb",
+					AuthType:     "USER_ASSIGNED_MANAGED_IDENTITY",
 				},
 				Services: []scaffold.ServiceSpec{
 					{
@@ -189,8 +189,8 @@ func TestInitializer_infraSpecFromDetect(t *testing.T) {
 							},
 						},
 						DbPostgres: &scaffold.DatabaseReference{
-							DatabaseName:             "myappdb",
-							AuthUsingManagedIdentity: true,
+							DatabaseName: "myappdb",
+							AuthType:     "USER_ASSIGNED_MANAGED_IDENTITY",
 						},
 					},
 					{
