@@ -587,12 +587,12 @@ func (i *Initializer) prjConfigFromDetect(
 			case appdetect.DbRedis:
 				resourceConfig = project.ResourceConfig{
 					Type: project.ResourceTypeDbRedis,
-					Name: databaseName,
+					Name: "redis",
 				}
 			case appdetect.DbMongo:
 				resourceConfig = project.ResourceConfig{
 					Type: project.ResourceTypeDbMongo,
-					Name: databaseName,
+					Name: "mongo",
 					Props: project.MongoDBProps{
 						DatabaseName: databaseName,
 					},
@@ -600,7 +600,7 @@ func (i *Initializer) prjConfigFromDetect(
 			case appdetect.DbCosmos:
 				resourceConfig = project.ResourceConfig{
 					Type: project.ResourceTypeDbCosmos,
-					Name: databaseName,
+					Name: "cosmos",
 					Props: project.CosmosDBProps{
 						DatabaseName: databaseName,
 					},
@@ -608,7 +608,7 @@ func (i *Initializer) prjConfigFromDetect(
 			case appdetect.DbPostgres:
 				resourceConfig = project.ResourceConfig{
 					Type: project.ResourceTypeDbPostgres,
-					Name: databaseName,
+					Name: "postgresql",
 					Props: project.PostgresProps{
 						DatabaseName: databaseName,
 						AuthType:     authType,
@@ -617,7 +617,7 @@ func (i *Initializer) prjConfigFromDetect(
 			case appdetect.DbMySql:
 				resourceConfig = project.ResourceConfig{
 					Type: project.ResourceTypeDbMySQL,
-					Name: databaseName,
+					Name: "mysql",
 					Props: project.MySQLProps{
 						DatabaseName: databaseName,
 						AuthType:     authType,
