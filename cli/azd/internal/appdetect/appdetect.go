@@ -167,7 +167,6 @@ func (a AzureDepStorageAccount) ResourceDisplay() string {
 }
 
 type SpringCloudAzureDep struct {
-	Version string
 }
 
 func (a SpringCloudAzureDep) ResourceDisplay() string {

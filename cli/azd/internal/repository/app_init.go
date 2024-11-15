@@ -795,8 +795,8 @@ func processSpringCloudAzureDepByPrompt(console input.Console, ctx context.Conte
 		Message: "Detected Kafka dependency but no spring-cloud-azure-starter found. Select an option",
 		Options: []string{
 			"Exit then I will manually add this dependency",
-			"Continue and do not add this dependency",
-			"Continue and do not provision Azure Event Hubs for Kafka",
+			"Continue without this dependency, and provision Azure Event Hubs for Kafka",
+			"Continue without this dependency, and not provision Azure Event Hubs for Kafka",
 		},
 	})
 	if err != nil {

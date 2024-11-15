@@ -145,12 +145,9 @@ func detectDependencies(currentRoot *mavenProject, mavenProject *mavenProject, p
 		}
 	}
 	applicationProperties := make(map[string]string)
-	var springBootVersion string
 	if isSpringBoot {
-		springBootVersion = detectSpringBootVersion(currentRoot, mavenProject)
 		applicationProperties = readProperties(project.Path)
 	}
-	_ = springBootVersion
 
 	databaseDepMap := map[DatabaseDep]struct{}{}
 	for _, dep := range mavenProject.Dependencies {
@@ -241,9 +238,7 @@ func detectDependencies(currentRoot *mavenProject, mavenProject *mavenProject, p
 		}
 
 		if dep.GroupId == "com.azure.spring" && dep.ArtifactId == "spring-cloud-azure-starter" {
-			project.AzureDeps = append(project.AzureDeps, SpringCloudAzureDep{
-				Version: dep.Version,
-			})
+			project.AzureDeps = append(project.AzureDeps, SpringCloudAzureDep{})
 		}
 	}
 
@@ -255,31 +250,6 @@ func detectDependencies(currentRoot *mavenProject, mavenProject *mavenProject, p
 	}
 
 	return project, nil
-}
-
-func detectSpringBootVersion(currentRoot *mavenProject, mavenProject *mavenProject) string {
-	if currentRoot != nil {
-		if currentRoot.Parent.ArtifactId == "spring-boot-starter-parent" {
-			return currentRoot.Parent.Version
-		} else {
-			for _, dep := range currentRoot.DependencyManagement.Dependencies {
-				if dep.ArtifactId == "spring-boot-dependencies" {
-					return dep.Version
-				}
-			}
-		}
-	} else if mavenProject != nil {
-		if mavenProject.Parent.ArtifactId == "spring-boot-starter-parent" {
-			return mavenProject.Parent.Version
-		} else {
-			for _, dep := range mavenProject.DependencyManagement.Dependencies {
-				if dep.ArtifactId == "spring-boot-dependencies" {
-					return dep.Version
-				}
-			}
-		}
-	}
-	return "unknown"
 }
 
 func readProperties(projectPath string) map[string]string {
