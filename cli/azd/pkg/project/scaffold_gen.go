@@ -243,7 +243,7 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 				return fmt.Errorf("in azure.yaml, (%s) uses (%s), but (%s) doesn't",
 					userResourceName, usedResourceName, usedResourceName)
 			}
-			switch usedResource.Type { // todo: output the environment variable names used for "uses"
+			switch usedResource.Type {
 			case ResourceTypeDbPostgres:
 				userSpec.DbPostgres = infraSpec.DbPostgres
 				err := printHintsAboutUsePostgres(userResourceName, usedResourceName, userSpec.DbPostgres.AuthType)
