@@ -132,34 +132,31 @@ func infraFsForProject(ctx context.Context, prjConfig *ProjectConfig) (fs.FS, er
 
 func infraSpec(projectConfig *ProjectConfig) (*scaffold.InfraSpec, error) {
 	infraSpec := scaffold.InfraSpec{}
-	// backends -> frontends
-	backendMapping := map[string]string{}
-
-	for _, res := range projectConfig.Resources {
-		switch res.Type {
+	for _, resource := range projectConfig.Resources {
+		switch resource.Type {
 		case ResourceTypeDbRedis:
 			infraSpec.DbRedis = &scaffold.DatabaseRedis{}
 		case ResourceTypeDbMongo:
 			infraSpec.DbCosmosMongo = &scaffold.DatabaseCosmosMongo{
-				DatabaseName: res.Props.(MongoDBProps).DatabaseName,
+				DatabaseName: resource.Props.(MongoDBProps).DatabaseName,
 			}
 		case ResourceTypeDbPostgres:
 			infraSpec.DbPostgres = &scaffold.DatabasePostgres{
-				DatabaseName: res.Props.(PostgresProps).DatabaseName,
+				DatabaseName: resource.Props.(PostgresProps).DatabaseName,
 				DatabaseUser: "pgadmin",
-				AuthType:     res.Props.(PostgresProps).AuthType,
+				AuthType:     resource.Props.(PostgresProps).AuthType,
 			}
 		case ResourceTypeDbMySQL:
 			infraSpec.DbMySql = &scaffold.DatabaseMySql{
-				DatabaseName: res.Props.(MySQLProps).DatabaseName,
+				DatabaseName: resource.Props.(MySQLProps).DatabaseName,
 				DatabaseUser: "mysqladmin",
-				AuthType:     res.Props.(MySQLProps).AuthType,
+				AuthType:     resource.Props.(MySQLProps).AuthType,
 			}
 		case ResourceTypeDbCosmos:
 			infraSpec.DbCosmos = &scaffold.DatabaseCosmosAccount{
-				DatabaseName: res.Props.(CosmosDBProps).DatabaseName,
+				DatabaseName: resource.Props.(CosmosDBProps).DatabaseName,
 			}
-			containers := res.Props.(CosmosDBProps).Containers
+			containers := resource.Props.(CosmosDBProps).Containers
 			for _, container := range containers {
 				infraSpec.DbCosmos.Containers = append(infraSpec.DbCosmos.Containers, scaffold.CosmosSqlDatabaseContainer{
 					ContainerName:     container.ContainerName,
@@ -167,55 +164,48 @@ func infraSpec(projectConfig *ProjectConfig) (*scaffold.InfraSpec, error) {
 				})
 			}
 		case ResourceTypeMessagingServiceBus:
-			props := res.Props.(ServiceBusProps)
+			props := resource.Props.(ServiceBusProps)
 			infraSpec.AzureServiceBus = &scaffold.AzureDepServiceBus{
 				Queues:   props.Queues,
 				AuthType: props.AuthType,
 				IsJms:    props.IsJms,
 			}
 		case ResourceTypeMessagingEventHubs:
-			props := res.Props.(EventHubsProps)
+			props := resource.Props.(EventHubsProps)
 			infraSpec.AzureEventHubs = &scaffold.AzureDepEventHubs{
 				EventHubNames: props.EventHubNames,
 				AuthType:      props.AuthType,
 				UseKafka:      false,
 			}
 		case ResourceTypeMessagingKafka:
-			props := res.Props.(KafkaProps)
+			props := resource.Props.(KafkaProps)
 			infraSpec.AzureEventHubs = &scaffold.AzureDepEventHubs{
 				EventHubNames: props.Topics,
 				AuthType:      props.AuthType,
 				UseKafka:      true,
 			}
 		case ResourceTypeHostContainerApp:
-			svcSpec := scaffold.ServiceSpec{
-				Name: res.Name,
+			serviceSpec := scaffold.ServiceSpec{
+				Name: resource.Name,
 				Port: -1,
 			}
-
-			err := mapContainerApp(res, &svcSpec, &infraSpec)
+			err := handleContainerAppProps(resource, &serviceSpec, &infraSpec)
 			if err != nil {
 				return nil, err
 			}
-
-			err = mapHostUses(res, &svcSpec, backendMapping, projectConfig)
-			if err != nil {
-				return nil, err
-			}
-
-			infraSpec.Services = append(infraSpec.Services, svcSpec)
+			infraSpec.Services = append(infraSpec.Services, serviceSpec)
 		case ResourceTypeOpenAiModel:
-			props := res.Props.(AIModelProps)
+			props := resource.Props.(AIModelProps)
 			if len(props.Model.Name) == 0 {
-				return nil, fmt.Errorf("resources.%s.model is required", res.Name)
+				return nil, fmt.Errorf("resources.%s.model is required", resource.Name)
 			}
 
 			if len(props.Model.Version) == 0 {
-				return nil, fmt.Errorf("resources.%s.version is required", res.Name)
+				return nil, fmt.Errorf("resources.%s.version is required", resource.Name)
 			}
 
 			infraSpec.AIModels = append(infraSpec.AIModels, scaffold.AIModel{
-				Name: res.Name,
+				Name: resource.Name,
 				Model: scaffold.AIModelModel{
 					Name:    props.Model.Name,
 					Version: props.Model.Version,
@@ -224,41 +214,46 @@ func infraSpec(projectConfig *ProjectConfig) (*scaffold.InfraSpec, error) {
 		}
 	}
 
-	// create reverse frontends -> backends mapping
+	// map uses
 	for i := range infraSpec.Services {
-		svc := &infraSpec.Services[i]
-		if front, ok := backendMapping[svc.Name]; ok {
-			if svc.Backend == nil {
-				svc.Backend = &scaffold.Backend{}
-			}
-			svc.Backend.Frontends = append(svc.Backend.Frontends, scaffold.ServiceReference{Name: front})
+		userSpec := &infraSpec.Services[i]
+		userResource, ok := projectConfig.Resources[userSpec.Name]
+		if !ok {
+			return nil, fmt.Errorf("service (%s) should be part of resources, but it doesn't", userSpec.Name)
 		}
-		if infraSpec.DbPostgres != nil {
-			svc.DbPostgres = &scaffold.DatabaseReference{
-				DatabaseName: infraSpec.DbPostgres.DatabaseName,
-				AuthType:     infraSpec.DbPostgres.AuthType,
+		for _, usedResourceName := range userResource.Uses {
+			usedResource, ok := projectConfig.Resources[usedResourceName]
+			if !ok {
+				return nil, fmt.Errorf("in azure.yaml, (%s) uses (%s), but (%s) doesn't",
+					userSpec.Name, usedResourceName, usedResourceName)
 			}
-		}
-		if infraSpec.DbMySql != nil {
-			svc.DbMySql = &scaffold.DatabaseReference{
-				DatabaseName: infraSpec.DbMySql.DatabaseName,
-				AuthType:     infraSpec.DbMySql.AuthType,
-			}
-		}
-		if infraSpec.DbRedis != nil {
-			svc.DbRedis = &scaffold.DatabaseReference{
-				DatabaseName: "redis",
-			}
-		}
-		if infraSpec.DbCosmosMongo != nil {
-			svc.DbCosmosMongo = &scaffold.DatabaseReference{
-				DatabaseName: infraSpec.DbCosmosMongo.DatabaseName,
-			}
-		}
-		if infraSpec.DbCosmos != nil {
-			svc.DbCosmos = &scaffold.DatabaseCosmosAccount{
-				DatabaseName: infraSpec.DbCosmos.DatabaseName,
-				Containers:   infraSpec.DbCosmos.Containers,
+			switch usedResource.Type { // todo: output the environment variable names used for "uses"
+			case ResourceTypeDbPostgres:
+				userSpec.DbPostgres = infraSpec.DbPostgres
+			case ResourceTypeDbMySQL:
+				userSpec.DbMySql = infraSpec.DbMySql
+			case ResourceTypeDbRedis:
+				userSpec.DbRedis = infraSpec.DbRedis
+			case ResourceTypeDbMongo:
+				userSpec.DbCosmosMongo = infraSpec.DbCosmosMongo
+			case ResourceTypeDbCosmos:
+				userSpec.DbCosmos = infraSpec.DbCosmos
+			case ResourceTypeMessagingServiceBus:
+				userSpec.AzureServiceBus = infraSpec.AzureServiceBus
+			case ResourceTypeMessagingEventHubs, ResourceTypeMessagingKafka:
+				userSpec.AzureEventHubs = infraSpec.AzureEventHubs
+			case ResourceTypeStorage:
+				userSpec.AzureStorageAccount = infraSpec.AzureStorageAccount
+			case ResourceTypeHostContainerApp:
+				err := fulfillFrontendBackend(userSpec, usedResource, &infraSpec)
+				if err != nil {
+					return nil, err
+				}
+			case ResourceTypeOpenAiModel:
+				userSpec.AIModels = append(userSpec.AIModels, scaffold.AIModelReference{Name: usedResource.Name})
+			default:
+				return nil, fmt.Errorf("resource (%s) uses (%s), but the type of (%s) is (%s), which is unsupported",
+					userResource.Name, usedResource.Name, usedResource.Name, usedResource.Type)
 			}
 		}
 	}
@@ -270,21 +265,22 @@ func infraSpec(projectConfig *ProjectConfig) (*scaffold.InfraSpec, error) {
 	return &infraSpec, nil
 }
 
-func mapContainerApp(res *ResourceConfig, svcSpec *scaffold.ServiceSpec, infraSpec *scaffold.InfraSpec) error {
-	props := res.Props.(ContainerAppProps)
+func handleContainerAppProps(
+	resourceConfig *ResourceConfig, serviceSpec *scaffold.ServiceSpec, infraSpec *scaffold.InfraSpec) error {
+	props := resourceConfig.Props.(ContainerAppProps)
 	for _, envVar := range props.Env {
 		if len(envVar.Value) == 0 && len(envVar.Secret) == 0 {
 			return fmt.Errorf(
 				"environment variable %s for host %s is invalid: both value and secret are empty",
 				envVar.Name,
-				res.Name)
+				resourceConfig.Name)
 		}
 
 		if len(envVar.Value) > 0 && len(envVar.Secret) > 0 {
 			return fmt.Errorf(
 				"environment variable %s for host %s is invalid: both value and secret are set",
 				envVar.Name,
-				res.Name)
+				resourceConfig.Name)
 		}
 
 		isSecret := len(envVar.Secret) > 0
@@ -299,49 +295,15 @@ func mapContainerApp(res *ResourceConfig, svcSpec *scaffold.ServiceSpec, infraSp
 		// Here, DB_HOST is not a secret, but DB_SECRET is. And yet, DB_HOST will be marked as a secret.
 		// This is a limitation of the current implementation, but it's safer to mark both as secrets above.
 		evaluatedValue := genBicepParamsFromEnvSubst(value, isSecret, infraSpec)
-		svcSpec.Env[envVar.Name] = evaluatedValue
+		serviceSpec.Env[envVar.Name] = evaluatedValue
 	}
 
 	port := props.Port
 	if port < 1 || port > 65535 {
-		return fmt.Errorf("port value %d for host %s must be between 1 and 65535", port, res.Name)
+		return fmt.Errorf("port value %d for host %s must be between 1 and 65535", port, resourceConfig.Name)
 	}
 
-	svcSpec.Port = port
-	return nil
-}
-
-func mapHostUses(
-	res *ResourceConfig,
-	svcSpec *scaffold.ServiceSpec,
-	backendMapping map[string]string,
-	prj *ProjectConfig) error {
-	for _, use := range res.Uses {
-		useRes, ok := prj.Resources[use]
-		if !ok {
-			return fmt.Errorf("resource %s uses %s, which does not exist", res.Name, use)
-		}
-
-		switch useRes.Type {
-		case ResourceTypeDbMongo:
-			svcSpec.DbCosmosMongo = &scaffold.DatabaseReference{DatabaseName: useRes.Name}
-		case ResourceTypeDbPostgres:
-			svcSpec.DbPostgres = &scaffold.DatabaseReference{DatabaseName: useRes.Name}
-		case ResourceTypeDbRedis:
-			svcSpec.DbRedis = &scaffold.DatabaseReference{DatabaseName: useRes.Name}
-		case ResourceTypeHostContainerApp:
-			if svcSpec.Frontend == nil {
-				svcSpec.Frontend = &scaffold.Frontend{}
-			}
-
-			svcSpec.Frontend.Backends = append(svcSpec.Frontend.Backends,
-				scaffold.ServiceReference{Name: use})
-			backendMapping[use] = res.Name // record the backend -> frontend mapping
-		case ResourceTypeOpenAiModel:
-			svcSpec.AIModels = append(svcSpec.AIModels, scaffold.AIModelReference{Name: use})
-		}
-	}
-
+	serviceSpec.Port = port
 	return nil
 }
 
@@ -413,4 +375,33 @@ func genBicepParamsFromEnvSubst(
 	}
 
 	return result
+}
+
+func fulfillFrontendBackend(
+	userSpec *scaffold.ServiceSpec, usedResource *ResourceConfig, infraSpec *scaffold.InfraSpec) error {
+	if userSpec.Frontend == nil {
+		userSpec.Frontend = &scaffold.Frontend{}
+	}
+	userSpec.Frontend.Backends =
+		append(userSpec.Frontend.Backends, scaffold.ServiceReference{Name: usedResource.Name})
+
+	usedSpec := getServiceSpecByName(infraSpec, usedResource.Name)
+	if usedSpec == nil {
+		return fmt.Errorf("used resource spec (%s) should exist, but it doesn't", usedResource.Name)
+	}
+	if usedSpec.Backend == nil {
+		usedSpec.Backend = &scaffold.Backend{}
+	}
+	usedSpec.Backend.Frontends =
+		append(usedSpec.Backend.Frontends, scaffold.ServiceReference{Name: userSpec.Name})
+	return nil
+}
+
+func getServiceSpecByName(infraSpec *scaffold.InfraSpec, name string) *scaffold.ServiceSpec {
+	for i := range infraSpec.Services {
+		if infraSpec.Services[i].Name == name {
+			return &infraSpec.Services[i]
+		}
+	}
+	return nil
 }

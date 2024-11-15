@@ -13,9 +13,9 @@ type InfraSpec struct {
 	// Databases to create
 	DbPostgres    *DatabasePostgres
 	DbMySql       *DatabaseMySql
-	DbCosmos      *DatabaseCosmosAccount
-	DbCosmosMongo *DatabaseCosmosMongo
 	DbRedis       *DatabaseRedis
+	DbCosmosMongo *DatabaseCosmosMongo
+	DbCosmos      *DatabaseCosmosAccount
 
 	// ai models
 	AIModels []AIModel
@@ -106,11 +106,11 @@ type ServiceSpec struct {
 	Backend *Backend
 
 	// Connection to a database
-	DbPostgres    *DatabaseReference
-	DbMySql       *DatabaseReference
-	DbCosmosMongo *DatabaseReference
+	DbPostgres    *DatabasePostgres
+	DbMySql       *DatabaseMySql
+	DbRedis       *DatabaseRedis
+	DbCosmosMongo *DatabaseCosmosMongo
 	DbCosmos      *DatabaseCosmosAccount
-	DbRedis       *DatabaseReference
 
 	// AI model connections
 	AIModels []AIModelReference
@@ -130,11 +130,6 @@ type Backend struct {
 
 type ServiceReference struct {
 	Name string
-}
-
-type DatabaseReference struct {
-	DatabaseName string
-	AuthType     internal.AuthType
 }
 
 type AIModelReference struct {
