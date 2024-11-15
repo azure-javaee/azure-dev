@@ -30,6 +30,7 @@ func Load() (*template.Template, error) {
 		"lower":            strings.ToLower,
 		"alphaSnakeUpper":  AlphaSnakeUpper,
 		"formatParam":      FormatParameter,
+		"hasPrefix":        strings.HasPrefix,
 	}
 
 	t, err := template.New("templates").

@@ -52,7 +52,7 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 			}
 
 			_ = currentRoot // use currentRoot here in the analysis
-			result, err := detectDependencies(project, &Project{
+			result, err := detectDependencies(currentRoot, project, &Project{
 				Language:      Java,
 				Path:          path,
 				DetectionRule: "Inferred by presence of: pom.xml",
@@ -128,7 +128,7 @@ func readMavenProject(filePath string) (*mavenProject, error) {
 	return &project, nil
 }
 
-func detectDependencies(mavenProject *mavenProject, project *Project) (*Project, error) {
+func detectDependencies(currentRoot *mavenProject, mavenProject *mavenProject, project *Project) (*Project, error) {
 	// how can we tell it's a Spring Boot project?
 	// 1. It has a parent with a groupId of org.springframework.boot and an artifactId of spring-boot-starter-parent
 	// 2. It has a dependency with a groupId of org.springframework.boot and an artifactId that starts with
@@ -145,8 +145,10 @@ func detectDependencies(mavenProject *mavenProject, project *Project) (*Project,
 		}
 	}
 	applicationProperties := make(map[string]string)
+	var springBootVersion string
 	if isSpringBoot {
 		applicationProperties = readProperties(project.Path)
+		springBootVersion = detectSpringBootVersion(currentRoot, mavenProject)
 	}
 
 	databaseDepMap := map[DatabaseDep]struct{}{}
@@ -232,8 +234,9 @@ func detectDependencies(mavenProject *mavenProject, project *Project) (*Project,
 				}
 			}
 			project.AzureDeps = append(project.AzureDeps, AzureDepEventHubs{
-				Names:    destinations,
-				UseKafka: true,
+				Names:             destinations,
+				UseKafka:          true,
+				SpringBootVersion: springBootVersion,
 			})
 		}
 
@@ -380,4 +383,26 @@ func contains(array []string, str string) bool {
 		}
 	}
 	return false
+}
+
+func detectSpringBootVersion(currentRoot *mavenProject, mavenProject *mavenProject) string {
+	if currentRoot != nil {
+		return detectSpringBootVersionFromProject(currentRoot)
+	} else if mavenProject != nil {
+		return detectSpringBootVersionFromProject(mavenProject)
+	}
+	return UnknownSpringBootVersion
+}
+
+func detectSpringBootVersionFromProject(project *mavenProject) string {
+	if project.Parent.ArtifactId == "spring-boot-starter-parent" {
+		return project.Parent.Version
+	} else {
+		for _, dep := range project.DependencyManagement.Dependencies {
+			if dep.ArtifactId == "spring-boot-dependencies" {
+				return dep.Version
+			}
+		}
+	}
+	return UnknownSpringBootVersion
 }
