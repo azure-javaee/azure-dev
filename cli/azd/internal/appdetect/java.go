@@ -74,6 +74,7 @@ type mavenProject struct {
 	XmlName              xml.Name             `xml:"project"`
 	Parent               parent               `xml:"parent"`
 	Modules              []string             `xml:"modules>module"` // Capture the modules
+	Properties           Properties           `xml:"properties"`
 	Dependencies         []dependency         `xml:"dependencies>dependency"`
 	DependencyManagement dependencyManagement `xml:"dependencyManagement"`
 	Build                build                `xml:"build"`
@@ -85,6 +86,15 @@ type parent struct {
 	GroupId    string `xml:"groupId"`
 	ArtifactId string `xml:"artifactId"`
 	Version    string `xml:"version"`
+}
+
+type Properties struct {
+	Entries []Property `xml:",any"` // Capture all elements inside <properties>
+}
+
+type Property struct {
+	XMLName xml.Name
+	Value   string `xml:",chardata"`
 }
 
 // Dependency represents a single Maven dependency.
@@ -385,6 +395,14 @@ func contains(array []string, str string) bool {
 	return false
 }
 
+func parseProperties(properties Properties) map[string]string {
+	result := make(map[string]string)
+	for _, entry := range properties.Entries {
+		result[entry.XMLName.Local] = entry.Value
+	}
+	return result
+}
+
 func detectSpringBootVersion(currentRoot *mavenProject, mavenProject *mavenProject) string {
 	if currentRoot != nil {
 		return detectSpringBootVersionFromProject(currentRoot)
@@ -396,13 +414,21 @@ func detectSpringBootVersion(currentRoot *mavenProject, mavenProject *mavenProje
 
 func detectSpringBootVersionFromProject(project *mavenProject) string {
 	if project.Parent.ArtifactId == "spring-boot-starter-parent" {
-		return project.Parent.Version
+		return depVersion(project.Parent.Version, project.Properties)
 	} else {
 		for _, dep := range project.DependencyManagement.Dependencies {
 			if dep.ArtifactId == "spring-boot-dependencies" {
-				return dep.Version
+				return depVersion(dep.Version, project.Properties)
 			}
 		}
 	}
 	return UnknownSpringBootVersion
+}
+
+func depVersion(version string, properties Properties) string {
+	if strings.HasPrefix(version, "${") {
+		return parseProperties(properties)[version[2:len(version)-1]]
+	} else {
+		return version
+	}
 }
