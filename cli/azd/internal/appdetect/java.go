@@ -52,7 +52,7 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 			}
 
 			_ = currentRoot // use currentRoot here in the analysis
-			result, err := detectDependencies(currentRoot, project, &Project{
+			result, err := detectDependencies(project, &Project{
 				Language:      Java,
 				Path:          path,
 				DetectionRule: "Inferred by presence of: pom.xml",
@@ -128,7 +128,7 @@ func readMavenProject(filePath string) (*mavenProject, error) {
 	return &project, nil
 }
 
-func detectDependencies(currentRoot *mavenProject, mavenProject *mavenProject, project *Project) (*Project, error) {
+func detectDependencies(mavenProject *mavenProject, project *Project) (*Project, error) {
 	// how can we tell it's a Spring Boot project?
 	// 1. It has a parent with a groupId of org.springframework.boot and an artifactId of spring-boot-starter-parent
 	// 2. It has a dependency with a groupId of org.springframework.boot and an artifactId that starts with
