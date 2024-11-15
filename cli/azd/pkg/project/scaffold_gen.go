@@ -446,130 +446,121 @@ func getServiceSpecByName(infraSpec *scaffold.InfraSpec, name string) *scaffold.
 
 func printHintsAboutUsePostgres(userResourceName string, usedResourceName string,
 	authType internal.AuthType) error {
-	log.Printf("'%s' uses '%s' will be achieved by these environment variables: \n",
+	log.Printf("'%s' uses '%s' will be achieved by these environment variables: ",
 		userResourceName, usedResourceName)
-	log.Printf(
-		"POSTGRES_HOST\n" +
-			"POSTGRES_DATABASE\n" +
-			"POSTGRES_PORT\n" +
-			"spring.datasource.url\n" +
-			"spring.datasource.username\n")
+	log.Printf("POSTGRES_HOST")
+	log.Printf("POSTGRES_DATABASE")
+	log.Printf("POSTGRES_PORT")
+	log.Printf("spring.datasource.url")
+	log.Printf("spring.datasource.username")
 	if authType == internal.AuthTypePassword {
-		log.Printf(
-			"POSTGRES_URL\n" +
-				"POSTGRES_USERNAME\n" +
-				"POSTGRES_PASSWORD\n" +
-				"spring.datasource.password\n")
+		log.Printf("POSTGRES_URL")
+		log.Printf("POSTGRES_USERNAME")
+		log.Printf("POSTGRES_PASSWORD")
+		log.Printf("spring.datasource.password")
 	} else if authType == internal.AuthTypeUserAssignedManagedIdentity {
-		log.Printf("spring.datasource.azure.passwordless-enabled\n")
-		log.Printf("CAUTION: To make sure passwordless work well in your spring boot application, " +
-			"Meke sure the following 2 things:\n" +
-			"1. Add required dependency: spring-cloud-azure-starter-jdbc-postgresql.\n" +
-			"2. Delete property 'spring.datasource.password' in your property file.\n" +
-			"Refs: https://learn.microsoft.com/en-us/azure/service-connector/" +
-			"how-to-integrate-mysql?tabs=springBoot#sample-code-1")
+		log.Printf("spring.datasource.azure.passwordless-enabled")
+		log.Printf("CAUTION: To make sure passwordless work well in your spring boot application, ")
+		log.Printf("make sure the following 2 things:")
+		log.Printf("1. Add required dependency: spring-cloud-azure-starter-jdbc-postgresql.")
+		log.Printf("2. Delete property 'spring.datasource.password' in your property file.")
+		log.Printf("Refs: https://learn.microsoft.com/en-us/azure/service-connector/")
+		log.Printf("how-to-integrate-mysql?tabs=springBoot#sample-code-1")
 	} else {
-		return fmt.Errorf("Unsupported auth type for PostgreSQL. Supported types: %s, %s\n",
+		return fmt.Errorf("unsupported auth type for PostgreSQL. Supported types: %s, %s",
 			internal.GetAuthTypeDescription(internal.AuthTypePassword),
 			internal.GetAuthTypeDescription(internal.AuthTypeUserAssignedManagedIdentity))
 	}
-	log.Printf("Please make sure your application used the right environment variable.\n")
+	log.Printf("Please make sure your application used the right environment variable.")
 	return nil
 }
 
 func printHintsAboutUseMySql(userResourceName string, usedResourceName string,
 	authType internal.AuthType) error {
-	log.Printf("'%s' uses '%s' will be achieved by these environment variables: \n",
+	log.Printf("'%s' uses '%s' will be achieved by these environment variables: ",
 		userResourceName, usedResourceName)
-	log.Printf(
-		"MYSQL_HOST\n" +
-			"MYSQL_DATABASE\n" +
-			"MYSQL_PORT\n" +
-			"spring.datasource.url\n" +
-			"spring.datasource.username\n")
+	log.Printf("MYSQL_HOST")
+	log.Printf("MYSQL_DATABASE")
+	log.Printf("MYSQL_PORT")
+	log.Printf("spring.datasource.url")
+	log.Printf("spring.datasource.username")
 	if authType == internal.AuthTypePassword {
-		log.Printf(
-			"MYSQL_URL\n" +
-				"MYSQL_USERNAME\n" +
-				"MYSQL_PASSWORD\n" +
-				"spring.datasource.password\n")
+		log.Printf("MYSQL_URL")
+		log.Printf("MYSQL_USERNAME")
+		log.Printf("MYSQL_PASSWORD")
+		log.Printf("spring.datasource.password")
 	} else if authType == internal.AuthTypeUserAssignedManagedIdentity {
-		log.Printf("spring.datasource.azure.passwordless-enabled\n")
-		log.Printf("CAUTION: To make sure passwordless work well in your spring boot application, " +
-			"Meke sure the following 2 things:\n" +
-			"1. Add required dependency: spring-cloud-azure-starter-jdbc-postgresql.\n" +
-			"2. Delete property 'spring.datasource.password' in your property file.\n" +
-			"Refs: https://learn.microsoft.com/en-us/azure/service-connector/" +
-			"how-to-integrate-postgres?tabs=springBoot#sample-code-1")
+		log.Printf("spring.datasource.azure.passwordless-enabled")
+		log.Printf("CAUTION: To make sure passwordless work well in your spring boot application, ")
+		log.Printf("Meke sure the following 2 things:")
+		log.Printf("1. Add required dependency: spring-cloud-azure-starter-jdbc-postgresql.")
+		log.Printf("2. Delete property 'spring.datasource.password' in your property file.")
+		log.Printf("Refs: https://learn.microsoft.com/en-us/azure/service-connector/how-to-integrate-postgres?tabs=springBoot#sample-code-1")
 	} else {
-		return fmt.Errorf("Unsupported auth type for MySql. Supported types: %s, %s\n",
+		return fmt.Errorf("unsupported auth type for MySql. Supported types: %s, %s",
 			internal.GetAuthTypeDescription(internal.AuthTypePassword),
 			internal.GetAuthTypeDescription(internal.AuthTypeUserAssignedManagedIdentity))
 	}
-	log.Printf("Please make sure your application used the right environment variable.\n")
+	log.Printf("Please make sure your application used the right environment variable.")
 	return nil
 }
 
 func printHintsAboutUseRedis(userResourceName string, usedResourceName string) {
-	log.Printf("'%s' uses '%s' will be achieved by these environment variables: \n",
+	log.Printf("'%s' uses '%s' will be achieved by these environment variables: ",
 		userResourceName, usedResourceName)
-	log.Printf(
-		"REDIS_HOST\n" +
-			"REDIS_PORT\n" +
-			"REDIS_URL\n" +
-			"REDIS_ENDPOINT\n" +
-			"REDIS_PASSWORD\n" +
-			"spring.data.redis.url\n")
-	log.Printf("Please make sure your application used the right environment variable.\n")
+	log.Printf("REDIS_HOST")
+	log.Printf("REDIS_PORT")
+	log.Printf("REDIS_URL")
+	log.Printf("REDIS_ENDPOINT")
+	log.Printf("REDIS_PASSWORD")
+	log.Printf("spring.data.redis.url")
+	log.Printf("Please make sure your application used the right environment variable.")
 }
 
 func printHintsAboutUseMongo(userResourceName string, usedResourceName string) {
-	log.Printf("'%s' uses '%s' will be achieved by these environment variables: \n",
+	log.Printf("'%s' uses '%s' will be achieved by these environment variables: ",
 		userResourceName, usedResourceName)
-	log.Printf(
-		"MONGODB_URL\n" +
-			"spring.data.mongodb.uri\n" +
-			"spring.data.mongodb.database\n")
-	log.Printf("Please make sure your application used the right environment variable.\n")
+	log.Printf("MONGODB_URL")
+	log.Printf("spring.data.mongodb.uri")
+	log.Printf("spring.data.mongodb.database")
+	log.Printf("Please make sure your application used the right environment variable.")
 }
 
 func printHintsAboutUseCosmos(userResourceName string, usedResourceName string) {
-	log.Printf("'%s' uses '%s' will be achieved by these environment variables: \n",
+	log.Printf("'%s' uses '%s' will be achieved by these environment variables: ",
 		userResourceName, usedResourceName)
-	log.Printf(
-		"spring.cloud.azure.cosmos.endpoint\n" +
-			"spring.cloud.azure.cosmos.database\n")
-	log.Printf("Please make sure your application used the right environment variable.\n")
+	log.Printf("spring.cloud.azure.cosmos.endpoint")
+	log.Printf("spring.cloud.azure.cosmos.database")
+	log.Printf("Please make sure your application used the right environment variable.")
 }
 
 func printHintsAboutUseServiceBus(userResourceName string, usedResourceName string,
 	isJms bool, authType internal.AuthType) error {
-	log.Printf("'%s' uses '%s' will be achieved by these environment variables: \n",
+	log.Printf("'%s' uses '%s' will be achieved by these environment variables: ",
 		userResourceName, usedResourceName)
 	if !isJms {
 		log.Printf("spring.cloud.azure.servicebus.namespace")
 	}
 	if authType == internal.AuthTypeUserAssignedManagedIdentity {
-		log.Printf("spring.cloud.azure.servicebus.connection-string=''\n" +
-			"spring.cloud.azure.servicebus.credential.managed-identity-enabled=true\n" +
-			"spring.cloud.azure.servicebus.credential.client-id")
+		log.Printf("spring.cloud.azure.servicebus.connection-string=''")
+		log.Printf("spring.cloud.azure.servicebus.credential.managed-identity-enabled=true")
+		log.Printf("spring.cloud.azure.servicebus.credential.client-id")
 	} else if authType == internal.AuthTypeConnectionString {
-		log.Printf(
-			"spring.cloud.azure.servicebus.connection-string\n" +
-				"spring.cloud.azure.servicebus.credential.managed-identity-enabled=false\n" +
-				"spring.cloud.azure.eventhubs.credential.client-id\n")
+		log.Printf("spring.cloud.azure.servicebus.connection-string")
+		log.Printf("spring.cloud.azure.servicebus.credential.managed-identity-enabled=false")
+		log.Printf("spring.cloud.azure.eventhubs.credential.client-id")
 	} else {
-		return fmt.Errorf("Unsupported auth type for Service Bus. Supported types: %s, %s\n",
+		return fmt.Errorf("unsupported auth type for Service Bus. Supported types: %s, %s",
 			internal.GetAuthTypeDescription(internal.AuthTypeUserAssignedManagedIdentity),
 			internal.GetAuthTypeDescription(internal.AuthTypeConnectionString))
 	}
-	log.Printf("Please make sure your application used the right environment variable.\n")
+	log.Printf("Please make sure your application used the right environment variable.")
 	return nil
 }
 
 func printHintsAboutUseEventHubs(userResourceName string, usedResourceName string,
 	UseKafka bool, authType internal.AuthType) error {
-	log.Printf("'%s' uses '%s' will be achieved by these environment variables: \n",
+	log.Printf("'%s' uses '%s' will be achieved by these environment variables: ",
 		userResourceName, usedResourceName)
 	if !UseKafka {
 		log.Printf("spring.cloud.azure.eventhubs.namespace")
@@ -577,52 +568,50 @@ func printHintsAboutUseEventHubs(userResourceName string, usedResourceName strin
 		log.Printf("spring.cloud.stream.kafka.binder.brokers")
 	}
 	if authType == internal.AuthTypeUserAssignedManagedIdentity {
-		log.Printf("spring.cloud.azure.eventhubs.connection-string=''\n" +
-			"spring.cloud.azure.eventhubs.credential.managed-identity-enabled=true\n" +
-			"spring.cloud.azure.eventhubs.credential.client-id")
+		log.Printf("spring.cloud.azure.eventhubs.connection-string=''")
+		log.Printf("spring.cloud.azure.eventhubs.credential.managed-identity-enabled=true")
+		log.Printf("spring.cloud.azure.eventhubs.credential.client-id")
 	} else if authType == internal.AuthTypeConnectionString {
-		log.Printf(
-			"spring.cloud.azure.eventhubs.connection-string\n" +
-				"spring.cloud.azure.eventhubs.credential.managed-identity-enabled=false\n" +
-				"spring.cloud.azure.eventhubs.credential.client-id\n")
+		log.Printf("spring.cloud.azure.eventhubs.connection-string")
+		log.Printf("spring.cloud.azure.eventhubs.credential.managed-identity-enabled=false")
+		log.Printf("spring.cloud.azure.eventhubs.credential.client-id")
 	} else {
-		return fmt.Errorf("Unsupported auth type for Event Hubs. Supported types: %s, %s\n",
+		return fmt.Errorf("unsupported auth type for Event Hubs. Supported types: %s, %s",
 			internal.GetAuthTypeDescription(internal.AuthTypeUserAssignedManagedIdentity),
 			internal.GetAuthTypeDescription(internal.AuthTypeConnectionString))
 	}
-	log.Printf("Please make sure your application used the right environment variable.\n")
+	log.Printf("Please make sure your application used the right environment variable.")
 	return nil
 }
 
 func printHintsAboutUseStorageAccount(userResourceName string, usedResourceName string,
 	authType internal.AuthType) error {
-	log.Printf("'%s' uses '%s' will be achieved by these environment variables: \n",
+	log.Printf("'%s' uses '%s' will be achieved by these environment variables: ",
 		userResourceName, usedResourceName)
 	log.Printf("spring.cloud.azure.eventhubs.processor.checkpoint-store.account-name")
 	if authType == internal.AuthTypeUserAssignedManagedIdentity {
-		log.Printf("spring.cloud.azure.eventhubs.processor.checkpoint-store.connection-string=''\n" +
-			"spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.managed-identity-enabled=true\n" +
-			"spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.client-id")
+		log.Printf("spring.cloud.azure.eventhubs.processor.checkpoint-store.connection-string=''")
+		log.Printf("spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.managed-identity-enabled=true")
+		log.Printf("spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.client-id")
 	} else if authType == internal.AuthTypeConnectionString {
-		log.Printf(
-			"spring.cloud.azure.eventhubs.processor.checkpoint-store.connection-string\n" +
-				"spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.managed-identity-enabled=false\n" +
-				"spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.client-id\n")
+		log.Printf("spring.cloud.azure.eventhubs.processor.checkpoint-store.connection-string")
+		log.Printf("spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.managed-identity-enabled=false")
+		log.Printf("spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.client-id")
 	} else {
-		return fmt.Errorf("Unsupported auth type for Storage Account. Supported types: %s, %s\n",
+		return fmt.Errorf("unsupported auth type for Storage Account. Supported types: %s, %s",
 			internal.GetAuthTypeDescription(internal.AuthTypeUserAssignedManagedIdentity),
 			internal.GetAuthTypeDescription(internal.AuthTypeConnectionString))
 	}
-	log.Printf("Please make sure your application used the right environment variable.\n")
+	log.Printf("Please make sure your application used the right environment variable.")
 	return nil
 }
 
 func printHintsAboutUseHostContainerApp(userResourceName string, usedResourceName string) {
-	log.Printf("'%s' uses '%s' will be achieved by these environment variables: \n",
+	log.Printf("'%s' uses '%s' will be achieved by these environment variables: ",
 		userResourceName, usedResourceName)
-	log.Printf("Environemnt variables in %s:\n", userResourceName)
-	log.Printf("%s_BASE_URL.\n", strings.ToUpper(usedResourceName))
-	log.Printf("Environemnt variables in %s:\n", usedResourceName)
-	log.Printf("%s_BASE_URL.\n", strings.ToUpper(userResourceName))
-	log.Printf("Please make sure your application used the right environment variable.\n")
+	log.Printf("Environemnt variables in %s:", userResourceName)
+	log.Printf("%s_BASE_URL.", strings.ToUpper(usedResourceName))
+	log.Printf("Environemnt variables in %s:", usedResourceName)
+	log.Printf("%s_BASE_URL.", strings.ToUpper(userResourceName))
+	log.Printf("Please make sure your application used the right environment variable.")
 }
