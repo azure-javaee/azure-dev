@@ -455,7 +455,8 @@ func getServiceSpecByName(infraSpec *scaffold.InfraSpec, name string) *scaffold.
 func printHintsAboutUsePostgres(userResourceName string, usedResourceName string,
 	authType internal.AuthType,
 	console *input.Console, context *context.Context) error {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: '%s' uses '%s' will be achieved by these environment variables: ",
+	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
+		"After deployed, the 'uses' is achieved by providing these environment variables: ",
 		userResourceName, usedResourceName))
 	(*console).Message(*context, "POSTGRES_HOST")
 	(*console).Message(*context, "POSTGRES_DATABASE")
@@ -487,7 +488,8 @@ func printHintsAboutUsePostgres(userResourceName string, usedResourceName string
 func printHintsAboutUseMySql(userResourceName string, usedResourceName string,
 	authType internal.AuthType,
 	console *input.Console, context *context.Context) error {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: '%s' uses '%s' will be achieved by these environment variables: ",
+	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
+		"After deployed, the 'uses' is achieved by providing these environment variables: ",
 		userResourceName, usedResourceName))
 	(*console).Message(*context, "MYSQL_HOST")
 	(*console).Message(*context, "MYSQL_DATABASE")
@@ -517,7 +519,8 @@ func printHintsAboutUseMySql(userResourceName string, usedResourceName string,
 
 func printHintsAboutUseRedis(userResourceName string, usedResourceName string,
 	console *input.Console, context *context.Context) {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: '%s' uses '%s' will be achieved by these environment variables: ",
+	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
+		"After deployed, the 'uses' is achieved by providing these environment variables: ",
 		userResourceName, usedResourceName))
 	(*console).Message(*context, "REDIS_HOST")
 	(*console).Message(*context, "REDIS_PORT")
@@ -530,7 +533,8 @@ func printHintsAboutUseRedis(userResourceName string, usedResourceName string,
 
 func printHintsAboutUseMongo(userResourceName string, usedResourceName string,
 	console *input.Console, context *context.Context) {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: '%s' uses '%s' will be achieved by these environment variables: ",
+	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
+		"After deployed, the 'uses' is achieved by providing these environment variables: ",
 		userResourceName, usedResourceName))
 	(*console).Message(*context, "MONGODB_URL")
 	(*console).Message(*context, "spring.data.mongodb.uri")
@@ -540,7 +544,8 @@ func printHintsAboutUseMongo(userResourceName string, usedResourceName string,
 
 func printHintsAboutUseCosmos(userResourceName string, usedResourceName string,
 	console *input.Console, context *context.Context) {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: '%s' uses '%s' will be achieved by these environment variables: ",
+	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
+		"After deployed, the 'uses' is achieved by providing these environment variables: ",
 		userResourceName, usedResourceName))
 	(*console).Message(*context, "spring.cloud.azure.cosmos.endpoint")
 	(*console).Message(*context, "spring.cloud.azure.cosmos.database")
@@ -550,7 +555,8 @@ func printHintsAboutUseCosmos(userResourceName string, usedResourceName string,
 func printHintsAboutUseServiceBus(userResourceName string, usedResourceName string,
 	isJms bool, authType internal.AuthType,
 	console *input.Console, context *context.Context) error {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: '%s' uses '%s' will be achieved by these environment variables: ",
+	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
+		"After deployed, the 'uses' is achieved by providing these environment variables: ",
 		userResourceName, usedResourceName))
 	if !isJms {
 		(*console).Message(*context, "spring.cloud.azure.servicebus.namespace")
@@ -575,7 +581,8 @@ func printHintsAboutUseServiceBus(userResourceName string, usedResourceName stri
 func printHintsAboutUseEventHubs(userResourceName string, usedResourceName string,
 	UseKafka bool, authType internal.AuthType,
 	console *input.Console, context *context.Context) error {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: '%s' uses '%s' will be achieved by these environment variables: ",
+	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
+		"After deployed, the 'uses' is achieved by providing these environment variables: ",
 		userResourceName, usedResourceName))
 	if !UseKafka {
 		(*console).Message(*context, "spring.cloud.azure.eventhubs.namespace")
@@ -602,7 +609,8 @@ func printHintsAboutUseEventHubs(userResourceName string, usedResourceName strin
 func printHintsAboutUseStorageAccount(userResourceName string, usedResourceName string,
 	authType internal.AuthType,
 	console *input.Console, context *context.Context) error {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: '%s' uses '%s' will be achieved by these environment variables: ",
+	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
+		"After deployed, the 'uses' is achieved by providing these environment variables: ",
 		userResourceName, usedResourceName))
 	(*console).Message(*context, "spring.cloud.azure.eventhubs.processor.checkpoint-store.account-name")
 	if authType == internal.AuthTypeUserAssignedManagedIdentity {
@@ -624,7 +632,8 @@ func printHintsAboutUseStorageAccount(userResourceName string, usedResourceName 
 
 func printHintsAboutUseHostContainerApp(userResourceName string, usedResourceName string,
 	console *input.Console, context *context.Context) {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: '%s' uses '%s' will be achieved by these environment variables: ",
+	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
+		"After deployed, the 'uses' is achieved by providing these environment variables: ",
 		userResourceName, usedResourceName))
 	(*console).Message(*context, fmt.Sprintf("Environemnt variables in %s:", userResourceName))
 	(*console).Message(*context, fmt.Sprintf("%s_BASE_URL", strings.ToUpper(usedResourceName)))
