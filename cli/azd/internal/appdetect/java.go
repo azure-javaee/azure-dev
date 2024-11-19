@@ -404,10 +404,11 @@ func parseProperties(properties Properties) map[string]string {
 }
 
 func detectSpringBootVersion(currentRoot *mavenProject, mavenProject *mavenProject) string {
-	if currentRoot != nil {
-		return detectSpringBootVersionFromProject(currentRoot)
-	} else if mavenProject != nil {
+	// mavenProject prioritize than rootProject
+	if mavenProject != nil {
 		return detectSpringBootVersionFromProject(mavenProject)
+	} else if currentRoot != nil {
+		return detectSpringBootVersionFromProject(currentRoot)
 	}
 	return UnknownSpringBootVersion
 }
