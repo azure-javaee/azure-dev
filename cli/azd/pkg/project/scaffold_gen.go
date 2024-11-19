@@ -221,7 +221,12 @@ func infraSpec(projectConfig *ProjectConfig,
 		}
 	}
 
-	err := mapUses(&infraSpec, projectConfig, console, context)
+	err := mapUses(&infraSpec, projectConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	err = printHintsAboutUses(&infraSpec, projectConfig, console, context)
 	if err != nil {
 		return nil, err
 	}
@@ -233,8 +238,7 @@ func infraSpec(projectConfig *ProjectConfig,
 	return &infraSpec, nil
 }
 
-func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig,
-	console *input.Console, context *context.Context) error {
+func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error {
 	for i := range infraSpec.Services {
 		userSpec := &infraSpec.Services[i]
 		userResourceName := userSpec.Name
@@ -252,54 +256,25 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig,
 			switch usedResource.Type {
 			case ResourceTypeDbPostgres:
 				userSpec.DbPostgres = infraSpec.DbPostgres
-				err := printHintsAboutUsePostgres(userResourceName, usedResourceName,
-					userSpec.DbPostgres.AuthType, console, context)
-				if err != nil {
-					return err
-				}
 			case ResourceTypeDbMySQL:
 				userSpec.DbMySql = infraSpec.DbMySql
-				err := printHintsAboutUseMySql(userResourceName, usedResourceName,
-					userSpec.DbPostgres.AuthType, console, context)
-				if err != nil {
-					return err
-				}
 			case ResourceTypeDbRedis:
 				userSpec.DbRedis = infraSpec.DbRedis
-				printHintsAboutUseRedis(userResourceName, usedResourceName, console, context)
 			case ResourceTypeDbMongo:
 				userSpec.DbCosmosMongo = infraSpec.DbCosmosMongo
-				printHintsAboutUseMongo(userResourceName, usedResourceName, console, context)
 			case ResourceTypeDbCosmos:
 				userSpec.DbCosmos = infraSpec.DbCosmos
-				printHintsAboutUseCosmos(userResourceName, usedResourceName, console, context)
 			case ResourceTypeMessagingServiceBus:
 				userSpec.AzureServiceBus = infraSpec.AzureServiceBus
-				err := printHintsAboutUseServiceBus(userResourceName, usedResourceName, userSpec.AzureServiceBus.IsJms,
-					userSpec.AzureServiceBus.AuthType, console, context)
-				if err != nil {
-					return err
-				}
 			case ResourceTypeMessagingEventHubs, ResourceTypeMessagingKafka:
 				userSpec.AzureEventHubs = infraSpec.AzureEventHubs
-				err := printHintsAboutUseEventHubs(userResourceName, usedResourceName, userSpec.AzureEventHubs.UseKafka,
-					userSpec.AzureEventHubs.AuthType, console, context)
-				if err != nil {
-					return err
-				}
 			case ResourceTypeStorage:
 				userSpec.AzureStorageAccount = infraSpec.AzureStorageAccount
-				err := printHintsAboutUseStorageAccount(userResourceName, usedResourceName,
-					userSpec.AzureStorageAccount.AuthType, console, context)
-				if err != nil {
-					return err
-				}
 			case ResourceTypeHostContainerApp:
 				err := fulfillFrontendBackend(userSpec, usedResource, infraSpec)
 				if err != nil {
 					return err
 				}
-				printHintsAboutUseHostContainerApp(userResourceName, usedResourceName, console, context)
 			case ResourceTypeOpenAiModel:
 				userSpec.AIModels = append(userSpec.AIModels, scaffold.AIModelReference{Name: usedResource.Name})
 			default:
@@ -309,6 +284,76 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig,
 		}
 	}
 	return nil
+}
+
+func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig,
+	console *input.Console,
+	context *context.Context) error {
+	for i := range infraSpec.Services {
+		userSpec := &infraSpec.Services[i]
+		userResourceName := userSpec.Name
+		userResource, ok := projectConfig.Resources[userResourceName]
+		if !ok {
+			return fmt.Errorf("service (%s) exist, but there isn't a resource with that name",
+				userResourceName)
+		}
+		for _, usedResourceName := range userResource.Uses {
+			usedResource, ok := projectConfig.Resources[usedResourceName]
+			if !ok {
+				return fmt.Errorf("in azure.yaml, (%s) uses (%s), but (%s) doesn't",
+					userResourceName, usedResourceName, usedResourceName)
+			}
+			(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
+				"After deployed, the 'uses' is achieved by providing these environment variables: ",
+				userResourceName, usedResourceName))
+			switch usedResource.Type {
+			case ResourceTypeDbPostgres:
+				err := printHintsAboutUsePostgres(userSpec.DbPostgres.AuthType, console, context)
+				if err != nil {
+					return err
+				}
+			case ResourceTypeDbMySQL:
+				err := printHintsAboutUseMySql(userSpec.DbPostgres.AuthType, console, context)
+				if err != nil {
+					return err
+				}
+			case ResourceTypeDbRedis:
+				printHintsAboutUseRedis(console, context)
+			case ResourceTypeDbMongo:
+				printHintsAboutUseMongo(console, context)
+			case ResourceTypeDbCosmos:
+				printHintsAboutUseCosmos(console, context)
+			case ResourceTypeMessagingServiceBus:
+				err := printHintsAboutUseServiceBus(userSpec.AzureServiceBus.IsJms,
+					userSpec.AzureServiceBus.AuthType, console, context)
+				if err != nil {
+					return err
+				}
+			case ResourceTypeMessagingEventHubs, ResourceTypeMessagingKafka:
+				err := printHintsAboutUseEventHubs(userSpec.AzureEventHubs.UseKafka,
+					userSpec.AzureEventHubs.AuthType, console, context)
+				if err != nil {
+					return err
+				}
+			case ResourceTypeStorage:
+				err := printHintsAboutUseStorageAccount(userSpec.AzureStorageAccount.AuthType, console, context)
+				if err != nil {
+					return err
+				}
+			case ResourceTypeHostContainerApp:
+				printHintsAboutUseHostContainerApp(userResourceName, usedResourceName, console, context)
+			case ResourceTypeOpenAiModel:
+				printHintsAboutUseOpenAiModel(console, context)
+			default:
+				return fmt.Errorf("resource (%s) uses (%s), but the type of (%s) is (%s), "+
+					"which is doen't add necessary environment variable",
+					userResource.Name, usedResource.Name, usedResource.Name, usedResource.Type)
+			}
+			(*console).Message(*context, "Please make sure your application used the right environment variable name.\n")
+		}
+	}
+	return nil
+
 }
 
 func handleContainerAppProps(
@@ -433,7 +478,7 @@ func fulfillFrontendBackend(
 
 	usedSpec := getServiceSpecByName(infraSpec, usedResource.Name)
 	if usedSpec == nil {
-		return fmt.Errorf("used resource spec (%s) should exist, but it doesn't", usedResource.Name)
+		return fmt.Errorf("'%s' uses '%s', but %s doesn't", userSpec.Name, usedResource.Name, usedResource.Name)
 	}
 	if usedSpec.Backend == nil {
 		usedSpec.Backend = &scaffold.Backend{}
@@ -452,12 +497,8 @@ func getServiceSpecByName(infraSpec *scaffold.InfraSpec, name string) *scaffold.
 	return nil
 }
 
-func printHintsAboutUsePostgres(userResourceName string, usedResourceName string,
-	authType internal.AuthType,
+func printHintsAboutUsePostgres(authType internal.AuthType,
 	console *input.Console, context *context.Context) error {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
-		"After deployed, the 'uses' is achieved by providing these environment variables: ",
-		userResourceName, usedResourceName))
 	(*console).Message(*context, "POSTGRES_HOST")
 	(*console).Message(*context, "POSTGRES_DATABASE")
 	(*console).Message(*context, "POSTGRES_PORT")
@@ -481,16 +522,11 @@ func printHintsAboutUsePostgres(userResourceName string, usedResourceName string
 			internal.GetAuthTypeDescription(internal.AuthTypePassword),
 			internal.GetAuthTypeDescription(internal.AuthTypeUserAssignedManagedIdentity))
 	}
-	(*console).Message(*context, "Please make sure your application used the right environment variable name.\n")
 	return nil
 }
 
-func printHintsAboutUseMySql(userResourceName string, usedResourceName string,
-	authType internal.AuthType,
+func printHintsAboutUseMySql(authType internal.AuthType,
 	console *input.Console, context *context.Context) error {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
-		"After deployed, the 'uses' is achieved by providing these environment variables: ",
-		userResourceName, usedResourceName))
 	(*console).Message(*context, "MYSQL_HOST")
 	(*console).Message(*context, "MYSQL_DATABASE")
 	(*console).Message(*context, "MYSQL_PORT")
@@ -509,55 +545,35 @@ func printHintsAboutUseMySql(userResourceName string, usedResourceName string,
 		(*console).Message(*context, "2. Delete property 'spring.datasource.password' in your property file.")
 		(*console).Message(*context, "Refs: https://learn.microsoft.com/en-us/azure/service-connector/how-to-integrate-postgres?tabs=springBoot#sample-code-1")
 	} else {
-		return fmt.Errorf("unsupported auth type for MySql. Supported types: %s, %s",
+		return fmt.Errorf("unsupported auth type for MySql. Supported types are: %s, %s",
 			internal.GetAuthTypeDescription(internal.AuthTypePassword),
 			internal.GetAuthTypeDescription(internal.AuthTypeUserAssignedManagedIdentity))
 	}
-	(*console).Message(*context, "Please make sure your application used the right environment variable name.\n")
 	return nil
 }
 
-func printHintsAboutUseRedis(userResourceName string, usedResourceName string,
-	console *input.Console, context *context.Context) {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
-		"After deployed, the 'uses' is achieved by providing these environment variables: ",
-		userResourceName, usedResourceName))
+func printHintsAboutUseRedis(console *input.Console, context *context.Context) {
 	(*console).Message(*context, "REDIS_HOST")
 	(*console).Message(*context, "REDIS_PORT")
 	(*console).Message(*context, "REDIS_URL")
 	(*console).Message(*context, "REDIS_ENDPOINT")
 	(*console).Message(*context, "REDIS_PASSWORD")
 	(*console).Message(*context, "spring.data.redis.url")
-	(*console).Message(*context, "Please make sure your application used the right environment variable name.\n")
 }
 
-func printHintsAboutUseMongo(userResourceName string, usedResourceName string,
-	console *input.Console, context *context.Context) {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
-		"After deployed, the 'uses' is achieved by providing these environment variables: ",
-		userResourceName, usedResourceName))
+func printHintsAboutUseMongo(console *input.Console, context *context.Context) {
 	(*console).Message(*context, "MONGODB_URL")
 	(*console).Message(*context, "spring.data.mongodb.uri")
 	(*console).Message(*context, "spring.data.mongodb.database")
-	(*console).Message(*context, "Please make sure your application used the right environment variable name.\n")
 }
 
-func printHintsAboutUseCosmos(userResourceName string, usedResourceName string,
-	console *input.Console, context *context.Context) {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
-		"After deployed, the 'uses' is achieved by providing these environment variables: ",
-		userResourceName, usedResourceName))
+func printHintsAboutUseCosmos(console *input.Console, context *context.Context) {
 	(*console).Message(*context, "spring.cloud.azure.cosmos.endpoint")
 	(*console).Message(*context, "spring.cloud.azure.cosmos.database")
-	(*console).Message(*context, "Please make sure your application used the right environment variable name.\n")
 }
 
-func printHintsAboutUseServiceBus(userResourceName string, usedResourceName string,
-	isJms bool, authType internal.AuthType,
+func printHintsAboutUseServiceBus(isJms bool, authType internal.AuthType,
 	console *input.Console, context *context.Context) error {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
-		"After deployed, the 'uses' is achieved by providing these environment variables: ",
-		userResourceName, usedResourceName))
 	if !isJms {
 		(*console).Message(*context, "spring.cloud.azure.servicebus.namespace")
 	}
@@ -570,20 +586,15 @@ func printHintsAboutUseServiceBus(userResourceName string, usedResourceName stri
 		(*console).Message(*context, "spring.cloud.azure.servicebus.credential.managed-identity-enabled=false")
 		(*console).Message(*context, "spring.cloud.azure.eventhubs.credential.client-id")
 	} else {
-		return fmt.Errorf("unsupported auth type for Service Bus. Supported types: %s, %s",
+		return fmt.Errorf("unsupported auth type for Service Bus. Supported types are: %s, %s",
 			internal.GetAuthTypeDescription(internal.AuthTypeUserAssignedManagedIdentity),
 			internal.GetAuthTypeDescription(internal.AuthTypeConnectionString))
 	}
-	(*console).Message(*context, "Please make sure your application used the right environment variable name.\n")
 	return nil
 }
 
-func printHintsAboutUseEventHubs(userResourceName string, usedResourceName string,
-	UseKafka bool, authType internal.AuthType,
+func printHintsAboutUseEventHubs(UseKafka bool, authType internal.AuthType,
 	console *input.Console, context *context.Context) error {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
-		"After deployed, the 'uses' is achieved by providing these environment variables: ",
-		userResourceName, usedResourceName))
 	if !UseKafka {
 		(*console).Message(*context, "spring.cloud.azure.eventhubs.namespace")
 	} else {
@@ -602,16 +613,11 @@ func printHintsAboutUseEventHubs(userResourceName string, usedResourceName strin
 			internal.GetAuthTypeDescription(internal.AuthTypeUserAssignedManagedIdentity),
 			internal.GetAuthTypeDescription(internal.AuthTypeConnectionString))
 	}
-	(*console).Message(*context, "Please make sure your application used the right environment variable name.\n")
 	return nil
 }
 
-func printHintsAboutUseStorageAccount(userResourceName string, usedResourceName string,
-	authType internal.AuthType,
+func printHintsAboutUseStorageAccount(authType internal.AuthType,
 	console *input.Console, context *context.Context) error {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
-		"After deployed, the 'uses' is achieved by providing these environment variables: ",
-		userResourceName, usedResourceName))
 	(*console).Message(*context, "spring.cloud.azure.eventhubs.processor.checkpoint-store.account-name")
 	if authType == internal.AuthTypeUserAssignedManagedIdentity {
 		(*console).Message(*context, "spring.cloud.azure.eventhubs.processor.checkpoint-store.connection-string=''")
@@ -626,18 +632,17 @@ func printHintsAboutUseStorageAccount(userResourceName string, usedResourceName 
 			internal.GetAuthTypeDescription(internal.AuthTypeUserAssignedManagedIdentity),
 			internal.GetAuthTypeDescription(internal.AuthTypeConnectionString))
 	}
-	(*console).Message(*context, "Please make sure your application used the right environment variable name.\n")
 	return nil
 }
 
 func printHintsAboutUseHostContainerApp(userResourceName string, usedResourceName string,
 	console *input.Console, context *context.Context) {
-	(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
-		"After deployed, the 'uses' is achieved by providing these environment variables: ",
-		userResourceName, usedResourceName))
 	(*console).Message(*context, fmt.Sprintf("Environemnt variables in %s:", userResourceName))
 	(*console).Message(*context, fmt.Sprintf("%s_BASE_URL", strings.ToUpper(usedResourceName)))
 	(*console).Message(*context, fmt.Sprintf("Environemnt variables in %s:", usedResourceName))
 	(*console).Message(*context, fmt.Sprintf("%s_BASE_URL", strings.ToUpper(userResourceName)))
-	(*console).Message(*context, "Please make sure your application used the right environment variable name.\n")
+}
+
+func printHintsAboutUseOpenAiModel(console *input.Console, context *context.Context) {
+	(*console).Message(*context, "AZURE_OPENAI_ENDPOINT")
 }
