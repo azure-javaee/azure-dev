@@ -1377,11 +1377,9 @@
                                     "type": "string"
                                 }
                             }
-                        },
-                        "required": ["containerName"]
+                        }
                     }
-                },
-                "required": ["databaseName"]
+                }
             }
         },
         "serviceBusResource": {
