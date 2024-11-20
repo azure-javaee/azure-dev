@@ -501,7 +501,7 @@ func printHintsAboutUsePostgres(authType internal.AuthType,
 	console *input.Console, context *context.Context) error {
 	(*console).Message(*context, "POSTGRES_HOST=xxx")
 	(*console).Message(*context, "POSTGRES_DATABASE=xxx")
-	(*console).Message(*context, "POSTGRES_POR=xxxT")
+	(*console).Message(*context, "POSTGRES_PORT=xxx")
 	(*console).Message(*context, "spring.datasource.url=xxx")
 	(*console).Message(*context, "spring.datasource.username=xxx")
 	if authType == internal.AuthTypePassword {
@@ -554,7 +554,7 @@ func printHintsAboutUseMySql(authType internal.AuthType,
 
 func printHintsAboutUseRedis(console *input.Console, context *context.Context) {
 	(*console).Message(*context, "REDIS_HOST=xxx")
-	(*console).Message(*context, "REDIS_POR=xxxT")
+	(*console).Message(*context, "REDIS_PORT=xxx")
 	(*console).Message(*context, "REDIS_URL=xxx")
 	(*console).Message(*context, "REDIS_ENDPOINT=xxx")
 	(*console).Message(*context, "REDIS_PASSWORD=xxx")
