@@ -560,7 +560,7 @@ func (i *Initializer) prjConfigFromDetect(
 			if database == appdetect.DbPostgres || database == appdetect.DbMySql {
 				var err error
 				authType, err = chooseAuthTypeByPrompt(
-					databaseName,
+					database.Display(),
 					[]internal.AuthType{internal.AuthTypeUserAssignedManagedIdentity, internal.AuthTypePassword},
 					ctx,
 					i.console)
