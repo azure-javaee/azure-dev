@@ -523,7 +523,7 @@ func (i *Initializer) prjConfigFromDetect(
 						Type: project.ResourceTypeStorage,
 						Props: project.StorageProps{
 							Containers: spec.AzureStorageAccount.ContainerNames,
-							AuthType:   spec.AzureEventHubs.AuthType,
+							AuthType:   spec.AzureStorageAccount.AuthType,
 						},
 					}
 
