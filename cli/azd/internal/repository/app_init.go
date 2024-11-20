@@ -742,7 +742,7 @@ func chooseAuthTypeByPrompt(
 		options = append(options, internal.GetAuthTypeDescription(option))
 	}
 	selection, err := console.Select(ctx, input.ConsoleOptions{
-		Message: "Choose auth type for " + name + "?",
+		Message: "Choose auth type for " + name + ":",
 		Options: options,
 	})
 	if err != nil {
