@@ -134,7 +134,7 @@ func logServiceAddedAccordingToMavenDependencyAndExtraCondition(
 	if extraCondition != "" {
 		insertedString = " and " + extraCondition
 	}
-	log.Printf("Added '%s' because found dependency '%s:%s'%s.",
+	log.Printf("Detected '%s' because found dependency '%s:%s' in pom.xml file%s.",
 		resourceName, groupId, artifactId, insertedString)
 }
 
@@ -275,7 +275,8 @@ func addStorageAccountAccordingToSpringCloudStreamBinderMavenDependency(
 				azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
 				logServiceAddedAccordingToMavenDependencyAndExtraCondition(newDep.ResourceDisplay(), targetGroupId,
 					targetArtifactId, "binding name ["+containsInBindingName+"] contains '-in-'")
-				log.Printf("  Storage account container name: [%s].", targetPropertyValue)
+				log.Printf("  Detected Storage Account container name: [%s] by analyzing property file.",
+					targetPropertyValue)
 			}
 		}
 	}
