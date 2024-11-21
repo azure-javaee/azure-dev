@@ -397,9 +397,9 @@
                     { "if": { "properties": { "type": { "const": "db.redis"  }}}, "then": { "$ref": "#/definitions/resource"} },
                     { "if": { "properties": { "type": { "const": "db.mongo"  }}}, "then": { "$ref": "#/definitions/mongoDbResource"} },
                     { "if": { "properties": { "type": { "const": "db.cosmos"  }}}, "then": { "$ref": "#/definitions/cosmosDbResource"} },
-                    { "if": { "properties": { "type": { "const": "msg.servicebus"  }}}, "then": { "$ref": "#/definitions/serviceBusResource"} },
-                    { "if": { "properties": { "type": { "const": "msg.eventhubs"  }}}, "then": { "$ref": "#/definitions/eventHubsResource"} },
-                    { "if": { "properties": { "type": { "const": "msg.kafka"  }}}, "then": { "$ref": "#/definitions/kafkaResource"} }
+                    { "if": { "properties": { "type": { "const": "messaging.servicebus"  }}}, "then": { "$ref": "#/definitions/serviceBusResource"} },
+                    { "if": { "properties": { "type": { "const": "messaging.eventhubs"  }}}, "then": { "$ref": "#/definitions/eventHubsResource"} },
+                    { "if": { "properties": { "type": { "const": "messaging.kafka"  }}}, "then": { "$ref": "#/definitions/kafkaResource"} }
                 ]
             }
         },
