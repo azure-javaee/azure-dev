@@ -133,6 +133,6 @@ func readMavenProject(filePath string) (*mavenProject, error) {
 }
 
 func detectDependencies(currentRoot *mavenProject, mavenProject *mavenProject, project *Project) (*Project, error) {
-	updateProjectByAnalyzingSpringBootProject(currentRoot, mavenProject, project)
+	detectAzureDependenciesByAnalyzingSpringBootProject(currentRoot, mavenProject, project)
 	return project, nil
 }

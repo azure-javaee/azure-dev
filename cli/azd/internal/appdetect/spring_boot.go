@@ -81,7 +81,7 @@ var databaseDependencyRules = []DatabaseDependencyRule{
 	},
 }
 
-func updateProjectByAnalyzingSpringBootProject(
+func detectAzureDependenciesByAnalyzingSpringBootProject(
 	parentProject *mavenProject, mavenProject *mavenProject, azdProject *Project) {
 	if !isSpringBootApplication(mavenProject) {
 		log.Printf("Skip analyzing spring boot project. path = %s.", mavenProject.path)
@@ -93,14 +93,14 @@ func updateProjectByAnalyzingSpringBootProject(
 		parentProject:         parentProject,
 		mavenProject:          mavenProject,
 	}
-	addDatabases(azdProject, &springBootProject)
-	addServiceBus(azdProject, &springBootProject)
-	addEventHubs(azdProject, &springBootProject)
-	addStorageAccount(azdProject, &springBootProject)
-	addSpringCloudAzure(azdProject, &springBootProject)
+	detectDatabases(azdProject, &springBootProject)
+	detectServiceBus(azdProject, &springBootProject)
+	detectEventHubs(azdProject, &springBootProject)
+	detectStorageAccount(azdProject, &springBootProject)
+	detectSpringCloudAzure(azdProject, &springBootProject)
 }
 
-func addDatabases(azdProject *Project, springBootProject *SpringBootProject) {
+func detectDatabases(azdProject *Project, springBootProject *SpringBootProject) {
 	databaseDepMap := map[DatabaseDep]struct{}{}
 	for _, rule := range databaseDependencyRules {
 		for _, targetDependency := range rule.mavenDependencies {
@@ -138,13 +138,13 @@ func logServiceAddedAccordingToMavenDependencyAndExtraCondition(
 		resourceName, groupId, artifactId, insertedString)
 }
 
-func addServiceBus(azdProject *Project, springBootProject *SpringBootProject) {
+func detectServiceBus(azdProject *Project, springBootProject *SpringBootProject) {
 	// we need to figure out multiple projects are using the same service bus
-	addServiceBusAccordingToJMSMavenDependency(azdProject, springBootProject)
-	addServiceBusAccordingToSpringCloudStreamBinderMavenDependency(azdProject, springBootProject)
+	detectServiceBusAccordingToJMSMavenDependency(azdProject, springBootProject)
+	detectServiceBusAccordingToSpringCloudStreamBinderMavenDependency(azdProject, springBootProject)
 }
 
-func addServiceBusAccordingToJMSMavenDependency(azdProject *Project, springBootProject *SpringBootProject) {
+func detectServiceBusAccordingToJMSMavenDependency(azdProject *Project, springBootProject *SpringBootProject) {
 	var targetGroupId = "com.azure.spring"
 	var targetArtifactId = "spring-cloud-azure-starter-servicebus-jms"
 	for _, projectDependency := range springBootProject.mavenProject.Dependencies {
@@ -159,7 +159,7 @@ func addServiceBusAccordingToJMSMavenDependency(azdProject *Project, springBootP
 	}
 }
 
-func addServiceBusAccordingToSpringCloudStreamBinderMavenDependency(
+func detectServiceBusAccordingToSpringCloudStreamBinderMavenDependency(
 	azdProject *Project, springBootProject *SpringBootProject) {
 	var targetGroupId = "com.azure.spring"
 	var targetArtifactId = "spring-cloud-azure-stream-binder-servicebus"
@@ -187,13 +187,13 @@ func addServiceBusAccordingToSpringCloudStreamBinderMavenDependency(
 	}
 }
 
-func addEventHubs(azdProject *Project, springBootProject *SpringBootProject) {
+func detectEventHubs(azdProject *Project, springBootProject *SpringBootProject) {
 	// we need to figure out multiple projects are using the same event hub
-	addEventHubsAccordingToSpringCloudStreamBinderMavenDependency(azdProject, springBootProject)
-	addEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(azdProject, springBootProject)
+	detectEventHubsAccordingToSpringCloudStreamBinderMavenDependency(azdProject, springBootProject)
+	detectEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(azdProject, springBootProject)
 }
 
-func addEventHubsAccordingToSpringCloudStreamBinderMavenDependency(
+func detectEventHubsAccordingToSpringCloudStreamBinderMavenDependency(
 	azdProject *Project, springBootProject *SpringBootProject) {
 	var targetGroupId = "com.azure.spring"
 	var targetArtifactId = "spring-cloud-azure-stream-binder-eventhubs"
@@ -220,7 +220,7 @@ func addEventHubsAccordingToSpringCloudStreamBinderMavenDependency(
 	}
 }
 
-func addEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(
+func detectEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(
 	azdProject *Project, springBootProject *SpringBootProject) {
 	var targetGroupId = "com.azure.spring"
 	var targetArtifactId = "spring-cloud-starter-stream-kafka"
@@ -248,11 +248,11 @@ func addEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(
 	}
 }
 
-func addStorageAccount(azdProject *Project, springBootProject *SpringBootProject) {
-	addStorageAccountAccordingToSpringCloudStreamBinderMavenDependency(azdProject, springBootProject)
+func detectStorageAccount(azdProject *Project, springBootProject *SpringBootProject) {
+	detectStorageAccountAccordingToSpringCloudStreamBinderMavenDependency(azdProject, springBootProject)
 }
 
-func addStorageAccountAccordingToSpringCloudStreamBinderMavenDependency(
+func detectStorageAccountAccordingToSpringCloudStreamBinderMavenDependency(
 	azdProject *Project, springBootProject *SpringBootProject) {
 	var targetGroupId = "com.azure.spring"
 	var targetArtifactId = "spring-cloud-azure-stream-binder-eventhubs"
@@ -282,7 +282,7 @@ func addStorageAccountAccordingToSpringCloudStreamBinderMavenDependency(
 	}
 }
 
-func addSpringCloudAzure(azdProject *Project, springBootProject *SpringBootProject) {
+func detectSpringCloudAzure(azdProject *Project, springBootProject *SpringBootProject) {
 	var targetGroupId = "com.azure.spring"
 	var targetArtifactId = "spring-cloud-azure-starter"
 	for _, projectDependency := range springBootProject.mavenProject.Dependencies {
