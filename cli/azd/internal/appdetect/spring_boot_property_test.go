@@ -3,8 +3,27 @@ package appdetect
 import (
 	"github.com/stretchr/testify/require"
 	"os"
+	"path/filepath"
 	"testing"
 )
+
+func TestReadProperties(t *testing.T) {
+	var properties = readProperties(filepath.Join("testdata", "java-spring", "project-one"))
+	require.Equal(t, "", properties["not.exist"])
+	require.Equal(t, "jdbc:h2:mem:testdb", properties["spring.datasource.url"])
+
+	properties = readProperties(filepath.Join("testdata", "java-spring", "project-two"))
+	require.Equal(t, "", properties["not.exist"])
+	require.Equal(t, "jdbc:h2:mem:testdb", properties["spring.datasource.url"])
+
+	properties = readProperties(filepath.Join("testdata", "java-spring", "project-three"))
+	require.Equal(t, "", properties["not.exist"])
+	require.Equal(t, "HTML", properties["spring.thymeleaf.mode"])
+
+	properties = readProperties(filepath.Join("testdata", "java-spring", "project-four"))
+	require.Equal(t, "", properties["not.exist"])
+	require.Equal(t, "mysql", properties["database"])
+}
 
 func TestGetEnvironmentVariablePlaceholderHandledValue(t *testing.T) {
 	tests := []struct {
