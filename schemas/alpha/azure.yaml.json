@@ -373,9 +373,9 @@
                             "db.redis",
                             "db.mongo",
                             "db.cosmos",
-                            "msg.servicebus",
-                            "msg.eventhubs",
-                            "msg.kafka",
+                            "messaging.servicebus",
+                            "messaging.eventhubs",
+                            "messaging.kafka",
                             "ai.openai.model",
                             "host.containerapp"
                         ]
