@@ -1220,7 +1220,7 @@
                 "type": {
                     "type": "string",
                     "title": "Type of resource",
-                    "description": "The type of resource to be created. (Example: db.postgres)",
+                    "description": "The type of resource to be created. (Example: db.redis)",
                     "enum": [
                         "db.redis",
                         "storage",
