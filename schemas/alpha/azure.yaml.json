@@ -1383,7 +1383,7 @@
                 "authType": {
                     "type": "string",
                     "title": "Authentication Type",
-                    "description": "The type of authentication used for Azure PostgreSQL database.",
+                    "description": "The type of authentication used for Azure Storage Account.",
                     "enum": [
                         "USER_ASSIGNED_MANAGED_IDENTITY",
                         "CONNECTION_STRING"
@@ -1391,8 +1391,13 @@
                 },
                 "containers": {
                     "type": "array",
-                    "title": "Azure Storage Account container name.",
-                    "description": "The container name of Azure Storage Account."
+                    "title": "Azure Storage Account container names.",
+                    "description": "The container names of Azure Storage Account.",
+                    "items": {
+                        "type": "string",
+                        "title": "Azure Storage Account container name",
+                        "description": "The container name of Azure Storage Account."
+                    }
                 }
             }
         },
