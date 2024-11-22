@@ -104,14 +104,13 @@ func detectDatabases(azdProject *Project, springBootProject *SpringBootProject) 
 	databaseDepMap := map[DatabaseDep]struct{}{}
 	for _, rule := range databaseDependencyRules {
 		for _, targetDependency := range rule.mavenDependencies {
-			for _, projectDependency := range springBootProject.mavenProject.Dependencies {
-				if projectDependency.GroupId == targetDependency.groupId &&
-					projectDependency.ArtifactId == targetDependency.artifactId {
-					databaseDepMap[rule.databaseDep] = struct{}{}
-					logServiceAddedAccordingToMavenDependency(rule.databaseDep.Display(),
-						projectDependency.GroupId, projectDependency.ArtifactId)
-					break
-				}
+			var targetGroupId = targetDependency.groupId
+			var targetArtifactId = targetDependency.artifactId
+			if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
+				databaseDepMap[rule.databaseDep] = struct{}{}
+				logServiceAddedAccordingToMavenDependency(rule.databaseDep.Display(),
+					targetGroupId, targetArtifactId)
+				break
 			}
 		}
 	}
@@ -120,6 +119,133 @@ func detectDatabases(azdProject *Project, springBootProject *SpringBootProject) 
 			func(a, b DatabaseDep) int {
 				return strings.Compare(string(a), string(b))
 			})
+	}
+}
+
+func detectServiceBus(azdProject *Project, springBootProject *SpringBootProject) {
+	// we need to figure out multiple projects are using the same service bus
+	detectServiceBusAccordingToJMSMavenDependency(azdProject, springBootProject)
+	detectServiceBusAccordingToSpringCloudStreamBinderMavenDependency(azdProject, springBootProject)
+}
+
+func detectServiceBusAccordingToJMSMavenDependency(azdProject *Project, springBootProject *SpringBootProject) {
+	var targetGroupId = "com.azure.spring"
+	var targetArtifactId = "spring-cloud-azure-starter-servicebus-jms"
+	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
+		newDependency := AzureDepServiceBus{
+			IsJms: true,
+		}
+		azdProject.AzureDeps = append(azdProject.AzureDeps, newDependency)
+		logServiceAddedAccordingToMavenDependency(newDependency.ResourceDisplay(), targetGroupId, targetArtifactId)
+	}
+}
+
+func detectServiceBusAccordingToSpringCloudStreamBinderMavenDependency(
+	azdProject *Project, springBootProject *SpringBootProject) {
+	var targetGroupId = "com.azure.spring"
+	var targetArtifactId = "spring-cloud-azure-stream-binder-servicebus"
+	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
+		bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
+		var destinations = distinctValues(bindingDestinations)
+		newDep := AzureDepServiceBus{
+			Queues: destinations,
+			IsJms:  false,
+		}
+		azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
+		logServiceAddedAccordingToMavenDependency(newDep.ResourceDisplay(), targetGroupId, targetArtifactId)
+		for bindingName, destination := range bindingDestinations {
+			log.Printf("  Detected Service Bus queue [%s] for binding [%s] by analyzing property file.",
+				destination, bindingName)
+		}
+	}
+}
+
+func detectEventHubs(azdProject *Project, springBootProject *SpringBootProject) {
+	// we need to figure out multiple projects are using the same event hub
+	detectEventHubsAccordingToSpringCloudStreamBinderMavenDependency(azdProject, springBootProject)
+	detectEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(azdProject, springBootProject)
+}
+
+func detectEventHubsAccordingToSpringCloudStreamBinderMavenDependency(
+	azdProject *Project, springBootProject *SpringBootProject) {
+	var targetGroupId = "com.azure.spring"
+	var targetArtifactId = "spring-cloud-azure-stream-binder-eventhubs"
+	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
+		bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
+		var destinations = distinctValues(bindingDestinations)
+		newDep := AzureDepEventHubs{
+			Names:    destinations,
+			UseKafka: false,
+		}
+		azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
+		logServiceAddedAccordingToMavenDependency(newDep.ResourceDisplay(), targetGroupId, targetArtifactId)
+		for bindingName, destination := range bindingDestinations {
+			log.Printf("  Detected Event Hub [%s] for binding [%s] by analyzing property file.",
+				destination, bindingName)
+		}
+	}
+}
+
+func detectEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(
+	azdProject *Project, springBootProject *SpringBootProject) {
+	var targetGroupId = "com.azure.spring"
+	var targetArtifactId = "spring-cloud-starter-stream-kafka"
+	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
+		bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
+		var destinations = distinctValues(bindingDestinations)
+		newDep := AzureDepEventHubs{
+			Names:             destinations,
+			UseKafka:          true,
+			SpringBootVersion: springBootProject.springBootVersion,
+		}
+		azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
+		logServiceAddedAccordingToMavenDependency(newDep.ResourceDisplay(), targetGroupId, targetArtifactId)
+		for bindingName, destination := range bindingDestinations {
+			log.Printf("  Detected Kafka Topic [%s] for binding [%s] by analyzing property file.",
+				destination, bindingName)
+		}
+	}
+}
+
+func detectStorageAccount(azdProject *Project, springBootProject *SpringBootProject) {
+	detectStorageAccountAccordingToSpringCloudStreamBinderMavenDependencyAndProperty(azdProject, springBootProject)
+}
+
+func detectStorageAccountAccordingToSpringCloudStreamBinderMavenDependencyAndProperty(
+	azdProject *Project, springBootProject *SpringBootProject) {
+	var targetGroupId = "com.azure.spring"
+	var targetArtifactId = "spring-cloud-azure-stream-binder-eventhubs"
+	var targetPropertyName = "spring.cloud.azure.eventhubs.processor.checkpoint-store.container-name"
+	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
+		bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
+		containsInBindingName := ""
+		for bindingName := range bindingDestinations {
+			if strings.Contains(bindingName, "-in-") { // Example: consume-in-0
+				containsInBindingName = bindingName
+				break
+			}
+		}
+		if containsInBindingName != "" {
+			targetPropertyValue := springBootProject.applicationProperties[targetPropertyName]
+			newDep := AzureDepStorageAccount{
+				ContainerNames: []string{targetPropertyValue},
+			}
+			azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
+			logServiceAddedAccordingToMavenDependencyAndExtraCondition(newDep.ResourceDisplay(), targetGroupId,
+				targetArtifactId, "binding name ["+containsInBindingName+"] contains '-in-'")
+			log.Printf("  Detected Storage Account container name: [%s] by analyzing property file.",
+				targetPropertyValue)
+		}
+	}
+}
+
+func detectSpringCloudAzure(azdProject *Project, springBootProject *SpringBootProject) {
+	var targetGroupId = "com.azure.spring"
+	var targetArtifactId = "spring-cloud-azure-starter"
+	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
+		newDep := SpringCloudAzureDep{}
+		azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
+		logServiceAddedAccordingToMavenDependency(newDep.ResourceDisplay(), targetGroupId, targetArtifactId)
 	}
 }
 
@@ -136,149 +262,6 @@ func logServiceAddedAccordingToMavenDependencyAndExtraCondition(
 	}
 	log.Printf("Detected '%s' because found dependency '%s:%s' in pom.xml file%s.",
 		resourceName, groupId, artifactId, insertedString)
-}
-
-func detectServiceBus(azdProject *Project, springBootProject *SpringBootProject) {
-	// we need to figure out multiple projects are using the same service bus
-	detectServiceBusAccordingToJMSMavenDependency(azdProject, springBootProject)
-	detectServiceBusAccordingToSpringCloudStreamBinderMavenDependency(azdProject, springBootProject)
-}
-
-func detectServiceBusAccordingToJMSMavenDependency(azdProject *Project, springBootProject *SpringBootProject) {
-	var targetGroupId = "com.azure.spring"
-	var targetArtifactId = "spring-cloud-azure-starter-servicebus-jms"
-	for _, projectDependency := range springBootProject.mavenProject.Dependencies {
-		if projectDependency.GroupId == targetGroupId && projectDependency.ArtifactId == targetArtifactId {
-			newDependency := AzureDepServiceBus{
-				IsJms: true,
-			}
-			azdProject.AzureDeps = append(azdProject.AzureDeps, newDependency)
-			logServiceAddedAccordingToMavenDependency(newDependency.ResourceDisplay(), targetGroupId, targetArtifactId)
-			break
-		}
-	}
-}
-
-func detectServiceBusAccordingToSpringCloudStreamBinderMavenDependency(
-	azdProject *Project, springBootProject *SpringBootProject) {
-	var targetGroupId = "com.azure.spring"
-	var targetArtifactId = "spring-cloud-azure-stream-binder-servicebus"
-	for _, projectDependency := range springBootProject.mavenProject.Dependencies {
-		if projectDependency.GroupId == targetGroupId && projectDependency.ArtifactId == targetArtifactId {
-			bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
-			var destinations = distinctValues(bindingDestinations)
-			newDep := AzureDepServiceBus{
-				Queues: destinations,
-				IsJms:  false,
-			}
-			azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
-			logServiceAddedAccordingToMavenDependency(newDep.ResourceDisplay(), targetGroupId, targetArtifactId)
-			for bindingName, destination := range bindingDestinations {
-				log.Printf("  Detected Service Bus queue [%s] for binding [%s] by analyzing property file.",
-					destination, bindingName)
-			}
-			break
-		}
-	}
-}
-
-func detectEventHubs(azdProject *Project, springBootProject *SpringBootProject) {
-	// we need to figure out multiple projects are using the same event hub
-	detectEventHubsAccordingToSpringCloudStreamBinderMavenDependency(azdProject, springBootProject)
-	detectEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(azdProject, springBootProject)
-}
-
-func detectEventHubsAccordingToSpringCloudStreamBinderMavenDependency(
-	azdProject *Project, springBootProject *SpringBootProject) {
-	var targetGroupId = "com.azure.spring"
-	var targetArtifactId = "spring-cloud-azure-stream-binder-eventhubs"
-	for _, projectDependency := range springBootProject.mavenProject.Dependencies {
-		if projectDependency.GroupId == targetGroupId && projectDependency.ArtifactId == targetArtifactId {
-			bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
-			var destinations = distinctValues(bindingDestinations)
-			newDep := AzureDepEventHubs{
-				Names:    destinations,
-				UseKafka: false,
-			}
-			azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
-			logServiceAddedAccordingToMavenDependency(newDep.ResourceDisplay(), targetGroupId, targetArtifactId)
-			for bindingName, destination := range bindingDestinations {
-				log.Printf("  Detected Event Hub [%s] for binding [%s] by analyzing property file.",
-					destination, bindingName)
-			}
-			break
-		}
-	}
-}
-
-func detectEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(
-	azdProject *Project, springBootProject *SpringBootProject) {
-	var targetGroupId = "com.azure.spring"
-	var targetArtifactId = "spring-cloud-starter-stream-kafka"
-	for _, projectDependency := range springBootProject.mavenProject.Dependencies {
-		if projectDependency.GroupId == targetGroupId && projectDependency.ArtifactId == targetArtifactId {
-			bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
-			var destinations = distinctValues(bindingDestinations)
-			newDep := AzureDepEventHubs{
-				Names:             destinations,
-				UseKafka:          true,
-				SpringBootVersion: springBootProject.springBootVersion,
-			}
-			azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
-			logServiceAddedAccordingToMavenDependency(newDep.ResourceDisplay(), targetGroupId, targetArtifactId)
-			for bindingName, destination := range bindingDestinations {
-				log.Printf("  Detected Kafka Topic [%s] for binding [%s] by analyzing property file.",
-					destination, bindingName)
-			}
-			break
-		}
-	}
-}
-
-func detectStorageAccount(azdProject *Project, springBootProject *SpringBootProject) {
-	detectStorageAccountAccordingToSpringCloudStreamBinderMavenDependency(azdProject, springBootProject)
-}
-
-func detectStorageAccountAccordingToSpringCloudStreamBinderMavenDependency(
-	azdProject *Project, springBootProject *SpringBootProject) {
-	var targetGroupId = "com.azure.spring"
-	var targetArtifactId = "spring-cloud-azure-stream-binder-eventhubs"
-	var targetPropertyName = "spring.cloud.azure.eventhubs.processor.checkpoint-store.container-name"
-	for _, projectDependency := range springBootProject.mavenProject.Dependencies {
-		if projectDependency.GroupId == targetGroupId && projectDependency.ArtifactId == targetArtifactId {
-			bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
-			containsInBindingName := ""
-			for bindingName := range bindingDestinations {
-				if strings.Contains(bindingName, "-in-") { // Example: consume-in-0
-					containsInBindingName = bindingName
-					break
-				}
-			}
-			if containsInBindingName != "" {
-				targetPropertyValue := springBootProject.applicationProperties[targetPropertyName]
-				newDep := AzureDepStorageAccount{
-					ContainerNames: []string{targetPropertyValue},
-				}
-				azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
-				logServiceAddedAccordingToMavenDependencyAndExtraCondition(newDep.ResourceDisplay(), targetGroupId,
-					targetArtifactId, "binding name ["+containsInBindingName+"] contains '-in-'")
-				log.Printf("  Detected Storage Account container name: [%s] by analyzing property file.",
-					targetPropertyValue)
-			}
-		}
-	}
-}
-
-func detectSpringCloudAzure(azdProject *Project, springBootProject *SpringBootProject) {
-	var targetGroupId = "com.azure.spring"
-	var targetArtifactId = "spring-cloud-azure-starter"
-	for _, projectDependency := range springBootProject.mavenProject.Dependencies {
-		if projectDependency.GroupId == targetGroupId && projectDependency.ArtifactId == targetArtifactId {
-			newDep := SpringCloudAzureDep{}
-			azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
-			logServiceAddedAccordingToMavenDependency(newDep.ResourceDisplay(), targetGroupId, targetArtifactId)
-		}
-	}
 }
 
 func detectSpringBootVersion(currentRoot *mavenProject, mavenProject *mavenProject) string {
@@ -368,4 +351,13 @@ func getBindingDestinationMap(properties map[string]string) map[string]string {
 	}
 
 	return result
+}
+
+func hasDependency(project *SpringBootProject, groupId string, artifactId string) bool {
+	for _, projectDependency := range project.mavenProject.Dependencies {
+		if projectDependency.GroupId == groupId && projectDependency.ArtifactId == artifactId {
+			return true
+		}
+	}
+	return false
 }
