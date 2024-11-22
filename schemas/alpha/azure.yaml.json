@@ -1495,7 +1495,7 @@
                 "springBootVersion": {
                     "type": "string",
                     "title": "Spring Boot Version",
-                    "description": "The Spring Boot Version."
+                    "description": "The Spring Boot version used in the project."
                 }
             }
         }
