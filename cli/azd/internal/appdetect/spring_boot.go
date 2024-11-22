@@ -216,6 +216,7 @@ func detectEventHubsAccordingToSpringCloudStreamBinderMavenDependency(
 				log.Printf("  Detected Event Hub [%s] for binding [%s] by analyzing property file.",
 					destination, bindingName)
 			}
+			break
 		}
 	}
 }
@@ -244,6 +245,7 @@ func detectEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(
 				log.Printf("  Detected Kafka Topic [%s] for binding [%s] by analyzing property file.",
 					destination, bindingName)
 			}
+			break
 		}
 	}
 }
