@@ -450,8 +450,7 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 			(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
 				"After deployed, the 'uses' is achieved by providing these environment variables: ",
 				userResourceName, usedResourceName))
-			resourceType := usedResource.Type
-			variables, err := getAllEnvironmentVariablesForPrint(infraSpec, resourceType)
+			variables, err := getAllEnvironmentVariablesForPrint(infraSpec, usedResource.Type)
 			if err != nil {
 				return err
 			}
@@ -464,8 +463,6 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 				}
 				(*console).Message(*context, fmt.Sprintf("%s=%s", variable.Name, printValue))
 			}
-			userResourceName := userSpec.Name
-			userResource, ok := projectConfig.Resources[userResourceName]
 			switch usedResource.Type {
 			case ResourceTypeDbPostgres:
 			case ResourceTypeDbMySQL:
