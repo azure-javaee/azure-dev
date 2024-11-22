@@ -102,9 +102,6 @@ func TestExecInfra(t *testing.T) {
 							DatabaseName: "appdb",
 						},
 						DbRedis: &DatabaseRedis{},
-						DbPostgres: &DatabasePostgres{
-							DatabaseName: "appdb",
-						},
 					},
 					{
 						Name: "web",
@@ -131,9 +128,6 @@ func TestExecInfra(t *testing.T) {
 					{
 						Name: "api",
 						Port: 3100,
-						DbPostgres: &DatabasePostgres{
-							DatabaseName: "appdb",
-						},
 					},
 				},
 			},

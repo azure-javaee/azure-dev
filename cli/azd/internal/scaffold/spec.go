@@ -98,7 +98,8 @@ type ServiceSpec struct {
 	Name string
 	Port int
 
-	Env map[string]string
+	EnvironmentVariables []EnvironmentVariable // todo: merge EnvironmentVariables and env
+	Env                  map[string]string
 
 	// Front-end properties.
 	Frontend *Frontend
@@ -107,7 +108,6 @@ type ServiceSpec struct {
 	Backend *Backend
 
 	// Connection to a database
-	DbPostgres    *DatabasePostgres
 	DbMySql       *DatabaseMySql
 	DbRedis       *DatabaseRedis
 	DbCosmosMongo *DatabaseCosmosMongo
@@ -119,6 +119,14 @@ type ServiceSpec struct {
 	AzureServiceBus     *AzureDepServiceBus
 	AzureEventHubs      *AzureDepEventHubs
 	AzureStorageAccount *AzureDepStorageAccount
+}
+
+type EnvironmentVariable struct {
+	Name          string
+	StringValue   string
+	VariableValue string
+	SecretName    string
+	SecretValue   string
 }
 
 type Frontend struct {

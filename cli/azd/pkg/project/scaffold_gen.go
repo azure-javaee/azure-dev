@@ -262,7 +262,10 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 			}
 			switch usedResource.Type {
 			case ResourceTypeDbPostgres:
-				userSpec.DbPostgres = infraSpec.DbPostgres
+				err := addUsage(infraSpec, userSpec, ResourceTypeDbPostgres) // todo apply to all types
+				if err != nil {
+					return err
+				}
 			case ResourceTypeDbMySQL:
 				userSpec.DbMySql = infraSpec.DbMySql
 			case ResourceTypeDbRedis:
@@ -293,6 +296,140 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 	return nil
 }
 
+var alwaysExistEnvironmentVariables = map[ResourceType][]scaffold.EnvironmentVariable{
+	ResourceTypeDbPostgres: {
+		{
+			Name:        "POSTGRES_HOST",
+			StringValue: "postgreServer.outputs.fqdn",
+		},
+		{
+			Name:        "POSTGRES_DATABASE",
+			StringValue: "postgreSqlDatabaseName", // todo manage the environment variables names in resources.bicept
+		},
+		{
+			Name:        "POSTGRES_PORT",
+			StringValue: "5432",
+		},
+	},
+}
+
+func getConditionalEnvironmentVariables(infraSpec *scaffold.InfraSpec,
+	resourceType ResourceType) ([]scaffold.EnvironmentVariable, error) {
+	switch resourceType {
+	case ResourceTypeDbPostgres:
+		switch infraSpec.DbPostgres.AuthType {
+		case internal.AuthTypePassword:
+			return []scaffold.EnvironmentVariable{
+				{
+					Name:          "POSTGRES_URL",
+					SecretName:    "postgresql-db-url", // todo manage secret names
+					VariableValue: "postgreSqlDatabasePassword",
+				},
+				{
+					Name:          "POSTGRES_USERNAME",
+					VariableValue: "postgreSqlDatabaseUser",
+				},
+				{
+					Name:          "POSTGRES_PASSWORD",
+					VariableValue: "postgreSqlDatabasePassword",
+				},
+				{ // todo manage variables like postgreServer
+					Name: "spring.datasource.url",
+					VariableValue: "postgresql://${postgreSqlDatabaseUser}:" +
+						"${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
+				},
+				{
+					Name:          "spring.datasource.username",
+					VariableValue: "postgreSqlDatabaseUser",
+				},
+				{
+					Name:          "spring.datasource.password",
+					SecretName:    "postgresql-password",
+					VariableValue: "postgreSqlDatabasePassword",
+				},
+			}, nil
+		case internal.AuthTypeUserAssignedManagedIdentity:
+			// In this case, environment variables are added by service connector
+			return []scaffold.EnvironmentVariable{}, nil
+		default:
+			return nil, fmt.Errorf("unsupported auth type: %s", infraSpec.DbPostgres.AuthType)
+		}
+	default:
+		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
+	}
+}
+
+func getAllEnvironmentVariablesForBicepGeneration(infraSpec *scaffold.InfraSpec,
+	resourceType ResourceType) ([]scaffold.EnvironmentVariable, error) {
+	result := alwaysExistEnvironmentVariables[resourceType]
+	conditional, err := getConditionalEnvironmentVariables(infraSpec, resourceType)
+	if err != nil {
+		return nil, err
+	}
+	return append(result, conditional...), nil
+}
+
+func addUsage(infraSpec *scaffold.InfraSpec, userSpec *scaffold.ServiceSpec, resourceType ResourceType) error {
+	variables, err := getAllEnvironmentVariablesForBicepGeneration(infraSpec, resourceType)
+	if err != nil {
+		return err
+	}
+	// todo add duplicated name check
+	userSpec.EnvironmentVariables = append(userSpec.EnvironmentVariables, variables...)
+	return nil
+}
+
+var environmentVariableValueHiddenValue = "xxx"
+
+// This is added by service connector, not need to add to scaffold.ServiceSpec
+// todo: Not only support springBoot application type. Need to support other types
+func getAdditionalEnvironmentVariablesForPrint(infraSpec *scaffold.InfraSpec,
+	resourceType ResourceType) ([]scaffold.EnvironmentVariable, error) {
+	switch resourceType {
+	case ResourceTypeDbPostgres:
+		switch infraSpec.DbPostgres.AuthType {
+		case internal.AuthTypePassword:
+			return []scaffold.EnvironmentVariable{}, nil
+		case internal.AuthTypeUserAssignedManagedIdentity:
+			return []scaffold.EnvironmentVariable{
+				{ // todo manage variables like postgreServer
+					Name:        "spring.datasource.url",
+					StringValue: environmentVariableValueHiddenValue,
+				},
+				{
+					Name:        "spring.datasource.username",
+					StringValue: environmentVariableValueHiddenValue,
+				},
+				{
+					Name:        "spring.datasource.azure.passwordless-enabled",
+					StringValue: "true",
+				},
+			}, nil
+		default:
+			// return error to make sure every case has been considered.
+			return nil, fmt.Errorf("unsupported auth type: %s", infraSpec.DbPostgres.AuthType)
+		}
+	default:
+		// return error to make sure every case has been considered.
+		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
+	}
+}
+
+func getAllEnvironmentVariablesForPrint(infraSpec *scaffold.InfraSpec,
+	resourceType ResourceType) ([]scaffold.EnvironmentVariable, error) {
+	variables, err := getAllEnvironmentVariablesForBicepGeneration(infraSpec, resourceType)
+	if err != nil {
+		return nil, err
+	}
+	serviceConnectorCreatedVariables, err :=
+		getAdditionalEnvironmentVariablesForPrint(infraSpec, resourceType)
+	if err != nil {
+		return nil, err
+	}
+	variables = append(variables, serviceConnectorCreatedVariables...)
+	return variables, nil
+}
+
 func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig,
 	console *input.Console,
 	context *context.Context) error {
@@ -313,14 +450,26 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 			(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
 				"After deployed, the 'uses' is achieved by providing these environment variables: ",
 				userResourceName, usedResourceName))
+			resourceType := usedResource.Type
+			variables, err := getAllEnvironmentVariablesForPrint(infraSpec, resourceType)
+			if err != nil {
+				return err
+			}
+			for _, variable := range variables {
+				printValue := environmentVariableValueHiddenValue
+				if (strings.EqualFold(variable.StringValue, "") && strings.EqualFold(variable.VariableValue, "")) ||
+					strings.EqualFold(variable.StringValue, "true") ||
+					strings.EqualFold(variable.StringValue, "false") {
+					printValue = variable.StringValue
+				}
+				(*console).Message(*context, fmt.Sprintf("%s=%s", variable.Name, printValue))
+			}
+			userResourceName := userSpec.Name
+			userResource, ok := projectConfig.Resources[userResourceName]
 			switch usedResource.Type {
 			case ResourceTypeDbPostgres:
-				err := printHintsAboutUsePostgres(userSpec.DbPostgres.AuthType, console, context)
-				if err != nil {
-					return err
-				}
 			case ResourceTypeDbMySQL:
-				err := printHintsAboutUseMySql(userSpec.DbPostgres.AuthType, console, context)
+				err := printHintsAboutUseMySql(userSpec.DbMySql.AuthType, console, context)
 				if err != nil {
 					return err
 				}
@@ -500,34 +649,6 @@ func getServiceSpecByName(infraSpec *scaffold.InfraSpec, name string) *scaffold.
 		if infraSpec.Services[i].Name == name {
 			return &infraSpec.Services[i]
 		}
-	}
-	return nil
-}
-
-func printHintsAboutUsePostgres(authType internal.AuthType,
-	console *input.Console, context *context.Context) error {
-	(*console).Message(*context, "POSTGRES_HOST=xxx")
-	(*console).Message(*context, "POSTGRES_DATABASE=xxx")
-	(*console).Message(*context, "POSTGRES_PORT=xxx")
-	(*console).Message(*context, "spring.datasource.url=xxx")
-	(*console).Message(*context, "spring.datasource.username=xxx")
-	if authType == internal.AuthTypePassword {
-		(*console).Message(*context, "POSTGRES_URL=xxx")
-		(*console).Message(*context, "POSTGRES_USERNAME=xxx")
-		(*console).Message(*context, "POSTGRES_PASSWORD=xxx")
-		(*console).Message(*context, "spring.datasource.password=xxx")
-	} else if authType == internal.AuthTypeUserAssignedManagedIdentity {
-		(*console).Message(*context, "spring.datasource.azure.passwordless-enabled=true")
-		(*console).Message(*context, "CAUTION: To make sure passwordless work well in your spring boot application, ")
-		(*console).Message(*context, "make sure the following 2 things:")
-		(*console).Message(*context, "1. Add required dependency: spring-cloud-azure-starter-jdbc-postgresql.")
-		(*console).Message(*context, "2. Delete property 'spring.datasource.password' in your property file.")
-		(*console).Message(*context, "Refs: https://learn.microsoft.com/en-us/azure/service-connector/")
-		(*console).Message(*context, "how-to-integrate-mysql?tabs=springBoot#sample-code-1")
-	} else {
-		return fmt.Errorf("unsupported auth type for PostgreSQL. Supported types: %s, %s",
-			internal.GetAuthTypeDescription(internal.AuthTypePassword),
-			internal.GetAuthTypeDescription(internal.AuthTypeUserAssignedManagedIdentity))
 	}
 	return nil
 }
