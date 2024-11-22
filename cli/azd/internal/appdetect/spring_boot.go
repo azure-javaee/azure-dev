@@ -165,13 +165,8 @@ func detectServiceBusAccordingToSpringCloudStreamBinderMavenDependency(
 	var targetArtifactId = "spring-cloud-azure-stream-binder-servicebus"
 	for _, projectDependency := range springBootProject.mavenProject.Dependencies {
 		if projectDependency.GroupId == targetGroupId && projectDependency.ArtifactId == targetArtifactId {
-			bindingDestinations := findBindingDestinations(springBootProject.applicationProperties)
-			destinations := make([]string, 0, len(bindingDestinations))
-			for _, destination := range bindingDestinations {
-				if !contains(destinations, destination) {
-					destinations = append(destinations, destination)
-				}
-			}
+			bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
+			var destinations = distinctValues(bindingDestinations)
 			newDep := AzureDepServiceBus{
 				Queues: destinations,
 				IsJms:  false,
@@ -199,13 +194,8 @@ func detectEventHubsAccordingToSpringCloudStreamBinderMavenDependency(
 	var targetArtifactId = "spring-cloud-azure-stream-binder-eventhubs"
 	for _, projectDependency := range springBootProject.mavenProject.Dependencies {
 		if projectDependency.GroupId == targetGroupId && projectDependency.ArtifactId == targetArtifactId {
-			bindingDestinations := findBindingDestinations(springBootProject.applicationProperties)
-			var destinations []string
-			for _, destination := range bindingDestinations {
-				if !contains(destinations, destination) {
-					destinations = append(destinations, destination)
-				}
-			}
+			bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
+			var destinations = distinctValues(bindingDestinations)
 			newDep := AzureDepEventHubs{
 				Names:    destinations,
 				UseKafka: false,
@@ -227,13 +217,8 @@ func detectEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(
 	var targetArtifactId = "spring-cloud-starter-stream-kafka"
 	for _, projectDependency := range springBootProject.mavenProject.Dependencies {
 		if projectDependency.GroupId == targetGroupId && projectDependency.ArtifactId == targetArtifactId {
-			bindingDestinations := findBindingDestinations(springBootProject.applicationProperties)
-			var destinations []string
-			for _, destination := range bindingDestinations {
-				if !contains(destinations, destination) {
-					destinations = append(destinations, destination)
-				}
-			}
+			bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
+			var destinations = distinctValues(bindingDestinations)
 			newDep := AzureDepEventHubs{
 				Names:             destinations,
 				UseKafka:          true,
@@ -261,7 +246,7 @@ func detectStorageAccountAccordingToSpringCloudStreamBinderMavenDependency(
 	var targetPropertyName = "spring.cloud.azure.eventhubs.processor.checkpoint-store.container-name"
 	for _, projectDependency := range springBootProject.mavenProject.Dependencies {
 		if projectDependency.GroupId == targetGroupId && projectDependency.ArtifactId == targetArtifactId {
-			bindingDestinations := findBindingDestinations(springBootProject.applicationProperties)
+			bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
 			containsInBindingName := ""
 			for bindingName := range bindingDestinations {
 				if strings.Contains(bindingName, "-in-") { // Example: consume-in-0
@@ -345,15 +330,6 @@ func depVersion(version string, properties Properties) string {
 	}
 }
 
-func contains(array []string, str string) bool {
-	for _, v := range array {
-		if v == str {
-			return true
-		}
-	}
-	return false
-}
-
 func parseProperties(properties Properties) map[string]string {
 	result := make(map[string]string)
 	for _, entry := range properties.Entries {
@@ -362,8 +338,22 @@ func parseProperties(properties Properties) map[string]string {
 	return result
 }
 
+func distinctValues(input map[string]string) []string {
+	valueSet := make(map[string]struct{})
+	for _, value := range input {
+		valueSet[value] = struct{}{}
+	}
+
+	var result []string
+	for value := range valueSet {
+		result = append(result, value)
+	}
+
+	return result
+}
+
 // Function to find all properties that match the pattern `spring.cloud.stream.bindings.<binding-name>.destination`
-func findBindingDestinations(properties map[string]string) map[string]string {
+func getBindingDestinationMap(properties map[string]string) map[string]string {
 	result := make(map[string]string)
 
 	// Iterate through the properties map and look for matching keys
