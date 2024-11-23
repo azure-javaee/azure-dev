@@ -261,13 +261,11 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 					userResourceName, usedResourceName, usedResourceName)
 			}
 			switch usedResource.Type {
-			case ResourceTypeDbPostgres:
-				err := addUsage(infraSpec, userSpec, ResourceTypeDbPostgres) // todo apply to all types
+			case ResourceTypeDbPostgres, ResourceTypeDbMySQL:
+				err := addUsage(infraSpec, userSpec, usedResource.Type) // todo apply to all types
 				if err != nil {
 					return err
 				}
-			case ResourceTypeDbMySQL:
-				userSpec.DbMySql = infraSpec.DbMySql
 			case ResourceTypeDbRedis:
 				userSpec.DbRedis = infraSpec.DbRedis
 			case ResourceTypeDbMongo:
@@ -300,6 +298,8 @@ func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (inte
 	switch resourceType {
 	case ResourceTypeDbPostgres:
 		return infraSpec.DbPostgres.AuthType, nil
+	case ResourceTypeDbMySQL:
+		return infraSpec.DbMySql.AuthType, nil
 	default:
 		return internal.AuthTypeUnspecified, fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
@@ -361,12 +361,7 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 				(*console).Message(*context, fmt.Sprintf("  %s=xxx", variable.Name))
 			}
 			switch usedResource.Type {
-			case ResourceTypeDbPostgres:
-			case ResourceTypeDbMySQL:
-				err := printHintsAboutUseMySql(userSpec.DbMySql.AuthType, console, context)
-				if err != nil {
-					return err
-				}
+			case ResourceTypeDbPostgres, ResourceTypeDbMySQL:
 			case ResourceTypeDbRedis:
 				printHintsAboutUseRedis(console, context)
 			case ResourceTypeDbMongo:
@@ -541,33 +536,6 @@ func getServiceSpecByName(infraSpec *scaffold.InfraSpec, name string) *scaffold.
 		if infraSpec.Services[i].Name == name {
 			return &infraSpec.Services[i]
 		}
-	}
-	return nil
-}
-
-func printHintsAboutUseMySql(authType internal.AuthType,
-	console *input.Console, context *context.Context) error {
-	(*console).Message(*context, "MYSQL_HOST=xxx")
-	(*console).Message(*context, "MYSQL_DATABASE=xxx")
-	(*console).Message(*context, "MYSQL_PORT=xxx")
-	(*console).Message(*context, "spring.datasource.url=xxx")
-	(*console).Message(*context, "spring.datasource.username=xxx")
-	if authType == internal.AuthTypePassword {
-		(*console).Message(*context, "MYSQL_URL=xxx")
-		(*console).Message(*context, "MYSQL_USERNAME=xxx")
-		(*console).Message(*context, "MYSQL_PASSWORD=xxx")
-		(*console).Message(*context, "spring.datasource.password=xxx")
-	} else if authType == internal.AuthTypeUserAssignedManagedIdentity {
-		(*console).Message(*context, "spring.datasource.azure.passwordless-enabled=true")
-		(*console).Message(*context, "CAUTION: To make sure passwordless work well in your spring boot application, ")
-		(*console).Message(*context, "Make sure the following 2 things:")
-		(*console).Message(*context, "1. Add required dependency: spring-cloud-azure-starter-jdbc-postgresql.")
-		(*console).Message(*context, "2. Delete property 'spring.datasource.password' in your property file.")
-		(*console).Message(*context, "Refs: https://learn.microsoft.com/en-us/azure/service-connector/how-to-integrate-postgres?tabs=springBoot#sample-code-1")
-	} else {
-		return fmt.Errorf("unsupported auth type for MySql. Supported types are: %s, %s",
-			internal.GetAuthTypeDescription(internal.AuthTypePassword),
-			internal.GetAuthTypeDescription(internal.AuthTypeUserAssignedManagedIdentity))
 	}
 	return nil
 }

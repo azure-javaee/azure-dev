@@ -83,6 +83,82 @@ var environmentVariableInformation = map[ResourceType]map[internal.AuthType]scaf
 			},
 		},
 	},
+	ResourceTypeDbMySQL: {
+		internal.AuthTypePassword: scaffold.EnvironmentVariableInformation{
+			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+				{
+					Name:  "MYSQL_USERNAME",
+					Value: "${mysqlDatabaseUser}",
+				},
+				{
+					Name:  "MYSQL_HOST",
+					Value: "${mysqlServer.outputs.fqdn}",
+				},
+				{
+					Name:  "MYSQL_DATABASE",
+					Value: "${mysqlDatabaseName}",
+				},
+				{
+					Name:  "MYSQL_PORT",
+					Value: "3306",
+				},
+				{
+					Name:  "spring.datasource.url",
+					Value: "jdbc:mysql://${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}",
+				},
+				{
+					Name:  "spring.datasource.username",
+					Value: "${mysqlDatabaseUser}",
+				},
+			},
+			SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
+				{
+					Name:      "MYSQL_URL",
+					SecretRef: "mysql-db-url",
+				},
+				{
+					Name:      "MYSQL_PASSWORD",
+					SecretRef: "mysql-password",
+				},
+				{
+					Name:      "spring.datasource.password",
+					SecretRef: "mysql-password",
+				},
+			},
+			SecretDefinitions: []scaffold.SecretDefinition{
+				{
+					SecretName:  "mysql-db-url",
+					SecretValue: "mysql://${mysqlDatabaseUser}:${mysqlDatabasePassword}@${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}",
+				},
+				{
+					SecretName:  "mysql-password",
+					SecretValue: "${mysqlDatabasePassword}",
+				},
+			},
+		},
+		internal.AuthTypeUserAssignedManagedIdentity: scaffold.EnvironmentVariableInformation{
+			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+				// Some other environment variables are added by service connector,
+				// should not add to bicep generation context
+				{
+					Name:  "MYSQL_USERNAME",
+					Value: "${mysqlDatabaseUser}",
+				},
+				{
+					Name:  "MYSQL_HOST",
+					Value: "${mysqlServer.outputs.fqdn}",
+				},
+				{
+					Name:  "MYSQL_DATABASE",
+					Value: "${mysqlDatabaseName}",
+				},
+				{
+					Name:  "MYSQL_PORT",
+					Value: "3306",
+				},
+			},
+		},
+	},
 }
 
 func getAllEnvironmentVariablesForPrint(resourceType ResourceType,
@@ -104,12 +180,34 @@ func getAllEnvironmentVariablesForPrint(resourceType ResourceType,
 	return result, nil
 }
 
-// This is added by service connector, not need to add to scaffold.ServiceSpec
+// Return environment variables added by service connector, they do not need to add to scaffold.ServiceSpec
 // todo: Now only support springBoot application type. Need to support other types
 func getAdditionalEnvironmentVariablesForPrint(resourceType ResourceType,
 	authType internal.AuthType) (scaffold.EnvironmentVariableInformation, error) {
 	switch resourceType {
 	case ResourceTypeDbPostgres:
+		switch authType {
+		case internal.AuthTypePassword:
+			return scaffold.EnvironmentVariableInformation{}, nil
+		case internal.AuthTypeUserAssignedManagedIdentity:
+			return scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					{
+						Name: "spring.datasource.url",
+					},
+					{
+						Name: "spring.datasource.username",
+					},
+					{
+						Name: "spring.datasource.azure.passwordless-enabled",
+					},
+				},
+			}, nil
+		default:
+			// return error to make sure every case has been considered.
+			return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported auth type: %s", authType)
+		}
+	case ResourceTypeDbMySQL:
 		switch authType {
 		case internal.AuthTypePassword:
 			return scaffold.EnvironmentVariableInformation{}, nil

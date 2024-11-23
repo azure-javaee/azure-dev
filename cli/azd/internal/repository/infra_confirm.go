@@ -136,8 +136,6 @@ func (i *Initializer) infraSpecFromDetect(
 			switch db {
 			case appdetect.DbMongo:
 				serviceSpec.DbCosmosMongo = spec.DbCosmosMongo
-			case appdetect.DbMySql:
-				serviceSpec.DbMySql = spec.DbMySql
 			case appdetect.DbCosmos:
 				serviceSpec.DbCosmos = spec.DbCosmos
 			case appdetect.DbRedis:

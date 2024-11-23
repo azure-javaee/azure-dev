@@ -108,7 +108,6 @@ type ServiceSpec struct {
 	Backend *Backend
 
 	// Connection to a database
-	DbMySql       *DatabaseMySql
 	DbRedis       *DatabaseRedis
 	DbCosmosMongo *DatabaseCosmosMongo
 	DbCosmos      *DatabaseCosmosAccount

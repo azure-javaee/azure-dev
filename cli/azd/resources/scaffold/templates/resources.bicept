@@ -493,7 +493,7 @@ module {{bicepName .Name}}Identity 'br/public:avm/res/managed-identity/user-assi
   params: {
     name: '${abbrs.managedIdentityUserAssignedIdentities}{{bicepName .Name}}-${resourceToken}'
     location: location
-    {{- if (or (and $.DbPostgres (eq $.DbPostgres.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) (and .DbMySql (eq .DbMySql.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")))}}
+    {{- if (or (and $.DbPostgres (eq $.DbPostgres.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) (and $.DbMySql (eq $.DbMySql.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")))}}
     roleAssignments: [
       {
         principalId: connectionCreatorIdentity.outputs.principalId
@@ -569,16 +569,6 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
         {
           name: '{{.SecretName}}'
           value: '{{.SecretValue}}'
-        }
-        {{- end}}
-        {{- if (and .DbMySql (eq .DbMySql.AuthType "PASSWORD")) }}
-        {
-          name: 'mysql-password'
-          value: mysqlDatabasePassword
-        }
-        {
-          name: 'mysql-db-url'
-          value: 'mysql://${mysqlDatabaseUser}:${mysqlDatabasePassword}@${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}'
         }
         {{- end}}
         {{- if .DbRedis}}
@@ -661,46 +651,6 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {
             name: 'spring.data.mongodb.database'
             value: '{{ .DbCosmosMongo.DatabaseName }}'
-          }
-          {{- end}}
-          {{- if .DbMySql}}
-          {
-            name: 'MYSQL_HOST'
-            value: mysqlServer.outputs.fqdn
-          }
-          {
-            name: 'MYSQL_DATABASE'
-            value: mysqlDatabaseName
-          }
-          {
-            name: 'MYSQL_PORT'
-            value: '3306'
-          }
-          {{- end}}
-          {{- if (and .DbMySql (eq .DbMySql.AuthType "PASSWORD")) }}
-          {
-            name: 'MYSQL_URL'
-            secretRef: 'mysql-db-url'
-          }
-          {
-            name: 'MYSQL_USERNAME'
-            value: mysqlDatabaseUser
-          }
-          {
-            name: 'MYSQL_PASSWORD'
-            secretRef: 'mysql-password'
-          }
-          {
-            name: 'spring.datasource.url'
-            value: 'jdbc:mysql://${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}'
-          }
-          {
-            name: 'spring.datasource.username'
-            value: mysqlDatabaseUser
-          }
-          {
-            name: 'spring.datasource.password'
-            secretRef: 'mysql-password'
           }
           {{- end}}
           {{- if .DbCosmos }}
@@ -943,7 +893,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
     environmentResourceId: containerAppsEnvironment.outputs.resourceId
     location: location
     tags: union(tags, { 'azd-service-name': '{{.Name}}' })
-    {{- if (or (and $.DbPostgres (eq $.DbPostgres.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) (and .DbMySql (eq .DbMySql.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")))}}
+    {{- if (or (and $.DbPostgres (eq $.DbPostgres.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) (and $.DbMySql (eq $.DbMySql.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")))}}
     roleAssignments: [
       {
         principalId: connectionCreatorIdentity.outputs.principalId
