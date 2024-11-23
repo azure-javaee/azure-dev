@@ -296,24 +296,7 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 	return nil
 }
 
-var alwaysExistEnvironmentVariables = map[ResourceType][]scaffold.EnvironmentVariable{
-	ResourceTypeDbPostgres: {
-		{
-			Name:        "POSTGRES_HOST",
-			StringValue: "postgreServer.outputs.fqdn",
-		},
-		{
-			Name:        "POSTGRES_DATABASE",
-			StringValue: "postgreSqlDatabaseName", // todo manage the environment variables names in resources.bicept
-		},
-		{
-			Name:        "POSTGRES_PORT",
-			StringValue: "5432",
-		},
-	},
-}
-
-func getConditionalEnvironmentVariables(infraSpec *scaffold.InfraSpec,
+func getEnvironmentVariablesForBicepGeneration(infraSpec *scaffold.InfraSpec,
 	resourceType ResourceType) ([]scaffold.EnvironmentVariable, error) {
 	switch resourceType {
 	case ResourceTypeDbPostgres:
@@ -321,9 +304,21 @@ func getConditionalEnvironmentVariables(infraSpec *scaffold.InfraSpec,
 		case internal.AuthTypePassword:
 			return []scaffold.EnvironmentVariable{
 				{
+					Name:        "POSTGRES_HOST",
+					StringValue: "postgreServer.outputs.fqdn",
+				},
+				{
+					Name:        "POSTGRES_DATABASE",
+					StringValue: "postgreSqlDatabaseName", // todo manage the environment variables names in resources.bicept
+				},
+				{
+					Name:        "POSTGRES_PORT",
+					StringValue: "5432",
+				},
+				{
 					Name:          "POSTGRES_URL",
-					SecretName:    "postgresql-db-url", // todo manage secret names
-					VariableValue: "postgreSqlDatabasePassword",
+					SecretName:    "postgresql-db-url",          // todo manage secret names
+					VariableValue: "postgreSqlDatabasePassword", // todo manage the environment variables names in resources.bicept
 				},
 				{
 					Name:          "POSTGRES_USERNAME",
@@ -349,8 +344,22 @@ func getConditionalEnvironmentVariables(infraSpec *scaffold.InfraSpec,
 				},
 			}, nil
 		case internal.AuthTypeUserAssignedManagedIdentity:
-			// In this case, environment variables are added by service connector
-			return []scaffold.EnvironmentVariable{}, nil
+			return []scaffold.EnvironmentVariable{
+				// Some other environment variables are added by service connector,
+				// should not add to bicep generation context
+				{
+					Name:        "POSTGRES_HOST",
+					StringValue: "postgreServer.outputs.fqdn",
+				},
+				{
+					Name:        "POSTGRES_DATABASE",
+					StringValue: "postgreSqlDatabaseName",
+				},
+				{
+					Name:        "POSTGRES_PORT",
+					StringValue: "5432",
+				},
+			}, nil
 		default:
 			return nil, fmt.Errorf("unsupported auth type: %s", infraSpec.DbPostgres.AuthType)
 		}
@@ -359,18 +368,8 @@ func getConditionalEnvironmentVariables(infraSpec *scaffold.InfraSpec,
 	}
 }
 
-func getAllEnvironmentVariablesForBicepGeneration(infraSpec *scaffold.InfraSpec,
-	resourceType ResourceType) ([]scaffold.EnvironmentVariable, error) {
-	result := alwaysExistEnvironmentVariables[resourceType]
-	conditional, err := getConditionalEnvironmentVariables(infraSpec, resourceType)
-	if err != nil {
-		return nil, err
-	}
-	return append(result, conditional...), nil
-}
-
 func addUsage(infraSpec *scaffold.InfraSpec, userSpec *scaffold.ServiceSpec, resourceType ResourceType) error {
-	variables, err := getAllEnvironmentVariablesForBicepGeneration(infraSpec, resourceType)
+	variables, err := getEnvironmentVariablesForBicepGeneration(infraSpec, resourceType)
 	if err != nil {
 		return err
 	}
@@ -417,7 +416,7 @@ func getAdditionalEnvironmentVariablesForPrint(infraSpec *scaffold.InfraSpec,
 
 func getAllEnvironmentVariablesForPrint(infraSpec *scaffold.InfraSpec,
 	resourceType ResourceType) ([]scaffold.EnvironmentVariable, error) {
-	variables, err := getAllEnvironmentVariablesForBicepGeneration(infraSpec, resourceType)
+	variables, err := getEnvironmentVariablesForBicepGeneration(infraSpec, resourceType)
 	if err != nil {
 		return nil, err
 	}
@@ -447,8 +446,11 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 				return fmt.Errorf("in azure.yaml, (%s) uses (%s), but (%s) doesn't",
 					userResourceName, usedResourceName, usedResourceName)
 			}
-			(*console).Message(*context, fmt.Sprintf("CAUTION: In azure.yaml, '%s' uses '%s'. "+
-				"After deployed, the 'uses' is achieved by providing these environment variables: ",
+			(*console).Message(*context, fmt.Sprintf("CAUTION: \n"+
+				"In azure.yaml, '%s' uses '%s'. \n"+
+				"The 'uses' relashipship is implemented by environment variables. \n"+
+				"Please make sure your application used the right environment variable. \n"+
+				"Here is the list of environment variables: ",
 				userResourceName, usedResourceName))
 			variables, err := getAllEnvironmentVariablesForPrint(infraSpec, usedResource.Type)
 			if err != nil {
@@ -502,11 +504,9 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 					"which is doen't add necessary environment variable",
 					userResource.Name, usedResource.Name, usedResource.Name, usedResource.Type)
 			}
-			(*console).Message(*context, "Please make sure your application used the right environment variable name.\n")
 		}
 	}
 	return nil
-
 }
 
 func handleContainerAppProps(
