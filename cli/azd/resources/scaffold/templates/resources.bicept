@@ -493,7 +493,7 @@ module {{bicepName .Name}}Identity 'br/public:avm/res/managed-identity/user-assi
   params: {
     name: '${abbrs.managedIdentityUserAssignedIdentities}{{bicepName .Name}}-${resourceToken}'
     location: location
-    {{- if (or (and .DbPostgres (eq .DbPostgres.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) (and .DbMySql (eq .DbMySql.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")))}}
+    {{- if (or (and $.DbPostgres (eq $.DbPostgres.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) (and .DbMySql (eq .DbMySql.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")))}}
     roleAssignments: [
       {
         principalId: connectionCreatorIdentity.outputs.principalId
@@ -565,14 +565,10 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           keyVaultUrl: cosmos.outputs.exportedSecrets['MONGODB-URL'].secretUri
         }
         {{- end}}
-        {{- if (and .DbPostgres (eq .DbPostgres.AuthType "PASSWORD")) }}
+        {{- range .EnvironmentVariableInformation.SecretDefinitions}}
         {
-          name: 'postgresql-password'
-          value: postgreSqlDatabasePassword
-        }
-        {
-          name: 'postgresql-db-url'
-          value: 'postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'
+          name: '{{.SecretName}}'
+          value: '{{.SecretValue}}'
         }
         {{- end}}
         {{- if (and .DbMySql (eq .DbMySql.AuthType "PASSWORD")) }}
@@ -633,6 +629,18 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           memory: '1.0Gi'
         }
         env: union([
+          {{- range .EnvironmentVariableInformation.StringEnvironmentVariables}}
+          {
+            name: '{{.Name}}'
+            value: '{{.Value}}'
+          }
+          {{- end}}
+          {{- range .EnvironmentVariableInformation.SecretRefEnvironmentVariables}}
+          {
+            name: '{{.Name}}'
+            secretRef: '{{.SecretRef}}'
+          }
+          {{- end}}
           {
             name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
             value: monitoring.outputs.applicationInsightsConnectionString
@@ -653,46 +661,6 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {
             name: 'spring.data.mongodb.database'
             value: '{{ .DbCosmosMongo.DatabaseName }}'
-          }
-          {{- end}}
-          {{- if .DbPostgres}}
-          {
-            name: 'POSTGRES_HOST'
-            value: postgreServer.outputs.fqdn
-          }
-          {
-            name: 'POSTGRES_DATABASE'
-            value: postgreSqlDatabaseName
-          }
-          {
-            name: 'POSTGRES_PORT'
-            value: '5432'
-          }
-          {{- end}}
-          {{- if (and .DbPostgres (eq .DbPostgres.AuthType "PASSWORD")) }}
-          {
-            name: 'POSTGRES_URL'
-            secretRef: 'postgresql-db-url'
-          }
-          {
-            name: 'POSTGRES_USERNAME'
-            value: postgreSqlDatabaseUser
-          }
-          {
-            name: 'POSTGRES_PASSWORD'
-            secretRef: 'postgresql-password'
-          }
-          {
-            name: 'spring.datasource.url'
-            value: 'jdbc:postgresql://${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'
-          }
-          {
-            name: 'spring.datasource.username'
-            value: postgreSqlDatabaseUser
-          }
-          {
-            name: 'spring.datasource.password'
-            secretRef: 'postgresql-password'
           }
           {{- end}}
           {{- if .DbMySql}}
@@ -975,7 +943,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
     environmentResourceId: containerAppsEnvironment.outputs.resourceId
     location: location
     tags: union(tags, { 'azd-service-name': '{{.Name}}' })
-    {{- if (or (and .DbPostgres (eq .DbPostgres.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) (and .DbMySql (eq .DbMySql.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")))}}
+    {{- if (or (and $.DbPostgres (eq $.DbPostgres.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) (and .DbMySql (eq .DbMySql.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")))}}
     roleAssignments: [
       {
         principalId: connectionCreatorIdentity.outputs.principalId
