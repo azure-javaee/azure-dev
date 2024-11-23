@@ -98,8 +98,8 @@ type ServiceSpec struct {
 	Name string
 	Port int
 
-	EnvironmentVariables []EnvironmentVariable // todo: merge EnvironmentVariables and env
-	Env                  map[string]string
+	EnvironmentVariableInformation EnvironmentVariableInformation // todo: merge EnvironmentVariableInformation and env
+	Env                            map[string]string
 
 	// Front-end properties.
 	Frontend *Frontend
@@ -121,12 +121,37 @@ type ServiceSpec struct {
 	AzureStorageAccount *AzureDepStorageAccount
 }
 
-type EnvironmentVariable struct {
-	Name          string
-	StringValue   string
-	VariableValue string
-	SecretName    string
-	SecretValue   string
+type EnvironmentVariableInformation struct {
+	StringEnvironmentVariables    []StringEnvironmentVariable
+	SecretRefEnvironmentVariables []SecretRefEnvironmentVariable
+	SecretDefinitions             []SecretDefinition
+}
+
+// StringEnvironmentVariable In generated bicep file, the value is quoted and used by "value".
+// Example in bicep value:
+//
+//	value: 'jdbc:postgresql://${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'
+type StringEnvironmentVariable struct {
+	Name  string
+	Value string
+}
+
+// SecretRefEnvironmentVariable In generated bicep file, the value is quoted and used by "secretRef"
+// Example in bicep value:
+//
+//	secretRef: 'postgresql-password'
+type SecretRefEnvironmentVariable struct {
+	Name      string
+	SecretRef string
+}
+
+// SecretDefinition In generated bicep file, the value is quoted.
+// Example in bicep value:
+//
+//	value: 'postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'
+type SecretDefinition struct {
+	SecretName  string
+	SecretValue string
 }
 
 type Frontend struct {

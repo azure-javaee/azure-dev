@@ -296,137 +296,184 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 	return nil
 }
 
-func getEnvironmentVariablesForBicepGeneration(infraSpec *scaffold.InfraSpec,
-	resourceType ResourceType) ([]scaffold.EnvironmentVariable, error) {
-	switch resourceType {
-	case ResourceTypeDbPostgres:
-		switch infraSpec.DbPostgres.AuthType {
-		case internal.AuthTypePassword:
-			return []scaffold.EnvironmentVariable{
+var environmentVariableInformation = map[ResourceType]map[internal.AuthType]scaffold.EnvironmentVariableInformation{
+	ResourceTypeDbPostgres: {
+		internal.AuthTypePassword: scaffold.EnvironmentVariableInformation{
+			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
 				{
-					Name:        "POSTGRES_HOST",
-					StringValue: "postgreServer.outputs.fqdn",
+					Name:  "POSTGRES_USERNAME",
+					Value: "${postgreSqlDatabaseUser}", // todo manage all variables names
 				},
 				{
-					Name:        "POSTGRES_DATABASE",
-					StringValue: "postgreSqlDatabaseName", // todo manage the environment variables names in resources.bicept
+					Name:  "POSTGRES_HOST",
+					Value: "${postgreServer.outputs.fqdn}", // todo manage variables like postgreServer
 				},
 				{
-					Name:        "POSTGRES_PORT",
-					StringValue: "5432",
+					Name:  "POSTGRES_DATABASE",
+					Value: "${postgreSqlDatabaseName}",
 				},
 				{
-					Name:          "POSTGRES_URL",
-					SecretName:    "postgresql-db-url",          // todo manage secret names
-					VariableValue: "postgreSqlDatabasePassword", // todo manage the environment variables names in resources.bicept
+					Name:  "POSTGRES_PORT",
+					Value: "5432",
 				},
 				{
-					Name:          "POSTGRES_USERNAME",
-					VariableValue: "postgreSqlDatabaseUser",
+					Name:  "spring.datasource.username",
+					Value: "${postgreSqlDatabaseUser}",
+				},
+			},
+			SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
+				{
+					Name:      "POSTGRES_URL",
+					SecretRef: "postgresql-db-url",
 				},
 				{
-					Name:          "POSTGRES_PASSWORD",
-					VariableValue: "postgreSqlDatabasePassword",
-				},
-				{ // todo manage variables like postgreServer
-					Name: "spring.datasource.url",
-					VariableValue: "postgresql://${postgreSqlDatabaseUser}:" +
-						"${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
+					Name:      "POSTGRES_PASSWORD",
+					SecretRef: "postgresql-password",
 				},
 				{
-					Name:          "spring.datasource.username",
-					VariableValue: "postgreSqlDatabaseUser",
+					Name:      "spring.datasource.url",
+					SecretRef: "postgresql-db-url",
 				},
 				{
-					Name:          "spring.datasource.password",
-					SecretName:    "postgresql-password",
-					VariableValue: "postgreSqlDatabasePassword",
+					Name:      "spring.datasource.password",
+					SecretRef: "postgresql-password",
 				},
-			}, nil
-		case internal.AuthTypeUserAssignedManagedIdentity:
-			return []scaffold.EnvironmentVariable{
+			},
+			SecretDefinitions: []scaffold.SecretDefinition{
+				{
+					SecretName:  "postgresql-db-url",
+					SecretValue: "postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
+				},
+				{
+					SecretName:  "postgresql-password",
+					SecretValue: "${postgreSqlDatabasePassword}",
+				},
+			},
+		},
+		internal.AuthTypeUserAssignedManagedIdentity: scaffold.EnvironmentVariableInformation{
+			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
 				// Some other environment variables are added by service connector,
 				// should not add to bicep generation context
 				{
-					Name:        "POSTGRES_HOST",
-					StringValue: "postgreServer.outputs.fqdn",
+					Name:  "POSTGRES_USERNAME",
+					Value: "${postgreSqlDatabaseUser}", // todo manage all variables names
 				},
 				{
-					Name:        "POSTGRES_DATABASE",
-					StringValue: "postgreSqlDatabaseName",
+					Name:  "POSTGRES_HOST",
+					Value: "${postgreServer.outputs.fqdn}", // todo manage variables like postgreServer
 				},
 				{
-					Name:        "POSTGRES_PORT",
-					StringValue: "5432",
+					Name:  "POSTGRES_DATABASE",
+					Value: "${postgreSqlDatabaseName}",
 				},
-			}, nil
-		default:
-			return nil, fmt.Errorf("unsupported auth type: %s", infraSpec.DbPostgres.AuthType)
-		}
+				{
+					Name:  "POSTGRES_PORT",
+					Value: "5432",
+				},
+			},
+		},
+	},
+}
+
+func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (internal.AuthType, error) {
+	switch resourceType {
+	case ResourceTypeDbPostgres:
+		return infraSpec.DbPostgres.AuthType, nil
 	default:
-		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
+		return internal.AuthTypeUnspecified, fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
+}
+
+func mergeWithDuplicationCheck(a scaffold.EnvironmentVariableInformation,
+	b scaffold.EnvironmentVariableInformation) (scaffold.EnvironmentVariableInformation, error) {
+	result := scaffold.EnvironmentVariableInformation{
+		StringEnvironmentVariables:    append(a.StringEnvironmentVariables, b.StringEnvironmentVariables...),
+		SecretRefEnvironmentVariables: append(a.SecretRefEnvironmentVariables, b.SecretRefEnvironmentVariables...),
+		SecretDefinitions:             append(a.SecretDefinitions, b.SecretDefinitions...),
+	}
+	seen := make(map[string]string)
+	for _, v := range result.StringEnvironmentVariables {
+		if existingValue, exist := seen[v.Name]; exist {
+			if v.Value != existingValue {
+				return scaffold.EnvironmentVariableInformation{}, fmt.Errorf(
+					"duplicated environment name. name = %s, value1 = %s, value2 = %s",
+					v.Name, v.Value, existingValue)
+			}
+		} else {
+			seen[v.Name] = existingValue
+		}
+	}
+	return result, nil
 }
 
 func addUsage(infraSpec *scaffold.InfraSpec, userSpec *scaffold.ServiceSpec, resourceType ResourceType) error {
-	variables, err := getEnvironmentVariablesForBicepGeneration(infraSpec, resourceType)
+	authType, err := getAuthType(infraSpec, resourceType)
 	if err != nil {
 		return err
 	}
-	// todo add duplicated name check
-	userSpec.EnvironmentVariables = append(userSpec.EnvironmentVariables, variables...)
+	information, ok := environmentVariableInformation[resourceType][authType]
+	if !ok {
+		return fmt.Errorf("cannot get environment variable information, resourceType = %s, authType = %s",
+			resourceType, authType)
+	}
+	userSpec.EnvironmentVariableInformation, err = mergeWithDuplicationCheck(userSpec.EnvironmentVariableInformation,
+		information)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-var environmentVariableValueHiddenValue = "xxx"
-
 // This is added by service connector, not need to add to scaffold.ServiceSpec
-// todo: Not only support springBoot application type. Need to support other types
-func getAdditionalEnvironmentVariablesForPrint(infraSpec *scaffold.InfraSpec,
-	resourceType ResourceType) ([]scaffold.EnvironmentVariable, error) {
+// todo: Now only support springBoot application type. Need to support other types
+func getAdditionalEnvironmentVariablesForPrint(resourceType ResourceType,
+	authType internal.AuthType) (scaffold.EnvironmentVariableInformation, error) {
 	switch resourceType {
 	case ResourceTypeDbPostgres:
-		switch infraSpec.DbPostgres.AuthType {
+		switch authType {
 		case internal.AuthTypePassword:
-			return []scaffold.EnvironmentVariable{}, nil
+			return scaffold.EnvironmentVariableInformation{}, nil
 		case internal.AuthTypeUserAssignedManagedIdentity:
-			return []scaffold.EnvironmentVariable{
-				{ // todo manage variables like postgreServer
-					Name:        "spring.datasource.url",
-					StringValue: environmentVariableValueHiddenValue,
-				},
-				{
-					Name:        "spring.datasource.username",
-					StringValue: environmentVariableValueHiddenValue,
-				},
-				{
-					Name:        "spring.datasource.azure.passwordless-enabled",
-					StringValue: "true",
+			return scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					{
+						Name: "spring.datasource.url",
+					},
+					{
+						Name: "spring.datasource.username",
+					},
+					{
+						Name: "spring.datasource.azure.passwordless-enabled",
+					},
 				},
 			}, nil
 		default:
 			// return error to make sure every case has been considered.
-			return nil, fmt.Errorf("unsupported auth type: %s", infraSpec.DbPostgres.AuthType)
+			return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported auth type: %s", authType)
 		}
 	default:
 		// return error to make sure every case has been considered.
-		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
+		return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
 }
 
-func getAllEnvironmentVariablesForPrint(infraSpec *scaffold.InfraSpec,
-	resourceType ResourceType) ([]scaffold.EnvironmentVariable, error) {
-	variables, err := getEnvironmentVariablesForBicepGeneration(infraSpec, resourceType)
-	if err != nil {
-		return nil, err
+func getAllEnvironmentVariablesForPrint(resourceType ResourceType,
+	authType internal.AuthType) (scaffold.EnvironmentVariableInformation, error) {
+	information, ok := environmentVariableInformation[resourceType][authType]
+	if !ok {
+		return scaffold.EnvironmentVariableInformation{},
+			fmt.Errorf("cannot get environment variable information, resourceType = %s, authType = %s",
+				resourceType, authType)
 	}
-	serviceConnectorCreatedVariables, err :=
-		getAdditionalEnvironmentVariablesForPrint(infraSpec, resourceType)
+	additional, err := getAdditionalEnvironmentVariablesForPrint(resourceType, authType)
 	if err != nil {
-		return nil, err
+		return scaffold.EnvironmentVariableInformation{}, err
 	}
-	variables = append(variables, serviceConnectorCreatedVariables...)
-	return variables, nil
+	result, err := mergeWithDuplicationCheck(information, additional)
+	if err != nil {
+		return scaffold.EnvironmentVariableInformation{}, err
+	}
+	return result, nil
 }
 
 func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig,
@@ -452,18 +499,19 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 				"Please make sure your application used the right environment variable. \n"+
 				"Here is the list of environment variables: ",
 				userResourceName, usedResourceName))
-			variables, err := getAllEnvironmentVariablesForPrint(infraSpec, usedResource.Type)
+			authType, err := getAuthType(infraSpec, usedResource.Type)
 			if err != nil {
 				return err
 			}
-			for _, variable := range variables {
-				printValue := environmentVariableValueHiddenValue
-				if (strings.EqualFold(variable.StringValue, "") && strings.EqualFold(variable.VariableValue, "")) ||
-					strings.EqualFold(variable.StringValue, "true") ||
-					strings.EqualFold(variable.StringValue, "false") {
-					printValue = variable.StringValue
-				}
-				(*console).Message(*context, fmt.Sprintf("%s=%s", variable.Name, printValue))
+			variables, err := getAllEnvironmentVariablesForPrint(usedResource.Type, authType)
+			if err != nil {
+				return err
+			}
+			for _, variable := range variables.SecretRefEnvironmentVariables {
+				(*console).Message(*context, fmt.Sprintf("  %s=xxx", variable.Name))
+			}
+			for _, variable := range variables.StringEnvironmentVariables {
+				(*console).Message(*context, fmt.Sprintf("  %s=xxx", variable.Name))
 			}
 			switch usedResource.Type {
 			case ResourceTypeDbPostgres:
