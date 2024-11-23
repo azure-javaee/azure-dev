@@ -127,18 +127,6 @@ func (i *Initializer) infraSpecFromDetect(
 			}
 		}
 
-		for _, db := range svc.DatabaseDeps {
-			// filter out databases that were removed
-			if _, ok := detect.Databases[db]; !ok {
-				continue
-			}
-
-			switch db {
-			case appdetect.DbCosmos:
-				serviceSpec.DbCosmos = spec.DbCosmos
-			}
-		}
-
 		for _, azureDep := range svc.AzureDeps {
 			switch azureDep.(type) {
 			case appdetect.AzureDepServiceBus:

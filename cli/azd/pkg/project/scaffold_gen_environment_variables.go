@@ -219,11 +219,24 @@ var environmentVariableInformation = map[ResourceType]map[internal.AuthType]scaf
 					SecretRef: "mongodb-url",
 				},
 			},
-			ValueSecretDefinitions: []scaffold.ValueSecretDefinition{},
 			KeyVaultSecretDefinitions: []scaffold.KeyVaultSecretDefinition{
 				{
 					SecretName:  "mongodb-url",
 					KeyVaultUrl: "${cosmos.outputs.exportedSecrets['MONGODB-URL'].secretUri}",
+				},
+			},
+		},
+	},
+	ResourceTypeDbCosmos: {
+		internal.AuthTypeUserAssignedManagedIdentity: scaffold.EnvironmentVariableInformation{
+			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+				{
+					Name:  "spring.cloud.azure.cosmos.endpoint",
+					Value: "${cosmos.outputs.endpoint}",
+				},
+				{
+					Name:  "spring.cloud.azure.cosmos.database",
+					Value: "${cosmosDatabaseName}",
 				},
 			},
 		},
@@ -309,7 +322,9 @@ func getAdditionalEnvironmentVariablesForPrint(resourceType ResourceType,
 			// return error to make sure every case has been considered.
 			return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported auth type: %s", authType)
 		}
-	case ResourceTypeDbMongo:
+	case ResourceTypeDbMongo,
+		ResourceTypeDbCosmos,
+		ResourceTypeHostContainerApp:
 		switch authType {
 		case internal.AuthTypeUserAssignedManagedIdentity:
 			return scaffold.EnvironmentVariableInformation{}, nil
@@ -317,8 +332,6 @@ func getAdditionalEnvironmentVariablesForPrint(resourceType ResourceType,
 			// return error to make sure every case has been considered.
 			return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported auth type: %s", authType)
 		}
-	case ResourceTypeHostContainerApp:
-		return scaffold.EnvironmentVariableInformation{}, nil
 	default:
 		// return error to make sure every case has been considered.
 		return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported resource type: %s", resourceType)

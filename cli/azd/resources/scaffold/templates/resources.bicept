@@ -108,7 +108,7 @@ module cosmos 'br/public:avm/res/document-db/database-account:0.8.1' = {
 }
 {{- end}}
 {{- if .DbCosmos }}
-
+var cosmosDatabaseName = '{{ .DbCosmos.DatabaseName }}'
 module cosmos 'br/public:avm/res/document-db/database-account:0.8.1' = {
   name: 'cosmos'
   params: {
@@ -626,16 +626,6 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
             name: 'AZURE_CLIENT_ID'
             value: {{bicepName .Name}}Identity.outputs.clientId
           }
-          {{- if .DbCosmos }}
-          {
-            name: 'spring.cloud.azure.cosmos.endpoint'
-            value: cosmos.outputs.endpoint
-          }
-          {
-            name: 'spring.cloud.azure.cosmos.database'
-            value: '{{ .DbCosmos.DatabaseName }}'
-          }
-          {{- end}}
           {{- if .AIModels}}
           {
             name: 'AZURE_OPENAI_ENDPOINT'

@@ -264,13 +264,12 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 			case ResourceTypeDbPostgres,
 				ResourceTypeDbMySQL,
 				ResourceTypeDbRedis,
-				ResourceTypeDbMongo:
+				ResourceTypeDbMongo,
+				ResourceTypeDbCosmos:
 				err := addUsage(infraSpec, userSpec, usedResource.Type) // todo apply to all types
 				if err != nil {
 					return err
 				}
-			case ResourceTypeDbCosmos:
-				userSpec.DbCosmos = infraSpec.DbCosmos
 			case ResourceTypeMessagingServiceBus:
 				userSpec.AzureServiceBus = infraSpec.AzureServiceBus
 			case ResourceTypeMessagingEventHubs, ResourceTypeMessagingKafka:
@@ -302,6 +301,7 @@ func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (inte
 	case ResourceTypeDbRedis:
 		return internal.AuthTypePassword, nil
 	case ResourceTypeDbMongo,
+		ResourceTypeDbCosmos,
 		ResourceTypeHostContainerApp:
 		return internal.AuthTypeUserAssignedManagedIdentity, nil
 	default:
@@ -365,12 +365,11 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 				(*console).Message(*context, fmt.Sprintf("  %s=xxx", variable.Name))
 			}
 			switch usedResource.Type {
-			case ResourceTypeDbPostgres,
+			case ResourceTypeDbPostgres, // do nothing. todo: add all other types
 				ResourceTypeDbMySQL,
 				ResourceTypeDbRedis,
-				ResourceTypeDbMongo: // to nothing. todo: add all other types
-			case ResourceTypeDbCosmos:
-				printHintsAboutUseCosmos(console, context)
+				ResourceTypeDbMongo,
+				ResourceTypeDbCosmos:
 			case ResourceTypeMessagingServiceBus:
 				err := printHintsAboutUseServiceBus(userSpec.AzureServiceBus.IsJms,
 					userSpec.AzureServiceBus.AuthType, console, context)
@@ -541,11 +540,6 @@ func getServiceSpecByName(infraSpec *scaffold.InfraSpec, name string) *scaffold.
 		}
 	}
 	return nil
-}
-
-func printHintsAboutUseCosmos(console *input.Console, context *context.Context) {
-	(*console).Message(*context, "spring.cloud.azure.cosmos.endpoint=xxx")
-	(*console).Message(*context, "spring.cloud.azure.cosmos.database=xxx")
 }
 
 func printHintsAboutUseServiceBus(isJms bool, authType internal.AuthType,
