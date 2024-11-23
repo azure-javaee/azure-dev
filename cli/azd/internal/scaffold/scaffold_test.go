@@ -98,9 +98,6 @@ func TestExecInfra(t *testing.T) {
 								},
 							},
 						},
-						DbCosmosMongo: &DatabaseCosmosMongo{
-							DatabaseName: "appdb",
-						},
 					},
 					{
 						Name: "web",
@@ -141,9 +138,6 @@ func TestExecInfra(t *testing.T) {
 					{
 						Name: "api",
 						Port: 3100,
-						DbCosmosMongo: &DatabaseCosmosMongo{
-							DatabaseName: "appdb",
-						},
 					},
 				},
 			},

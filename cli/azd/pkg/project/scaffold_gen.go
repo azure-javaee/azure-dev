@@ -263,13 +263,12 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 			switch usedResource.Type {
 			case ResourceTypeDbPostgres,
 				ResourceTypeDbMySQL,
-				ResourceTypeDbRedis:
+				ResourceTypeDbRedis,
+				ResourceTypeDbMongo:
 				err := addUsage(infraSpec, userSpec, usedResource.Type) // todo apply to all types
 				if err != nil {
 					return err
 				}
-			case ResourceTypeDbMongo:
-				userSpec.DbCosmosMongo = infraSpec.DbCosmosMongo
 			case ResourceTypeDbCosmos:
 				userSpec.DbCosmos = infraSpec.DbCosmos
 			case ResourceTypeMessagingServiceBus:
@@ -302,6 +301,9 @@ func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (inte
 		return infraSpec.DbMySql.AuthType, nil
 	case ResourceTypeDbRedis:
 		return internal.AuthTypePassword, nil
+	case ResourceTypeDbMongo,
+		ResourceTypeHostContainerApp:
+		return internal.AuthTypeUserAssignedManagedIdentity, nil
 	default:
 		return internal.AuthTypeUnspecified, fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
@@ -365,9 +367,8 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 			switch usedResource.Type {
 			case ResourceTypeDbPostgres,
 				ResourceTypeDbMySQL,
-				ResourceTypeDbRedis: // to nothing. todo: add all other types
-			case ResourceTypeDbMongo:
-				printHintsAboutUseMongo(console, context)
+				ResourceTypeDbRedis,
+				ResourceTypeDbMongo: // to nothing. todo: add all other types
 			case ResourceTypeDbCosmos:
 				printHintsAboutUseCosmos(console, context)
 			case ResourceTypeMessagingServiceBus:
@@ -540,12 +541,6 @@ func getServiceSpecByName(infraSpec *scaffold.InfraSpec, name string) *scaffold.
 		}
 	}
 	return nil
-}
-
-func printHintsAboutUseMongo(console *input.Console, context *context.Context) {
-	(*console).Message(*context, "MONGODB_URL=xxx")
-	(*console).Message(*context, "spring.data.mongodb.uri=xxx")
-	(*console).Message(*context, "spring.data.mongodb.database=xxx")
 }
 
 func printHintsAboutUseCosmos(console *input.Console, context *context.Context) {

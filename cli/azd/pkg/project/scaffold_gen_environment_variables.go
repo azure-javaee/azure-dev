@@ -200,9 +200,36 @@ var environmentVariableInformation = map[ResourceType]map[internal.AuthType]scaf
 				},
 			},
 		},
+	},
+	ResourceTypeDbMongo: {
 		internal.AuthTypeUserAssignedManagedIdentity: scaffold.EnvironmentVariableInformation{
-			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{},
+			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+				{
+					Name:  "spring.data.mongodb.database",
+					Value: "${mongoDatabaseName}",
+				},
+			},
+			SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
+				{
+					Name:      "MONGODB_URL",
+					SecretRef: "mongodb-url",
+				},
+				{
+					Name:      "spring.data.mongodb.uri",
+					SecretRef: "mongodb-url",
+				},
+			},
+			ValueSecretDefinitions: []scaffold.ValueSecretDefinition{},
+			KeyVaultSecretDefinitions: []scaffold.KeyVaultSecretDefinition{
+				{
+					SecretName:  "mongodb-url",
+					KeyVaultUrl: "${cosmos.outputs.exportedSecrets['MONGODB-URL'].secretUri}",
+				},
+			},
 		},
+	},
+	ResourceTypeHostContainerApp: {
+		internal.AuthTypeUserAssignedManagedIdentity: scaffold.EnvironmentVariableInformation{},
 	},
 }
 
@@ -282,6 +309,16 @@ func getAdditionalEnvironmentVariablesForPrint(resourceType ResourceType,
 			// return error to make sure every case has been considered.
 			return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported auth type: %s", authType)
 		}
+	case ResourceTypeDbMongo:
+		switch authType {
+		case internal.AuthTypeUserAssignedManagedIdentity:
+			return scaffold.EnvironmentVariableInformation{}, nil
+		default:
+			// return error to make sure every case has been considered.
+			return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported auth type: %s", authType)
+		}
+	case ResourceTypeHostContainerApp:
+		return scaffold.EnvironmentVariableInformation{}, nil
 	default:
 		// return error to make sure every case has been considered.
 		return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported resource type: %s", resourceType)

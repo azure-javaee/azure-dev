@@ -108,8 +108,7 @@ type ServiceSpec struct {
 	Backend *Backend
 
 	// Connection to a database
-	DbCosmosMongo *DatabaseCosmosMongo
-	DbCosmos      *DatabaseCosmosAccount
+	DbCosmos *DatabaseCosmosAccount
 
 	// AI model connections
 	AIModels []AIModelReference

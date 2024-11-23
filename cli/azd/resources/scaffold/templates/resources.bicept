@@ -75,6 +75,7 @@ module containerAppsEnvironment 'br/public:avm/res/app/managed-environment:0.4.5
 {{- end}}
 
 {{- if .DbCosmosMongo}}
+var mongoDatabaseName = '{{ .DbCosmosMongo.DatabaseName }}'
 module cosmos 'br/public:avm/res/document-db/database-account:0.8.1' = {
   name: 'cosmos'
   params: {
@@ -93,13 +94,11 @@ module cosmos 'br/public:avm/res/document-db/database-account:0.8.1' = {
       virtualNetworkRules: []
       publicNetworkAccess: 'Enabled'
     }
-    {{- if .DbCosmosMongo.DatabaseName}}
     mongodbDatabases: [
       {
-        name: '{{ .DbCosmosMongo.DatabaseName }}'
+        name: mongoDatabaseName
       }
     ]
-    {{- end}}
     secretsExportConfiguration: {
       keyVaultResourceId: keyVault.outputs.resourceId
       primaryWriteConnectionStringSecretName: 'MONGODB-URL'
@@ -558,13 +557,6 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
     scaleMaxReplicas: 10
     secrets: {
       secureList:  union([
-        {{- if .DbCosmosMongo}}
-        {
-          name: 'mongodb-url'
-          identity:{{bicepName .Name}}Identity.outputs.resourceId
-          keyVaultUrl: cosmos.outputs.exportedSecrets['MONGODB-URL'].secretUri
-        }
-        {{- end}}
         {{- range .EnvironmentVariableInformation.ValueSecretDefinitions}}
         {
           name: '{{.SecretName}}'
@@ -634,20 +626,6 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
             name: 'AZURE_CLIENT_ID'
             value: {{bicepName .Name}}Identity.outputs.clientId
           }
-          {{- if .DbCosmosMongo}}
-          {
-            name: 'MONGODB_URL'
-            secretRef: 'mongodb-url'
-          }
-          {
-            name: 'spring.data.mongodb.uri'
-            secretRef: 'mongodb-url'
-          }
-          {
-            name: 'spring.data.mongodb.database'
-            value: '{{ .DbCosmosMongo.DatabaseName }}'
-          }
-          {{- end}}
           {{- if .DbCosmos }}
           {
             name: 'spring.cloud.azure.cosmos.endpoint'
