@@ -27,6 +27,10 @@ var environmentVariableInformation = map[ResourceType]map[internal.AuthType]scaf
 					Value: "5432",
 				},
 				{
+					Name:  "spring.datasource.url",
+					Value: "jdbc:postgresql://${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
+				},
+				{
 					Name:  "spring.datasource.username",
 					Value: "${postgreSqlDatabaseUser}",
 				},
@@ -39,10 +43,6 @@ var environmentVariableInformation = map[ResourceType]map[internal.AuthType]scaf
 				{
 					Name:      "POSTGRES_PASSWORD",
 					SecretRef: "postgresql-password",
-				},
-				{
-					Name:      "spring.datasource.url",
-					SecretRef: "postgresql-db-url",
 				},
 				{
 					Name:      "spring.datasource.password",
