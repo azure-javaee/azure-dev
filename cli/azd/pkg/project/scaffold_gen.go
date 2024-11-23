@@ -261,13 +261,13 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 					userResourceName, usedResourceName, usedResourceName)
 			}
 			switch usedResource.Type {
-			case ResourceTypeDbPostgres, ResourceTypeDbMySQL:
+			case ResourceTypeDbPostgres,
+				ResourceTypeDbMySQL,
+				ResourceTypeDbRedis:
 				err := addUsage(infraSpec, userSpec, usedResource.Type) // todo apply to all types
 				if err != nil {
 					return err
 				}
-			case ResourceTypeDbRedis:
-				userSpec.DbRedis = infraSpec.DbRedis
 			case ResourceTypeDbMongo:
 				userSpec.DbCosmosMongo = infraSpec.DbCosmosMongo
 			case ResourceTypeDbCosmos:
@@ -300,6 +300,8 @@ func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (inte
 		return infraSpec.DbPostgres.AuthType, nil
 	case ResourceTypeDbMySQL:
 		return infraSpec.DbMySql.AuthType, nil
+	case ResourceTypeDbRedis:
+		return internal.AuthTypePassword, nil
 	default:
 		return internal.AuthTypeUnspecified, fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
@@ -361,9 +363,9 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 				(*console).Message(*context, fmt.Sprintf("  %s=xxx", variable.Name))
 			}
 			switch usedResource.Type {
-			case ResourceTypeDbPostgres, ResourceTypeDbMySQL:
-			case ResourceTypeDbRedis:
-				printHintsAboutUseRedis(console, context)
+			case ResourceTypeDbPostgres,
+				ResourceTypeDbMySQL,
+				ResourceTypeDbRedis: // to nothing. todo: add all other types
 			case ResourceTypeDbMongo:
 				printHintsAboutUseMongo(console, context)
 			case ResourceTypeDbCosmos:
@@ -538,15 +540,6 @@ func getServiceSpecByName(infraSpec *scaffold.InfraSpec, name string) *scaffold.
 		}
 	}
 	return nil
-}
-
-func printHintsAboutUseRedis(console *input.Console, context *context.Context) {
-	(*console).Message(*context, "REDIS_HOST=xxx")
-	(*console).Message(*context, "REDIS_PORT=xxx")
-	(*console).Message(*context, "REDIS_URL=xxx")
-	(*console).Message(*context, "REDIS_ENDPOINT=xxx")
-	(*console).Message(*context, "REDIS_PASSWORD=xxx")
-	(*console).Message(*context, "spring.data.redis.url=xxx")
 }
 
 func printHintsAboutUseMongo(console *input.Console, context *context.Context) {

@@ -138,8 +138,6 @@ func (i *Initializer) infraSpecFromDetect(
 				serviceSpec.DbCosmosMongo = spec.DbCosmosMongo
 			case appdetect.DbCosmos:
 				serviceSpec.DbCosmos = spec.DbCosmos
-			case appdetect.DbRedis:
-				serviceSpec.DbRedis = spec.DbRedis
 			}
 		}
 

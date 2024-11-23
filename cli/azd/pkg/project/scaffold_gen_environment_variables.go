@@ -49,7 +49,7 @@ var environmentVariableInformation = map[ResourceType]map[internal.AuthType]scaf
 					SecretRef: "postgresql-password",
 				},
 			},
-			SecretDefinitions: []scaffold.SecretDefinition{
+			ValueSecretDefinitions: []scaffold.ValueSecretDefinition{
 				{
 					SecretName:  "postgresql-db-url",
 					SecretValue: "postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
@@ -125,7 +125,7 @@ var environmentVariableInformation = map[ResourceType]map[internal.AuthType]scaf
 					SecretRef: "mysql-password",
 				},
 			},
-			SecretDefinitions: []scaffold.SecretDefinition{
+			ValueSecretDefinitions: []scaffold.ValueSecretDefinition{
 				{
 					SecretName:  "mysql-db-url",
 					SecretValue: "mysql://${mysqlDatabaseUser}:${mysqlDatabasePassword}@${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}",
@@ -157,6 +157,51 @@ var environmentVariableInformation = map[ResourceType]map[internal.AuthType]scaf
 					Value: "3306",
 				},
 			},
+		},
+	},
+	ResourceTypeDbRedis: {
+		internal.AuthTypePassword: scaffold.EnvironmentVariableInformation{
+			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+				{
+					Name:  "REDIS_HOST",
+					Value: "${redis.outputs.hostName}",
+				},
+				{
+					Name:  "REDIS_PORT",
+					Value: "${redis.outputs.sslPort}",
+				},
+				{
+					Name:  "REDIS_ENDPOINT",
+					Value: "${redis.outputs.hostName}:${redis.outputs.sslPort}",
+				},
+			},
+			SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
+				{
+					Name:      "REDIS_URL",
+					SecretRef: "redis-url",
+				},
+				{
+					Name:      "REDIS_PASSWORD",
+					SecretRef: "redis-pass",
+				},
+				{
+					Name:      "spring.data.redis.url",
+					SecretRef: "redis-url",
+				},
+			},
+			KeyVaultSecretDefinitions: []scaffold.KeyVaultSecretDefinition{
+				{
+					SecretName:  "redis-pass",
+					KeyVaultUrl: "${keyVault.outputs.uri}secrets/REDIS-PASSWORD",
+				},
+				{
+					SecretName:  "redis-url",
+					KeyVaultUrl: "${keyVault.outputs.uri}secrets/REDIS-URL",
+				},
+			},
+		},
+		internal.AuthTypeUserAssignedManagedIdentity: scaffold.EnvironmentVariableInformation{
+			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{},
 		},
 	},
 }
@@ -229,6 +274,14 @@ func getAdditionalEnvironmentVariablesForPrint(resourceType ResourceType,
 			// return error to make sure every case has been considered.
 			return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported auth type: %s", authType)
 		}
+	case ResourceTypeDbRedis:
+		switch authType {
+		case internal.AuthTypePassword:
+			return scaffold.EnvironmentVariableInformation{}, nil
+		default:
+			// return error to make sure every case has been considered.
+			return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported auth type: %s", authType)
+		}
 	default:
 		// return error to make sure every case has been considered.
 		return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported resource type: %s", resourceType)
@@ -240,18 +293,52 @@ func mergeWithDuplicationCheck(a scaffold.EnvironmentVariableInformation,
 	result := scaffold.EnvironmentVariableInformation{
 		StringEnvironmentVariables:    append(a.StringEnvironmentVariables, b.StringEnvironmentVariables...),
 		SecretRefEnvironmentVariables: append(a.SecretRefEnvironmentVariables, b.SecretRefEnvironmentVariables...),
-		SecretDefinitions:             append(a.SecretDefinitions, b.SecretDefinitions...),
+		ValueSecretDefinitions:        append(a.ValueSecretDefinitions, b.ValueSecretDefinitions...),
+		KeyVaultSecretDefinitions:     append(a.KeyVaultSecretDefinitions, b.KeyVaultSecretDefinitions...),
 	}
 	seen := make(map[string]string)
 	for _, v := range result.StringEnvironmentVariables {
 		if existingValue, exist := seen[v.Name]; exist {
 			if v.Value != existingValue {
 				return scaffold.EnvironmentVariableInformation{}, fmt.Errorf(
-					"duplicated environment name. name = %s, value1 = %s, value2 = %s",
+					"duplicated environment variable. name = %s, value1 = %s, value2 = %s",
 					v.Name, v.Value, existingValue)
 			}
 		} else {
 			seen[v.Name] = existingValue
+		}
+	}
+	for _, v := range result.SecretRefEnvironmentVariables {
+		if existingRef, exist := seen[v.Name]; exist {
+			if v.SecretRef != existingRef {
+				return scaffold.EnvironmentVariableInformation{}, fmt.Errorf(
+					"duplicated environment variable. Name = %s, value1 = %s, value2 = %s",
+					v.Name, v.SecretRef, existingRef)
+			}
+		} else {
+			seen[v.Name] = existingRef
+		}
+	}
+	for _, v := range result.ValueSecretDefinitions {
+		if existingRef, exist := seen[v.SecretName]; exist {
+			if v.SecretValue != existingRef {
+				return scaffold.EnvironmentVariableInformation{}, fmt.Errorf(
+					"duplicated secret definition. Name = %s, value1 = %s, value2 = %s",
+					v.SecretName, v.SecretValue, existingRef)
+			}
+		} else {
+			seen[v.SecretName] = existingRef
+		}
+	}
+	for _, v := range result.KeyVaultSecretDefinitions {
+		if existingRef, exist := seen[v.SecretName]; exist {
+			if v.SecretName != existingRef {
+				return scaffold.EnvironmentVariableInformation{}, fmt.Errorf(
+					"duplicated secret definition. Name = %s, value1 = %s, value2 = %s",
+					v.SecretName, v.KeyVaultUrl, existingRef)
+			}
+		} else {
+			seen[v.SecretName] = existingRef
 		}
 	}
 	return result, nil

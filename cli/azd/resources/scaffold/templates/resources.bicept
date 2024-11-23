@@ -486,7 +486,7 @@ resource localUserOpenAIIdentity 'Microsoft.Authorization/roleAssignments@2022-0
 }
 {{- end}}
 
-{{- range .Services}}
+{{- range $service := .Services}}
 
 module {{bicepName .Name}}Identity 'br/public:avm/res/managed-identity/user-assigned-identity:0.2.1' = {
   name: '{{bicepName .Name}}identity'
@@ -565,22 +565,17 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           keyVaultUrl: cosmos.outputs.exportedSecrets['MONGODB-URL'].secretUri
         }
         {{- end}}
-        {{- range .EnvironmentVariableInformation.SecretDefinitions}}
+        {{- range .EnvironmentVariableInformation.ValueSecretDefinitions}}
         {
           name: '{{.SecretName}}'
           value: '{{.SecretValue}}'
         }
         {{- end}}
-        {{- if .DbRedis}}
+        {{- range .EnvironmentVariableInformation.KeyVaultSecretDefinitions}}
         {
-          name: 'redis-pass'
-          identity:{{bicepName .Name}}Identity.outputs.resourceId
-          keyVaultUrl: '${keyVault.outputs.uri}secrets/REDIS-PASSWORD'
-        }
-        {
-          name: 'redis-url'
-          identity:{{bicepName .Name}}Identity.outputs.resourceId
-          keyVaultUrl: '${keyVault.outputs.uri}secrets/REDIS-URL'
+          name: '{{.SecretName}}'
+          identity:{{bicepName $service.Name}}Identity.outputs.resourceId
+          keyVaultUrl: '{{.KeyVaultUrl}}'
         }
         {{- end}}
         {{- if (and .AzureEventHubs (eq .AzureEventHubs.AuthType "CONNECTION_STRING")) }}
@@ -661,32 +656,6 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {
             name: 'spring.cloud.azure.cosmos.database'
             value: '{{ .DbCosmos.DatabaseName }}'
-          }
-          {{- end}}
-          {{- if .DbRedis}}
-          {
-            name: 'REDIS_HOST'
-            value: redis.outputs.hostName
-          }
-          {
-            name: 'REDIS_PORT'
-            value: string(redis.outputs.sslPort)
-          }
-          {
-            name: 'REDIS_URL'
-            secretRef: 'redis-url'
-          }
-          {
-            name: 'REDIS_ENDPOINT'
-            value: '${redis.outputs.hostName}:${string(redis.outputs.sslPort)}'
-          }
-          {
-            name: 'REDIS_PASSWORD'
-            secretRef: 'redis-pass'
-          }
-          {
-            name: 'spring.data.redis.url'
-            secretRef: 'redis-url'
           }
           {{- end}}
           {{- if .AIModels}}

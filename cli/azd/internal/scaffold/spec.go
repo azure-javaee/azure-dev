@@ -108,7 +108,6 @@ type ServiceSpec struct {
 	Backend *Backend
 
 	// Connection to a database
-	DbRedis       *DatabaseRedis
 	DbCosmosMongo *DatabaseCosmosMongo
 	DbCosmos      *DatabaseCosmosAccount
 
@@ -123,7 +122,8 @@ type ServiceSpec struct {
 type EnvironmentVariableInformation struct {
 	StringEnvironmentVariables    []StringEnvironmentVariable
 	SecretRefEnvironmentVariables []SecretRefEnvironmentVariable
-	SecretDefinitions             []SecretDefinition
+	ValueSecretDefinitions        []ValueSecretDefinition
+	KeyVaultSecretDefinitions     []KeyVaultSecretDefinition
 }
 
 // StringEnvironmentVariable In generated bicep file, the value is quoted and used by "value".
@@ -144,13 +144,22 @@ type SecretRefEnvironmentVariable struct {
 	SecretRef string
 }
 
-// SecretDefinition In generated bicep file, the value is quoted.
+// ValueSecretDefinition In generated bicep file, the SecretValue is quoted.
 // Example in bicep value:
 //
 //	value: 'postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'
-type SecretDefinition struct {
+type ValueSecretDefinition struct {
 	SecretName  string
 	SecretValue string
+}
+
+// KeyVaultSecretDefinition In generated bicep file, the KeyVaultUrl is quoted.
+// Example in bicep value:
+//
+//	value: '${keyVault.outputs.uri}secrets/REDIS-URL'
+type KeyVaultSecretDefinition struct {
+	SecretName  string
+	KeyVaultUrl string
 }
 
 type Frontend struct {

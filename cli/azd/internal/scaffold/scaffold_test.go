@@ -101,7 +101,6 @@ func TestExecInfra(t *testing.T) {
 						DbCosmosMongo: &DatabaseCosmosMongo{
 							DatabaseName: "appdb",
 						},
-						DbRedis: &DatabaseRedis{},
 					},
 					{
 						Name: "web",
@@ -155,9 +154,8 @@ func TestExecInfra(t *testing.T) {
 				DbRedis: &DatabaseRedis{},
 				Services: []ServiceSpec{
 					{
-						Name:    "api",
-						Port:    3100,
-						DbRedis: &DatabaseRedis{},
+						Name: "api",
+						Port: 3100,
 					},
 				},
 			},
