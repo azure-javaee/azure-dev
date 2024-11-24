@@ -296,6 +296,11 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 							Name:  "spring.jms.servicebus.pricing-tier",
 							Value: "premium",
 						},
+						// Not add it because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
+						//{
+						//	Name:  "spring.jms.servicebus.connection-string",
+						//	Value: "",
+						//},
 					},
 				}, nil
 			case internal.AuthTypeConnectionString:
@@ -304,6 +309,22 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 						{
 							Name:  "spring.jms.servicebus.pricing-tier",
 							Value: "premium",
+						},
+						{
+							Name:  "spring.jms.servicebus.passwordless-enabled",
+							Value: "false",
+						},
+						{
+							Name:  "spring.jms.servicebus.namespace",
+							Value: "",
+						},
+						{
+							Name:  "spring.jms.servicebus.credential.managed-identity-enabled",
+							Value: "false",
+						},
+						{
+							Name:  "spring.jms.servicebus.credential.client-id",
+							Value: "",
 						},
 					},
 					SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
@@ -333,16 +354,16 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 							Value: "${serviceBusNamespace.outputs.name}",
 						},
 						{
-							Name:  "spring.cloud.azure.servicebus.connection-string",
-							Value: "",
-						},
-						{
 							Name:  "spring.cloud.azure.servicebus.credential.managed-identity-enabled",
 							Value: "true",
 						},
 						{
 							Name:  "spring.cloud.azure.servicebus.credential.client-id",
 							Value: "__PlaceHolderForServiceIdentityClientId", // todo: confirm this work well
+						},
+						{
+							Name:  "spring.cloud.azure.servicebus.connection-string",
+							Value: "",
 						},
 					},
 				}, nil
