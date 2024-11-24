@@ -114,7 +114,7 @@ type EnvironmentVariableInformation struct {
 	KeyVaultSecretDefinitions     []KeyVaultSecretDefinition
 }
 
-// StringEnvironmentVariable In generated bicep file, the value is quoted and used by "value".
+// StringEnvironmentVariable In generated bicep file, the Value will be quoted in bicep file.
 // Example in bicep value:
 //
 //	value: 'jdbc:postgresql://${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'
@@ -123,7 +123,7 @@ type StringEnvironmentVariable struct {
 	Value string
 }
 
-// SecretRefEnvironmentVariable In generated bicep file, the value is quoted and used by "secretRef"
+// SecretRefEnvironmentVariable In generated bicep file, the SecretRef will be quoted in bicep file.
 // Example in bicep value:
 //
 //	secretRef: 'postgresql-password'
@@ -132,7 +132,7 @@ type SecretRefEnvironmentVariable struct {
 	SecretRef string
 }
 
-// ValueSecretDefinition In generated bicep file, the SecretValue is quoted.
+// ValueSecretDefinition In generated bicep file, the SecretValue will be quoted in bicep file.
 // Example in bicep value:
 //
 //	value: 'postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'
@@ -141,7 +141,7 @@ type ValueSecretDefinition struct {
 	SecretValue string
 }
 
-// KeyVaultSecretDefinition In generated bicep file, the KeyVaultUrl is quoted.
+// KeyVaultSecretDefinition In generated bicep file, the KeyVaultUrl will be quoted in bicep file.
 // Example in bicep value:
 //
 //	value: '${keyVault.outputs.uri}secrets/REDIS-URL'
