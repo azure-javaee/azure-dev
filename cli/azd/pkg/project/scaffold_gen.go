@@ -505,7 +505,7 @@ func fulfillFrontendBackend(
 
 	usedSpec := getServiceSpecByName(infraSpec, usedResource.Name)
 	if usedSpec == nil {
-		return fmt.Errorf("'%s' uses '%s', but %s doesn't", userSpec.Name, usedResource.Name, usedResource.Name)
+		return fmt.Errorf("'%s' uses '%s', but %s doesn't exist", userSpec.Name, usedResource.Name, usedResource.Name)
 	}
 	if usedSpec.Backend == nil {
 		usedSpec.Backend = &scaffold.Backend{}
@@ -526,6 +526,9 @@ func getServiceSpecByName(infraSpec *scaffold.InfraSpec, name string) *scaffold.
 
 func printHintsAboutUseHostContainerApp(userResourceName string, usedResourceName string,
 	console *input.Console, context *context.Context) {
+	if *console == nil {
+		return
+	}
 	(*console).Message(*context, fmt.Sprintf("Environemnt variables in %s:", userResourceName))
 	(*console).Message(*context, fmt.Sprintf("%s_BASE_URL=xxx", strings.ToUpper(usedResourceName)))
 	(*console).Message(*context, fmt.Sprintf("Environemnt variables in %s:", usedResourceName))
@@ -533,5 +536,8 @@ func printHintsAboutUseHostContainerApp(userResourceName string, usedResourceNam
 }
 
 func printHintsAboutUseOpenAiModel(console *input.Console, context *context.Context) {
+	if *console == nil {
+		return
+	}
 	(*console).Message(*context, "AZURE_OPENAI_ENDPOINT")
 }
