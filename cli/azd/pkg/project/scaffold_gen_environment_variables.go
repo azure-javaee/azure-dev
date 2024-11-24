@@ -358,7 +358,7 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 							Value: "false",
 						},
 						{
-							Name:  "spring.cloud.azure.eventhubs.credential.client-id",
+							Name:  "spring.cloud.azure.servicebus.credential.client-id",
 							Value: "",
 						},
 					},
@@ -417,7 +417,7 @@ func getAllEnvironmentVariablesForPrint(usedResource *ResourceConfig,
 	if err != nil {
 		return scaffold.EnvironmentVariableInformation{}, err
 	}
-	additional, err := getAdditionalEnvironmentVariablesForPrint(resourceType, authType)
+	additional, err := getEnvironmentVariablesCreatedByServiceConnector(resourceType, authType)
 	if err != nil {
 		return scaffold.EnvironmentVariableInformation{}, err
 	}
@@ -430,7 +430,7 @@ func getAllEnvironmentVariablesForPrint(usedResource *ResourceConfig,
 
 // Return environment variables added by service connector, they do not need to add to scaffold.ServiceSpec
 // todo: Now only support springBoot application type. Need to support other types
-func getAdditionalEnvironmentVariablesForPrint(resourceType ResourceType,
+func getEnvironmentVariablesCreatedByServiceConnector(resourceType ResourceType,
 	authType internal.AuthType) (scaffold.EnvironmentVariableInformation, error) {
 	switch resourceType {
 	case ResourceTypeDbPostgres:
@@ -487,10 +487,18 @@ func getAdditionalEnvironmentVariablesForPrint(resourceType ResourceType,
 		}
 	case ResourceTypeDbMongo,
 		ResourceTypeDbCosmos,
-		ResourceTypeMessagingServiceBus,
 		ResourceTypeHostContainerApp:
 		switch authType {
 		case internal.AuthTypeUserAssignedManagedIdentity:
+			return scaffold.EnvironmentVariableInformation{}, nil
+		default:
+			// return error to make sure every case has been considered.
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+		}
+	case
+		ResourceTypeMessagingServiceBus:
+		switch authType {
+		case internal.AuthTypeUserAssignedManagedIdentity, internal.AuthTypeConnectionString:
 			return scaffold.EnvironmentVariableInformation{}, nil
 		default:
 			// return error to make sure every case has been considered.
