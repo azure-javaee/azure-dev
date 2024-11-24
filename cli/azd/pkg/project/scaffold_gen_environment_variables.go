@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/azure/azure-dev/cli/azd/internal"
 	"github.com/azure/azure-dev/cli/azd/internal/scaffold"
+	"strings"
 )
 
 func getEnvironmentVariableInformation(usedResource *ResourceConfig,
@@ -407,18 +408,34 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 		}
 	case ResourceTypeMessagingEventHubs:
 		if infraSpec.AzureEventHubs.UseKafka {
+			springBootVersionDecidedInformation := scaffold.EnvironmentVariableInformation{}
+			if strings.HasPrefix(infraSpec.AzureEventHubs.SpringBootVersion, "2.") {
+				springBootVersionDecidedInformation = scaffold.EnvironmentVariableInformation{
+					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+						{
+							Name:  "spring.cloud.stream.binders.kafka.environment.spring.main.sources",
+							Value: "com.azure.spring.cloud.autoconfigure.eventhubs.kafka.AzureEventHubsKafkaAutoConfiguration",
+						},
+					},
+				}
+			} else {
+				springBootVersionDecidedInformation = scaffold.EnvironmentVariableInformation{
+					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+						{
+							Name:  "spring.cloud.stream.binders.kafka.environment.spring.main.sources",
+							Value: "com.azure.spring.cloud.autoconfigure.implementation.eventhubs.kafka.AzureEventHubsKafkaAutoConfiguration",
+						},
+					},
+				}
+			}
+			commonInformation := scaffold.EnvironmentVariableInformation{}
 			switch authType {
 			case internal.AuthTypeUserAssignedManagedIdentity:
-				return scaffold.EnvironmentVariableInformation{
+				commonInformation = scaffold.EnvironmentVariableInformation{
 					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
 						{
 							Name:  "spring.cloud.stream.kafka.binder.brokers",
 							Value: "${eventHubNamespace.outputs.name}.servicebus.windows.net:9093",
-						},
-						// todo: support spring boot 2
-						{
-							Name:  "spring.cloud.stream.binders.kafka.environment.spring.main.sources",
-							Value: "com.azure.spring.cloud.autoconfigure.implementation.eventhubs.kafka.AzureEventHubsKafkaAutoConfiguration",
 						},
 						{
 							Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
@@ -435,9 +452,9 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 						//	Value: "",
 						//},
 					},
-				}, nil
+				}
 			case internal.AuthTypeConnectionString:
-				return scaffold.EnvironmentVariableInformation{
+				commonInformation = scaffold.EnvironmentVariableInformation{
 					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
 						{
 							Name:  "spring.cloud.stream.kafka.binder.brokers",
@@ -464,10 +481,11 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 							KeyVaultUrl: "${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING",
 						},
 					},
-				}, nil
+				}
 			default:
 				return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
 			}
+			return mergeWithDuplicationCheck(springBootVersionDecidedInformation, commonInformation)
 		} else {
 			// event hubs, not kafka
 			switch authType {
