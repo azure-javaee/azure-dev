@@ -6,253 +6,416 @@ import (
 	"github.com/azure/azure-dev/cli/azd/internal/scaffold"
 )
 
-var environmentVariableInformation = map[ResourceType]map[internal.AuthType]scaffold.EnvironmentVariableInformation{
-	ResourceTypeDbPostgres: {
-		internal.AuthTypePassword: scaffold.EnvironmentVariableInformation{
-			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-				{
-					Name:  "POSTGRES_USERNAME",
-					Value: "${postgreSqlDatabaseUser}", // todo manage all variables names
+func getEnvironmentVariableInformation(usedResource *ResourceConfig,
+	infraSpec *scaffold.InfraSpec) (scaffold.EnvironmentVariableInformation, error) {
+	resourceType := usedResource.Type
+	authType, err := getAuthType(infraSpec, usedResource.Type)
+	if err != nil {
+		return scaffold.EnvironmentVariableInformation{}, err
+	}
+	switch resourceType {
+	case ResourceTypeDbPostgres:
+		switch authType {
+		case internal.AuthTypePassword:
+			return scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					{
+						Name:  "POSTGRES_USERNAME",
+						Value: "${postgreSqlDatabaseUser}", // todo manage all variables names
+					},
+					{
+						Name:  "POSTGRES_HOST",
+						Value: "${postgreServer.outputs.fqdn}", // todo manage variables like postgreServer
+					},
+					{
+						Name:  "POSTGRES_DATABASE",
+						Value: "${postgreSqlDatabaseName}",
+					},
+					{
+						Name:  "POSTGRES_PORT",
+						Value: "5432",
+					},
+					{
+						Name:  "spring.datasource.url",
+						Value: "jdbc:postgresql://${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
+					},
+					{
+						Name:  "spring.datasource.username",
+						Value: "${postgreSqlDatabaseUser}",
+					},
 				},
-				{
-					Name:  "POSTGRES_HOST",
-					Value: "${postgreServer.outputs.fqdn}", // todo manage variables like postgreServer
+				SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
+					{
+						Name:      "POSTGRES_URL",
+						SecretRef: "postgresql-db-url",
+					},
+					{
+						Name:      "POSTGRES_PASSWORD",
+						SecretRef: "postgresql-password",
+					},
+					{
+						Name:      "spring.datasource.password",
+						SecretRef: "postgresql-password",
+					},
 				},
-				{
-					Name:  "POSTGRES_DATABASE",
-					Value: "${postgreSqlDatabaseName}",
+				ValueSecretDefinitions: []scaffold.ValueSecretDefinition{
+					{
+						SecretName:  "postgresql-db-url",
+						SecretValue: "postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
+					},
+					{
+						SecretName:  "postgresql-password",
+						SecretValue: "${postgreSqlDatabasePassword}",
+					},
 				},
-				{
-					Name:  "POSTGRES_PORT",
-					Value: "5432",
+			}, nil
+		case internal.AuthTypeUserAssignedManagedIdentity:
+			return scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					// Some other environment variables are added by service connector,
+					// should not add to bicep generation context
+					{
+						Name:  "POSTGRES_USERNAME",
+						Value: "${postgreSqlDatabaseUser}", // todo manage all variables names
+					},
+					{
+						Name:  "POSTGRES_HOST",
+						Value: "${postgreServer.outputs.fqdn}", // todo manage variables like postgreServer
+					},
+					{
+						Name:  "POSTGRES_DATABASE",
+						Value: "${postgreSqlDatabaseName}",
+					},
+					{
+						Name:  "POSTGRES_PORT",
+						Value: "5432",
+					},
 				},
-				{
-					Name:  "spring.datasource.url",
-					Value: "jdbc:postgresql://${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
+			}, nil
+		default:
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+		}
+	case ResourceTypeDbMySQL:
+		switch authType {
+		case internal.AuthTypePassword:
+			return scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					{
+						Name:  "MYSQL_USERNAME",
+						Value: "${mysqlDatabaseUser}",
+					},
+					{
+						Name:  "MYSQL_HOST",
+						Value: "${mysqlServer.outputs.fqdn}",
+					},
+					{
+						Name:  "MYSQL_DATABASE",
+						Value: "${mysqlDatabaseName}",
+					},
+					{
+						Name:  "MYSQL_PORT",
+						Value: "3306",
+					},
+					{
+						Name:  "spring.datasource.url",
+						Value: "jdbc:mysql://${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}",
+					},
+					{
+						Name:  "spring.datasource.username",
+						Value: "${mysqlDatabaseUser}",
+					},
 				},
-				{
-					Name:  "spring.datasource.username",
-					Value: "${postgreSqlDatabaseUser}",
+				SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
+					{
+						Name:      "MYSQL_URL",
+						SecretRef: "mysql-db-url",
+					},
+					{
+						Name:      "MYSQL_PASSWORD",
+						SecretRef: "mysql-password",
+					},
+					{
+						Name:      "spring.datasource.password",
+						SecretRef: "mysql-password",
+					},
 				},
-			},
-			SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
-				{
-					Name:      "POSTGRES_URL",
-					SecretRef: "postgresql-db-url",
+				ValueSecretDefinitions: []scaffold.ValueSecretDefinition{
+					{
+						SecretName:  "mysql-db-url",
+						SecretValue: "mysql://${mysqlDatabaseUser}:${mysqlDatabasePassword}@${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}",
+					},
+					{
+						SecretName:  "mysql-password",
+						SecretValue: "${mysqlDatabasePassword}",
+					},
 				},
-				{
-					Name:      "POSTGRES_PASSWORD",
-					SecretRef: "postgresql-password",
+			}, nil
+		case internal.AuthTypeUserAssignedManagedIdentity:
+			return scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					// Some other environment variables are added by service connector,
+					// should not add to bicep generation context
+					{
+						Name:  "MYSQL_USERNAME",
+						Value: "${mysqlDatabaseUser}",
+					},
+					{
+						Name:  "MYSQL_HOST",
+						Value: "${mysqlServer.outputs.fqdn}",
+					},
+					{
+						Name:  "MYSQL_DATABASE",
+						Value: "${mysqlDatabaseName}",
+					},
+					{
+						Name:  "MYSQL_PORT",
+						Value: "3306",
+					},
 				},
-				{
-					Name:      "spring.datasource.password",
-					SecretRef: "postgresql-password",
+			}, nil
+		default:
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+		}
+	case ResourceTypeDbRedis:
+		switch authType {
+		case internal.AuthTypePassword:
+			return scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					{
+						Name:  "REDIS_HOST",
+						Value: "${redis.outputs.hostName}",
+					},
+					{
+						Name:  "REDIS_PORT",
+						Value: "${redis.outputs.sslPort}",
+					},
+					{
+						Name:  "REDIS_ENDPOINT",
+						Value: "${redis.outputs.hostName}:${redis.outputs.sslPort}",
+					},
 				},
-			},
-			ValueSecretDefinitions: []scaffold.ValueSecretDefinition{
-				{
-					SecretName:  "postgresql-db-url",
-					SecretValue: "postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
+				SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
+					{
+						Name:      "REDIS_URL",
+						SecretRef: "redis-url",
+					},
+					{
+						Name:      "REDIS_PASSWORD",
+						SecretRef: "redis-pass",
+					},
+					{
+						Name:      "spring.data.redis.url",
+						SecretRef: "redis-url",
+					},
 				},
-				{
-					SecretName:  "postgresql-password",
-					SecretValue: "${postgreSqlDatabasePassword}",
+				KeyVaultSecretDefinitions: []scaffold.KeyVaultSecretDefinition{
+					{
+						SecretName:  "redis-pass",
+						KeyVaultUrl: "${keyVault.outputs.uri}secrets/REDIS-PASSWORD",
+					},
+					{
+						SecretName:  "redis-url",
+						KeyVaultUrl: "${keyVault.outputs.uri}secrets/REDIS-URL",
+					},
 				},
-			},
-		},
-		internal.AuthTypeUserAssignedManagedIdentity: scaffold.EnvironmentVariableInformation{
-			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-				// Some other environment variables are added by service connector,
-				// should not add to bicep generation context
-				{
-					Name:  "POSTGRES_USERNAME",
-					Value: "${postgreSqlDatabaseUser}", // todo manage all variables names
+			}, nil
+		default:
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+		}
+	case ResourceTypeDbMongo:
+		switch authType {
+		case internal.AuthTypeUserAssignedManagedIdentity:
+			return scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					{
+						Name:  "spring.data.mongodb.database",
+						Value: "${mongoDatabaseName}",
+					},
 				},
-				{
-					Name:  "POSTGRES_HOST",
-					Value: "${postgreServer.outputs.fqdn}", // todo manage variables like postgreServer
+				SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
+					{
+						Name:      "MONGODB_URL",
+						SecretRef: "mongodb-url",
+					},
+					{
+						Name:      "spring.data.mongodb.uri",
+						SecretRef: "mongodb-url",
+					},
 				},
-				{
-					Name:  "POSTGRES_DATABASE",
-					Value: "${postgreSqlDatabaseName}",
+				KeyVaultSecretDefinitions: []scaffold.KeyVaultSecretDefinition{
+					{
+						SecretName:  "mongodb-url",
+						KeyVaultUrl: "${cosmos.outputs.exportedSecrets['MONGODB-URL'].secretUri}",
+					},
 				},
-				{
-					Name:  "POSTGRES_PORT",
-					Value: "5432",
+			}, nil
+		default:
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+		}
+	case ResourceTypeDbCosmos:
+		switch authType {
+		case internal.AuthTypeUserAssignedManagedIdentity:
+			return scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					{
+						Name:  "spring.cloud.azure.cosmos.endpoint",
+						Value: "${cosmos.outputs.endpoint}",
+					},
+					{
+						Name:  "spring.cloud.azure.cosmos.database",
+						Value: "${cosmosDatabaseName}",
+					},
 				},
-			},
-		},
-	},
-	ResourceTypeDbMySQL: {
-		internal.AuthTypePassword: scaffold.EnvironmentVariableInformation{
-			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-				{
-					Name:  "MYSQL_USERNAME",
-					Value: "${mysqlDatabaseUser}",
-				},
-				{
-					Name:  "MYSQL_HOST",
-					Value: "${mysqlServer.outputs.fqdn}",
-				},
-				{
-					Name:  "MYSQL_DATABASE",
-					Value: "${mysqlDatabaseName}",
-				},
-				{
-					Name:  "MYSQL_PORT",
-					Value: "3306",
-				},
-				{
-					Name:  "spring.datasource.url",
-					Value: "jdbc:mysql://${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}",
-				},
-				{
-					Name:  "spring.datasource.username",
-					Value: "${mysqlDatabaseUser}",
-				},
-			},
-			SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
-				{
-					Name:      "MYSQL_URL",
-					SecretRef: "mysql-db-url",
-				},
-				{
-					Name:      "MYSQL_PASSWORD",
-					SecretRef: "mysql-password",
-				},
-				{
-					Name:      "spring.datasource.password",
-					SecretRef: "mysql-password",
-				},
-			},
-			ValueSecretDefinitions: []scaffold.ValueSecretDefinition{
-				{
-					SecretName:  "mysql-db-url",
-					SecretValue: "mysql://${mysqlDatabaseUser}:${mysqlDatabasePassword}@${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}",
-				},
-				{
-					SecretName:  "mysql-password",
-					SecretValue: "${mysqlDatabasePassword}",
-				},
-			},
-		},
-		internal.AuthTypeUserAssignedManagedIdentity: scaffold.EnvironmentVariableInformation{
-			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-				// Some other environment variables are added by service connector,
-				// should not add to bicep generation context
-				{
-					Name:  "MYSQL_USERNAME",
-					Value: "${mysqlDatabaseUser}",
-				},
-				{
-					Name:  "MYSQL_HOST",
-					Value: "${mysqlServer.outputs.fqdn}",
-				},
-				{
-					Name:  "MYSQL_DATABASE",
-					Value: "${mysqlDatabaseName}",
-				},
-				{
-					Name:  "MYSQL_PORT",
-					Value: "3306",
-				},
-			},
-		},
-	},
-	ResourceTypeDbRedis: {
-		internal.AuthTypePassword: scaffold.EnvironmentVariableInformation{
-			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-				{
-					Name:  "REDIS_HOST",
-					Value: "${redis.outputs.hostName}",
-				},
-				{
-					Name:  "REDIS_PORT",
-					Value: "${redis.outputs.sslPort}",
-				},
-				{
-					Name:  "REDIS_ENDPOINT",
-					Value: "${redis.outputs.hostName}:${redis.outputs.sslPort}",
-				},
-			},
-			SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
-				{
-					Name:      "REDIS_URL",
-					SecretRef: "redis-url",
-				},
-				{
-					Name:      "REDIS_PASSWORD",
-					SecretRef: "redis-pass",
-				},
-				{
-					Name:      "spring.data.redis.url",
-					SecretRef: "redis-url",
-				},
-			},
-			KeyVaultSecretDefinitions: []scaffold.KeyVaultSecretDefinition{
-				{
-					SecretName:  "redis-pass",
-					KeyVaultUrl: "${keyVault.outputs.uri}secrets/REDIS-PASSWORD",
-				},
-				{
-					SecretName:  "redis-url",
-					KeyVaultUrl: "${keyVault.outputs.uri}secrets/REDIS-URL",
-				},
-			},
-		},
-	},
-	ResourceTypeDbMongo: {
-		internal.AuthTypeUserAssignedManagedIdentity: scaffold.EnvironmentVariableInformation{
-			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-				{
-					Name:  "spring.data.mongodb.database",
-					Value: "${mongoDatabaseName}",
-				},
-			},
-			SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
-				{
-					Name:      "MONGODB_URL",
-					SecretRef: "mongodb-url",
-				},
-				{
-					Name:      "spring.data.mongodb.uri",
-					SecretRef: "mongodb-url",
-				},
-			},
-			KeyVaultSecretDefinitions: []scaffold.KeyVaultSecretDefinition{
-				{
-					SecretName:  "mongodb-url",
-					KeyVaultUrl: "${cosmos.outputs.exportedSecrets['MONGODB-URL'].secretUri}",
-				},
-			},
-		},
-	},
-	ResourceTypeDbCosmos: {
-		internal.AuthTypeUserAssignedManagedIdentity: scaffold.EnvironmentVariableInformation{
-			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-				{
-					Name:  "spring.cloud.azure.cosmos.endpoint",
-					Value: "${cosmos.outputs.endpoint}",
-				},
-				{
-					Name:  "spring.cloud.azure.cosmos.database",
-					Value: "${cosmosDatabaseName}",
-				},
-			},
-		},
-	},
-	ResourceTypeHostContainerApp: {
-		internal.AuthTypeUserAssignedManagedIdentity: scaffold.EnvironmentVariableInformation{},
-	},
+			}, nil
+		default:
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+		}
+	case ResourceTypeMessagingServiceBus:
+		if infraSpec.AzureServiceBus.IsJms {
+			switch authType {
+			case internal.AuthTypeUserAssignedManagedIdentity:
+				return scaffold.EnvironmentVariableInformation{
+					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+						{
+							Name:  "spring.jms.servicebus.passwordless-enabled",
+							Value: "true",
+						},
+						{
+							Name:  "spring.jms.servicebus.namespace",
+							Value: "${serviceBusNamespace.outputs.name}",
+						},
+						{
+							Name:  "spring.jms.servicebus.credential.managed-identity-enabled",
+							Value: "true",
+						},
+						{
+							Name:  "spring.jms.servicebus.credential.client-id",
+							Value: "__PlaceHolderForServiceIdentityClientId",
+						},
+						{
+							Name:  "spring.jms.servicebus.pricing-tier",
+							Value: "premium",
+						},
+					},
+				}, nil
+			case internal.AuthTypeConnectionString:
+				return scaffold.EnvironmentVariableInformation{
+					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+						{
+							Name:  "spring.jms.servicebus.pricing-tier",
+							Value: "premium",
+						},
+					},
+					SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
+						{
+							Name:      "spring.jms.servicebus.connection-string",
+							SecretRef: "servicebus-connection-string",
+						},
+					},
+					KeyVaultSecretDefinitions: []scaffold.KeyVaultSecretDefinition{
+						{
+							SecretName:  "servicebus-connection-string",
+							KeyVaultUrl: "${keyVault.outputs.uri}secrets/SERVICEBUS-CONNECTION-STRING",
+						},
+					},
+				}, nil
+			default:
+				return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			}
+		} else {
+			// service bus, not jms
+			switch authType {
+			case internal.AuthTypeUserAssignedManagedIdentity:
+				return scaffold.EnvironmentVariableInformation{
+					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+						{
+							Name:  "spring.cloud.azure.servicebus.namespace",
+							Value: "${serviceBusNamespace.outputs.name}",
+						},
+						{
+							Name:  "spring.cloud.azure.servicebus.connection-string",
+							Value: "",
+						},
+						{
+							Name:  "spring.cloud.azure.servicebus.credential.managed-identity-enabled",
+							Value: "true",
+						},
+						{
+							Name:  "spring.cloud.azure.servicebus.credential.client-id",
+							Value: "__PlaceHolderForServiceIdentityClientId", // todo: confirm this work well
+						},
+					},
+				}, nil
+			case internal.AuthTypeConnectionString:
+				return scaffold.EnvironmentVariableInformation{
+					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+						{
+							Name:  "spring.cloud.azure.servicebus.namespace",
+							Value: "${serviceBusNamespace.outputs.name}",
+						},
+						{
+							Name:  "spring.cloud.azure.servicebus.credential.managed-identity-enabled",
+							Value: "false",
+						},
+						{
+							Name:  "spring.cloud.azure.eventhubs.credential.client-id",
+							Value: "",
+						},
+					},
+					SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
+						{
+							Name:      "spring.cloud.azure.servicebus.connection-string",
+							SecretRef: "servicebus-connection-string",
+						},
+					},
+					KeyVaultSecretDefinitions: []scaffold.KeyVaultSecretDefinition{
+						{
+							SecretName:  "servicebus-connection-string",
+							KeyVaultUrl: "${keyVault.outputs.uri}secrets/SERVICEBUS-CONNECTION-STRING",
+						},
+					},
+				}, nil
+			default:
+				return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			}
+		}
+		//case OtherType: // Keep this as code template
+		//	switch authType {
+		//	default:
+		//		return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+		//	}
+	case ResourceTypeHostContainerApp: // todo improve this and delete Frontend and Backend in scaffold.ServiceSpec
+		switch authType {
+		case internal.AuthTypeUserAssignedManagedIdentity:
+			return scaffold.EnvironmentVariableInformation{}, nil
+		default:
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+		}
+	default:
+		return scaffold.EnvironmentVariableInformation{}, unsupportedResourceTypeError(resourceType)
+	}
 }
 
-func getAllEnvironmentVariablesForPrint(resourceType ResourceType,
-	authType internal.AuthType) (scaffold.EnvironmentVariableInformation, error) {
-	information, ok := environmentVariableInformation[resourceType][authType]
-	if !ok {
-		return scaffold.EnvironmentVariableInformation{},
-			fmt.Errorf("cannot get environment variable information, resourceType = %s, authType = %s",
-				resourceType, authType)
+func unsupportedResourceTypeError(resourceType ResourceType) error {
+	return fmt.Errorf("unsupported resource type when get environment variable information, resourceType = %s",
+		resourceType)
+}
+
+func unsupportedAuthTypeError(resourceType ResourceType, authType internal.AuthType) error {
+	return fmt.Errorf("unsupported auth type when get environment variable information, "+
+		"resourceType = %s, authType = %s", resourceType, authType)
+}
+
+func getAllEnvironmentVariablesForPrint(usedResource *ResourceConfig,
+	infraSpec *scaffold.InfraSpec) (scaffold.EnvironmentVariableInformation, error) {
+	information, err := getEnvironmentVariableInformation(usedResource, infraSpec)
+	if err != nil {
+		return scaffold.EnvironmentVariableInformation{}, err
+	}
+	resourceType := usedResource.Type
+	authType, err := getAuthType(infraSpec, usedResource.Type)
+	if err != nil {
+		return scaffold.EnvironmentVariableInformation{}, err
 	}
 	additional, err := getAdditionalEnvironmentVariablesForPrint(resourceType, authType)
 	if err != nil {
@@ -290,7 +453,7 @@ func getAdditionalEnvironmentVariablesForPrint(resourceType ResourceType,
 			}, nil
 		default:
 			// return error to make sure every case has been considered.
-			return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported auth type: %s", authType)
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
 		}
 	case ResourceTypeDbMySQL:
 		switch authType {
@@ -312,7 +475,7 @@ func getAdditionalEnvironmentVariablesForPrint(resourceType ResourceType,
 			}, nil
 		default:
 			// return error to make sure every case has been considered.
-			return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported auth type: %s", authType)
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
 		}
 	case ResourceTypeDbRedis:
 		switch authType {
@@ -320,21 +483,22 @@ func getAdditionalEnvironmentVariablesForPrint(resourceType ResourceType,
 			return scaffold.EnvironmentVariableInformation{}, nil
 		default:
 			// return error to make sure every case has been considered.
-			return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported auth type: %s", authType)
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
 		}
 	case ResourceTypeDbMongo,
 		ResourceTypeDbCosmos,
+		ResourceTypeMessagingServiceBus,
 		ResourceTypeHostContainerApp:
 		switch authType {
 		case internal.AuthTypeUserAssignedManagedIdentity:
 			return scaffold.EnvironmentVariableInformation{}, nil
 		default:
 			// return error to make sure every case has been considered.
-			return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported auth type: %s", authType)
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
 		}
 	default:
 		// return error to make sure every case has been considered.
-		return scaffold.EnvironmentVariableInformation{}, fmt.Errorf("unsupported resource type: %s", resourceType)
+		return scaffold.EnvironmentVariableInformation{}, unsupportedResourceTypeError(resourceType)
 	}
 }
 
@@ -350,9 +514,8 @@ func mergeWithDuplicationCheck(a scaffold.EnvironmentVariableInformation,
 	for _, v := range result.StringEnvironmentVariables {
 		if existingValue, exist := seen[v.Name]; exist {
 			if v.Value != existingValue {
-				return scaffold.EnvironmentVariableInformation{}, fmt.Errorf(
-					"duplicated environment variable. name = %s, value1 = %s, value2 = %s",
-					v.Name, v.Value, existingValue)
+				return scaffold.EnvironmentVariableInformation{},
+					duplicatedEnvironmentError(v.Name, v.Value, existingValue)
 			}
 		} else {
 			seen[v.Name] = existingValue
@@ -361,20 +524,19 @@ func mergeWithDuplicationCheck(a scaffold.EnvironmentVariableInformation,
 	for _, v := range result.SecretRefEnvironmentVariables {
 		if existingRef, exist := seen[v.Name]; exist {
 			if v.SecretRef != existingRef {
-				return scaffold.EnvironmentVariableInformation{}, fmt.Errorf(
-					"duplicated environment variable. Name = %s, value1 = %s, value2 = %s",
-					v.Name, v.SecretRef, existingRef)
+				return scaffold.EnvironmentVariableInformation{},
+					duplicatedEnvironmentError(v.Name, v.SecretRef, existingRef)
 			}
 		} else {
 			seen[v.Name] = existingRef
 		}
 	}
+	seen = make(map[string]string)
 	for _, v := range result.ValueSecretDefinitions {
 		if existingRef, exist := seen[v.SecretName]; exist {
 			if v.SecretValue != existingRef {
-				return scaffold.EnvironmentVariableInformation{}, fmt.Errorf(
-					"duplicated secret definition. Name = %s, value1 = %s, value2 = %s",
-					v.SecretName, v.SecretValue, existingRef)
+				return scaffold.EnvironmentVariableInformation{},
+					duplicatedSecretDefinitionError(v.SecretName, v.SecretValue, existingRef)
 			}
 		} else {
 			seen[v.SecretName] = existingRef
@@ -383,13 +545,25 @@ func mergeWithDuplicationCheck(a scaffold.EnvironmentVariableInformation,
 	for _, v := range result.KeyVaultSecretDefinitions {
 		if existingRef, exist := seen[v.SecretName]; exist {
 			if v.SecretName != existingRef {
-				return scaffold.EnvironmentVariableInformation{}, fmt.Errorf(
-					"duplicated secret definition. Name = %s, value1 = %s, value2 = %s",
-					v.SecretName, v.KeyVaultUrl, existingRef)
+				return scaffold.EnvironmentVariableInformation{},
+					duplicatedSecretDefinitionError(v.SecretName, v.KeyVaultUrl, existingRef)
 			}
 		} else {
 			seen[v.SecretName] = existingRef
 		}
 	}
 	return result, nil
+}
+
+func duplicatedSecretDefinitionError(name string, value1 string, value2 string) error {
+	return duplicatedError("secret definition", name, value1, value2)
+}
+
+func duplicatedEnvironmentError(name string, value1 string, value2 string) error {
+	return duplicatedError("environment variable", name, value1, value2)
+}
+
+func duplicatedError(description string, name string, value1 string, value2 string) error {
+	return fmt.Errorf(
+		"duplicated %s. name = %s, value1 = %s, value2 = %s", description, name, value1, value2)
 }

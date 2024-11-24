@@ -110,7 +110,6 @@ type ServiceSpec struct {
 	// AI model connections
 	AIModels []AIModelReference
 
-	AzureServiceBus     *AzureDepServiceBus
 	AzureEventHubs      *AzureDepEventHubs
 	AzureStorageAccount *AzureDepStorageAccount
 }

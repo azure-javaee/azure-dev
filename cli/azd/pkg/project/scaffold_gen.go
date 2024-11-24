@@ -265,13 +265,12 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 				ResourceTypeDbMySQL,
 				ResourceTypeDbRedis,
 				ResourceTypeDbMongo,
-				ResourceTypeDbCosmos:
-				err := addUsage(infraSpec, userSpec, usedResource.Type) // todo apply to all types
+				ResourceTypeDbCosmos,
+				ResourceTypeMessagingServiceBus:
+				err := addUsage(infraSpec, userSpec, usedResource) // todo apply to all types
 				if err != nil {
 					return err
 				}
-			case ResourceTypeMessagingServiceBus:
-				userSpec.AzureServiceBus = infraSpec.AzureServiceBus
 			case ResourceTypeMessagingEventHubs, ResourceTypeMessagingKafka:
 				userSpec.AzureEventHubs = infraSpec.AzureEventHubs
 			case ResourceTypeStorage:
@@ -304,20 +303,17 @@ func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (inte
 		ResourceTypeDbCosmos,
 		ResourceTypeHostContainerApp:
 		return internal.AuthTypeUserAssignedManagedIdentity, nil
+	case ResourceTypeMessagingServiceBus:
+		return infraSpec.AzureServiceBus.AuthType, nil
 	default:
-		return internal.AuthTypeUnspecified, fmt.Errorf("unsupported resource type: %s", resourceType)
+		return internal.AuthTypeUnspecified, fmt.Errorf("can not get authType, resource type: %s", resourceType)
 	}
 }
 
-func addUsage(infraSpec *scaffold.InfraSpec, userSpec *scaffold.ServiceSpec, resourceType ResourceType) error {
-	authType, err := getAuthType(infraSpec, resourceType)
+func addUsage(infraSpec *scaffold.InfraSpec, userSpec *scaffold.ServiceSpec, usedResource *ResourceConfig) error {
+	information, err := getEnvironmentVariableInformation(usedResource, infraSpec)
 	if err != nil {
 		return err
-	}
-	information, ok := environmentVariableInformation[resourceType][authType]
-	if !ok {
-		return fmt.Errorf("cannot get environment variable information, resourceType = %s, authType = %s",
-			resourceType, authType)
 	}
 	userSpec.EnvironmentVariableInformation, err = mergeWithDuplicationCheck(userSpec.EnvironmentVariableInformation,
 		information)
@@ -350,11 +346,7 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 				"Please make sure your application used the right environment variable. \n"+
 				"Here is the list of environment variables: ",
 				userResourceName, usedResourceName))
-			authType, err := getAuthType(infraSpec, usedResource.Type)
-			if err != nil {
-				return err
-			}
-			variables, err := getAllEnvironmentVariablesForPrint(usedResource.Type, authType)
+			variables, err := getAllEnvironmentVariablesForPrint(usedResource, infraSpec)
 			if err != nil {
 				return err
 			}
@@ -369,13 +361,8 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 				ResourceTypeDbMySQL,
 				ResourceTypeDbRedis,
 				ResourceTypeDbMongo,
-				ResourceTypeDbCosmos:
-			case ResourceTypeMessagingServiceBus:
-				err := printHintsAboutUseServiceBus(userSpec.AzureServiceBus.IsJms,
-					userSpec.AzureServiceBus.AuthType, console, context)
-				if err != nil {
-					return err
-				}
+				ResourceTypeDbCosmos,
+				ResourceTypeMessagingServiceBus:
 			case ResourceTypeMessagingEventHubs, ResourceTypeMessagingKafka:
 				err := printHintsAboutUseEventHubs(userSpec.AzureEventHubs.UseKafka,
 					userSpec.AzureEventHubs.AuthType, userSpec.AzureEventHubs.SpringBootVersion, console, context)
@@ -538,27 +525,6 @@ func getServiceSpecByName(infraSpec *scaffold.InfraSpec, name string) *scaffold.
 		if infraSpec.Services[i].Name == name {
 			return &infraSpec.Services[i]
 		}
-	}
-	return nil
-}
-
-func printHintsAboutUseServiceBus(isJms bool, authType internal.AuthType,
-	console *input.Console, context *context.Context) error {
-	if !isJms {
-		(*console).Message(*context, "spring.cloud.azure.servicebus.namespace=xxx")
-	}
-	if authType == internal.AuthTypeUserAssignedManagedIdentity {
-		(*console).Message(*context, "spring.cloud.azure.servicebus.connection-string=''")
-		(*console).Message(*context, "spring.cloud.azure.servicebus.credential.managed-identity-enabled=true")
-		(*console).Message(*context, "spring.cloud.azure.servicebus.credential.client-id=xxx")
-	} else if authType == internal.AuthTypeConnectionString {
-		(*console).Message(*context, "spring.cloud.azure.servicebus.connection-string=xxx")
-		(*console).Message(*context, "spring.cloud.azure.servicebus.credential.managed-identity-enabled=false")
-		(*console).Message(*context, "spring.cloud.azure.eventhubs.credential.client-id=xxx")
-	} else {
-		return fmt.Errorf("unsupported auth type for Service Bus. Supported types are: %s, %s",
-			internal.GetAuthTypeDescription(internal.AuthTypeUserAssignedManagedIdentity),
-			internal.GetAuthTypeDescription(internal.AuthTypeConnectionString))
 	}
 	return nil
 }

@@ -129,8 +129,6 @@ func (i *Initializer) infraSpecFromDetect(
 
 		for _, azureDep := range svc.AzureDeps {
 			switch azureDep.(type) {
-			case appdetect.AzureDepServiceBus:
-				serviceSpec.AzureServiceBus = spec.AzureServiceBus
 			case appdetect.AzureDepEventHubs:
 				serviceSpec.AzureEventHubs = spec.AzureEventHubs
 			case appdetect.AzureDepStorageAccount:

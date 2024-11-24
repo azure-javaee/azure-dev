@@ -577,13 +577,6 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           keyVaultUrl: '${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING'
         }
         {{- end}}
-        {{- if (and .AzureServiceBus (eq .AzureServiceBus.AuthType "CONNECTION_STRING")) }}
-        {
-          name: 'servicebus-connection-string'
-          identity:{{bicepName .Name}}Identity.outputs.resourceId
-          keyVaultUrl: '${keyVault.outputs.uri}secrets/SERVICEBUS-CONNECTION-STRING'
-        }
-        {{- end}}
         {{- if (and .AzureStorageAccount (eq .AzureStorageAccount.AuthType "CONNECTION_STRING")) }}
         {
           name: 'storage-account-connection-string'
@@ -609,7 +602,11 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {{- range .EnvironmentVariableInformation.StringEnvironmentVariables}}
           {
             name: '{{.Name}}'
+            {{- if (eq .Value "__PlaceHolderForServiceIdentityClientId")}}
+            value: {{bicepName $service.Name}}Identity.outputs.clientId
+            {{- else}}
             value: '{{.Value}}'
+            {{- end}}
           }
           {{- end}}
           {{- range .EnvironmentVariableInformation.SecretRefEnvironmentVariables}}
@@ -718,75 +715,6 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
             value: ''
           }
           {{- end}}
-
-          {{- if and .AzureServiceBus (not .AzureServiceBus.IsJms)}}
-          {
-            name: 'spring.cloud.azure.servicebus.namespace'
-            value: serviceBusNamespace.outputs.name
-          }
-          {{- end}}
-          {{- if (and (and .AzureServiceBus (eq .AzureServiceBus.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) (not .AzureServiceBus.IsJms)) }}
-          {
-            name: 'spring.cloud.azure.servicebus.connection-string'
-            value: ''
-          }
-          {
-            name: 'spring.cloud.azure.servicebus.credential.managed-identity-enabled'
-            value: 'true'
-          }
-          {
-            name: 'spring.cloud.azure.servicebus.credential.client-id'
-            value: {{bicepName .Name}}Identity.outputs.clientId
-          }
-          {{- end}}
-          {{- if (and (and .AzureServiceBus (eq .AzureServiceBus.AuthType "CONNECTION_STRING")) (not .AzureServiceBus.IsJms)) }}
-          {
-            name: 'spring.cloud.azure.servicebus.connection-string'
-            secretRef: 'servicebus-connection-string'
-          }
-          {
-            name: 'spring.cloud.azure.servicebus.credential.managed-identity-enabled'
-            value: 'false'
-          }
-          {
-            name: 'spring.cloud.azure.eventhubs.credential.client-id'
-            value: ''
-          }
-          {{- end}}
-          {{- if (and (and .AzureServiceBus (eq .AzureServiceBus.AuthType "CONNECTION_STRING")) .AzureServiceBus.IsJms) }}
-          {
-            name: 'spring.jms.servicebus.connection-string'
-            secretRef: 'servicebus-connection-string'
-          }
-          {
-            name: 'spring.jms.servicebus.pricing-tier'
-            value: 'premium'
-          }
-          {{- end}}
-
-          {{- if (and (and .AzureServiceBus (eq .AzureServiceBus.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) .AzureServiceBus.IsJms) }}
-          {
-            name: 'spring.jms.servicebus.passwordless-enabled'
-            value: 'true'
-          }
-          {
-            name: 'spring.jms.servicebus.namespace'
-            value: serviceBusNamespace.outputs.name
-          }
-          {
-            name: 'spring.jms.servicebus.credential.managed-identity-enabled'
-            value: 'true'
-          }
-          {
-            name: 'spring.jms.servicebus.credential.client-id'
-            value: {{bicepName .Name}}Identity.outputs.clientId
-          }
-          {
-            name: 'spring.jms.servicebus.pricing-tier'
-            value: 'premium'
-          }
-          {{- end}}
-
           {{- if .Frontend}}
           {{- range $i, $e := .Frontend.Backends}}
           {
