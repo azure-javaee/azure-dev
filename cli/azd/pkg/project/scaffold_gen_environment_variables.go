@@ -296,11 +296,10 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 							Name:  "spring.jms.servicebus.pricing-tier",
 							Value: "premium",
 						},
-						// Not add it because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
-						//{
-						//	Name:  "spring.jms.servicebus.connection-string",
-						//	Value: "",
-						//},
+						{
+							Name:  "spring.jms.servicebus.connection-string",
+							Value: "",
+						},
 					},
 				}, nil
 			case internal.AuthTypeConnectionString:
@@ -359,12 +358,18 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 						},
 						{
 							Name:  "spring.cloud.azure.servicebus.credential.client-id",
-							Value: "__PlaceHolderForServiceIdentityClientId", // todo: confirm this work well
+							Value: "__PlaceHolderForServiceIdentityClientId",
 						},
 						{
 							Name:  "spring.cloud.azure.servicebus.connection-string",
 							Value: "",
 						},
+						// Not add it because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
+						// Not add it even through the issue fixed, because customer may not use the new version
+						//{
+						//	Name:  "spring.cloud.azure.servicebus.connection-string",
+						//	Value: "",
+						//},
 					},
 				}, nil
 			case internal.AuthTypeConnectionString:
@@ -399,6 +404,177 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 			default:
 				return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
 			}
+		}
+	case ResourceTypeMessagingEventHubs:
+		if infraSpec.AzureEventHubs.UseKafka {
+			switch authType {
+			case internal.AuthTypeUserAssignedManagedIdentity:
+				return scaffold.EnvironmentVariableInformation{
+					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+						{
+							Name:  "spring.cloud.stream.kafka.binder.brokers",
+							Value: "${eventHubNamespace.outputs.name}.servicebus.windows.net:9093",
+						},
+						// todo: support spring boot 2
+						{
+							Name:  "spring.cloud.stream.binders.kafka.environment.spring.main.sources",
+							Value: "com.azure.spring.cloud.autoconfigure.implementation.eventhubs.kafka.AzureEventHubsKafkaAutoConfiguration",
+						},
+						{
+							Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
+							Value: "true",
+						},
+						{
+							Name:  "spring.cloud.azure.eventhubs.credential.client-id",
+							Value: "__PlaceHolderForServiceIdentityClientId",
+						},
+						// Not add it because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
+						// Not add it even through the issue fixed, because customer may not use the new version
+						//{
+						//	Name:  "spring.cloud.azure.eventhubs.connection-string",
+						//	Value: "",
+						//},
+					},
+				}, nil
+			case internal.AuthTypeConnectionString:
+				return scaffold.EnvironmentVariableInformation{
+					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+						{
+							Name:  "spring.cloud.stream.kafka.binder.brokers",
+							Value: "${eventHubNamespace.outputs.name}.servicebus.windows.net:9093",
+						},
+						{
+							Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
+							Value: "false",
+						},
+						{
+							Name:  "spring.cloud.azure.eventhubs.credential.client-id",
+							Value: "",
+						},
+					},
+					SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
+						{
+							Name:      "spring.cloud.azure.eventhubs.connection-string",
+							SecretRef: "event-hubs-connection-string",
+						},
+					},
+					KeyVaultSecretDefinitions: []scaffold.KeyVaultSecretDefinition{
+						{
+							SecretName:  "event-hubs-connection-string",
+							KeyVaultUrl: "${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING",
+						},
+					},
+				}, nil
+			default:
+				return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			}
+		} else {
+			// event hubs, not kafka
+			switch authType {
+			case internal.AuthTypeUserAssignedManagedIdentity:
+				return scaffold.EnvironmentVariableInformation{
+					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+						{
+							Name:  "spring.cloud.azure.eventhubs.namespace",
+							Value: "${eventHubNamespace.outputs.name}",
+						},
+						{
+							Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
+							Value: "true",
+						},
+						{
+							Name:  "spring.cloud.azure.eventhubs.credential.client-id",
+							Value: "__PlaceHolderForServiceIdentityClientId",
+						},
+					},
+				}, nil
+			case internal.AuthTypeConnectionString:
+				return scaffold.EnvironmentVariableInformation{
+					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+						{
+							Name:  "spring.cloud.azure.eventhubs.namespace",
+							Value: "${eventHubNamespace.outputs.name}",
+						},
+						{
+							Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
+							Value: "false",
+						},
+						{
+							Name:  "spring.cloud.azure.eventhubs.credential.client-id",
+							Value: "",
+						},
+					},
+					SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
+						{
+							Name:      "spring.cloud.azure.eventhubs.connection-string",
+							SecretRef: "event-hubs-connection-string",
+						},
+					},
+					KeyVaultSecretDefinitions: []scaffold.KeyVaultSecretDefinition{
+						{
+							SecretName:  "event-hubs-connection-string",
+							KeyVaultUrl: "${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING",
+						},
+					},
+				}, nil
+			default:
+				return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			}
+		}
+	case ResourceTypeStorage:
+		switch authType {
+		case internal.AuthTypeUserAssignedManagedIdentity:
+			return scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					{
+						Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.account-name",
+						Value: "${storageAccountName}",
+					},
+					{
+						Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.managed-identity-enabled",
+						Value: "true",
+					},
+					{
+						Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.client-id",
+						Value: "__PlaceHolderForServiceIdentityClientId",
+					},
+					{
+						Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.connection-string",
+						Value: "",
+					},
+				},
+			}, nil
+		case internal.AuthTypeConnectionString:
+			return scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					{
+						Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.account-name",
+						Value: "${storageAccountName}",
+					},
+					{
+						Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.managed-identity-enabled",
+						Value: "false",
+					},
+					{
+						Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.client-id",
+						Value: "",
+					},
+				},
+				SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
+					{
+						Name:      "spring.cloud.azure.eventhubs.processor.checkpoint-store.connection-string",
+						SecretRef: "storage-account-connection-string",
+					},
+				},
+				KeyVaultSecretDefinitions: []scaffold.KeyVaultSecretDefinition{
+					{
+						SecretName:  "storage-account-connection-string",
+						KeyVaultUrl: "${keyVault.outputs.uri}secrets/STORAGE-ACCOUNT-CONNECTION-STRING",
+					},
+				},
+			}, nil
+		default:
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
 		}
 		//case OtherType: // Keep this as code template
 		//	switch authType {
@@ -517,7 +693,10 @@ func getEnvironmentVariablesCreatedByServiceConnector(resourceType ResourceType,
 			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
 		}
 	case
-		ResourceTypeMessagingServiceBus:
+		ResourceTypeMessagingServiceBus,
+		ResourceTypeMessagingEventHubs,
+		ResourceTypeMessagingKafka,
+		ResourceTypeStorage:
 		switch authType {
 		case internal.AuthTypeUserAssignedManagedIdentity, internal.AuthTypeConnectionString:
 			return scaffold.EnvironmentVariableInformation{}, nil

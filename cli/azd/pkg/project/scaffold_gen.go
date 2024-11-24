@@ -266,15 +266,14 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 				ResourceTypeDbRedis,
 				ResourceTypeDbMongo,
 				ResourceTypeDbCosmos,
-				ResourceTypeMessagingServiceBus:
+				ResourceTypeMessagingServiceBus,
+				ResourceTypeMessagingEventHubs,
+				ResourceTypeMessagingKafka,
+				ResourceTypeStorage:
 				err := addUsage(infraSpec, userSpec, usedResource) // todo apply to all types
 				if err != nil {
 					return err
 				}
-			case ResourceTypeMessagingEventHubs, ResourceTypeMessagingKafka:
-				userSpec.AzureEventHubs = infraSpec.AzureEventHubs
-			case ResourceTypeStorage:
-				userSpec.AzureStorageAccount = infraSpec.AzureStorageAccount
 			case ResourceTypeHostContainerApp:
 				err := fulfillFrontendBackend(userSpec, usedResource, infraSpec)
 				if err != nil {
@@ -305,6 +304,10 @@ func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (inte
 		return internal.AuthTypeUserAssignedManagedIdentity, nil
 	case ResourceTypeMessagingServiceBus:
 		return infraSpec.AzureServiceBus.AuthType, nil
+	case ResourceTypeMessagingEventHubs:
+		return infraSpec.AzureEventHubs.AuthType, nil
+	case ResourceTypeStorage:
+		return infraSpec.AzureStorageAccount.AuthType, nil
 	default:
 		return internal.AuthTypeUnspecified, fmt.Errorf("can not get authType, resource type: %s", resourceType)
 	}
@@ -362,18 +365,10 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 				ResourceTypeDbRedis,
 				ResourceTypeDbMongo,
 				ResourceTypeDbCosmos,
-				ResourceTypeMessagingServiceBus:
-			case ResourceTypeMessagingEventHubs, ResourceTypeMessagingKafka:
-				err := printHintsAboutUseEventHubs(userSpec.AzureEventHubs.UseKafka,
-					userSpec.AzureEventHubs.AuthType, userSpec.AzureEventHubs.SpringBootVersion, console, context)
-				if err != nil {
-					return err
-				}
-			case ResourceTypeStorage:
-				err := printHintsAboutUseStorageAccount(userSpec.AzureStorageAccount.AuthType, console, context)
-				if err != nil {
-					return err
-				}
+				ResourceTypeMessagingServiceBus,
+				ResourceTypeMessagingEventHubs,
+				ResourceTypeMessagingKafka,
+				ResourceTypeStorage:
 			case ResourceTypeHostContainerApp:
 				printHintsAboutUseHostContainerApp(userResourceName, usedResourceName, console, context)
 			case ResourceTypeOpenAiModel:
@@ -525,53 +520,6 @@ func getServiceSpecByName(infraSpec *scaffold.InfraSpec, name string) *scaffold.
 		if infraSpec.Services[i].Name == name {
 			return &infraSpec.Services[i]
 		}
-	}
-	return nil
-}
-
-func printHintsAboutUseEventHubs(UseKafka bool, authType internal.AuthType, springBootVersion string,
-	console *input.Console, context *context.Context) error {
-	if !UseKafka {
-		(*console).Message(*context, "spring.cloud.azure.eventhubs.namespace=xxx")
-	} else {
-		(*console).Message(*context, "spring.cloud.stream.kafka.binder.brokers=xxx")
-		if strings.HasPrefix(springBootVersion, "2.") {
-			(*console).Message(*context, "spring.cloud.stream.binders.kafka.environment.spring.main.sources=com.azure.spring.cloud.autoconfigure.eventhubs.kafka.AzureEventHubsKafkaAutoConfiguration")
-		} else if strings.HasPrefix(springBootVersion, "3.") {
-			(*console).Message(*context, "spring.cloud.stream.binders.kafka.environment.spring.main.sources=com.azure.spring.cloud.autoconfigure.implementation.eventhubs.kafka.AzureEventHubsKafkaAutoConfiguration")
-		}
-	}
-	if authType == internal.AuthTypeUserAssignedManagedIdentity {
-		(*console).Message(*context, "spring.cloud.azure.eventhubs.connection-string=''")
-		(*console).Message(*context, "spring.cloud.azure.eventhubs.credential.managed-identity-enabled=true")
-		(*console).Message(*context, "spring.cloud.azure.eventhubs.credential.client-id=xxx")
-	} else if authType == internal.AuthTypeConnectionString {
-		(*console).Message(*context, "spring.cloud.azure.eventhubs.connection-string=xxx")
-		(*console).Message(*context, "spring.cloud.azure.eventhubs.credential.managed-identity-enabled=false")
-		(*console).Message(*context, "spring.cloud.azure.eventhubs.credential.client-id=xxx")
-	} else {
-		return fmt.Errorf("unsupported auth type for Event Hubs. Supported types: %s, %s",
-			internal.GetAuthTypeDescription(internal.AuthTypeUserAssignedManagedIdentity),
-			internal.GetAuthTypeDescription(internal.AuthTypeConnectionString))
-	}
-	return nil
-}
-
-func printHintsAboutUseStorageAccount(authType internal.AuthType,
-	console *input.Console, context *context.Context) error {
-	(*console).Message(*context, "spring.cloud.azure.eventhubs.processor.checkpoint-store.account-name=xxx")
-	if authType == internal.AuthTypeUserAssignedManagedIdentity {
-		(*console).Message(*context, "spring.cloud.azure.eventhubs.processor.checkpoint-store.connection-string=''")
-		(*console).Message(*context, "spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.managed-identity-enabled=true")
-		(*console).Message(*context, "spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.client-id=xxx")
-	} else if authType == internal.AuthTypeConnectionString {
-		(*console).Message(*context, "spring.cloud.azure.eventhubs.processor.checkpoint-store.connection-string=xxx")
-		(*console).Message(*context, "spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.managed-identity-enabled=false")
-		(*console).Message(*context, "spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.client-id=xxx")
-	} else {
-		return fmt.Errorf("unsupported auth type for Storage Account. Supported types: %s, %s",
-			internal.GetAuthTypeDescription(internal.AuthTypeUserAssignedManagedIdentity),
-			internal.GetAuthTypeDescription(internal.AuthTypeConnectionString))
 	}
 	return nil
 }

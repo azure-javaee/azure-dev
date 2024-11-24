@@ -127,14 +127,6 @@ func (i *Initializer) infraSpecFromDetect(
 			}
 		}
 
-		for _, azureDep := range svc.AzureDeps {
-			switch azureDep.(type) {
-			case appdetect.AzureDepEventHubs:
-				serviceSpec.AzureEventHubs = spec.AzureEventHubs
-			case appdetect.AzureDepStorageAccount:
-				serviceSpec.AzureStorageAccount = spec.AzureStorageAccount
-			}
-		}
 		spec.Services = append(spec.Services, serviceSpec)
 	}
 

@@ -109,9 +109,6 @@ type ServiceSpec struct {
 
 	// AI model connections
 	AIModels []AIModelReference
-
-	AzureEventHubs      *AzureDepEventHubs
-	AzureStorageAccount *AzureDepStorageAccount
 }
 
 type EnvironmentVariableInformation struct {

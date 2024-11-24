@@ -570,20 +570,6 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           keyVaultUrl: '{{.KeyVaultUrl}}'
         }
         {{- end}}
-        {{- if (and .AzureEventHubs (eq .AzureEventHubs.AuthType "CONNECTION_STRING")) }}
-        {
-          name: 'event-hubs-connection-string'
-          identity:{{bicepName .Name}}Identity.outputs.resourceId
-          keyVaultUrl: '${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING'
-        }
-        {{- end}}
-        {{- if (and .AzureStorageAccount (eq .AzureStorageAccount.AuthType "CONNECTION_STRING")) }}
-        {
-          name: 'storage-account-connection-string'
-          identity:{{bicepName .Name}}Identity.outputs.resourceId
-          keyVaultUrl: '${keyVault.outputs.uri}secrets/STORAGE-ACCOUNT-CONNECTION-STRING'
-        }
-        {{- end}}
       ],
       map({{bicepName .Name}}Secrets, secret => {
         name: secret.secretRef
@@ -627,92 +613,6 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {
             name: 'AZURE_OPENAI_ENDPOINT'
             value: account.outputs.endpoint
-          }
-          {{- end}}
-          {{- if (and .AzureEventHubs (not .AzureEventHubs.UseKafka)) }}
-          {
-            name: 'spring.cloud.azure.eventhubs.namespace'
-            value: eventHubNamespace.outputs.name
-          }
-          {{- end}}
-          {{- if (and .AzureEventHubs .AzureEventHubs.UseKafka) }}
-          {
-            name: 'spring.cloud.stream.kafka.binder.brokers'
-            value: '${eventHubNamespace.outputs.name}.servicebus.windows.net:9093'
-          }
-          {{- if (hasPrefix .AzureEventHubs.SpringBootVersion "2.") }}
-          {
-            name: 'spring.cloud.stream.binders.kafka.environment.spring.main.sources'
-            value: 'com.azure.spring.cloud.autoconfigure.eventhubs.kafka.AzureEventHubsKafkaAutoConfiguration'
-          }
-          {{- end}}
-          {{- if (hasPrefix .AzureEventHubs.SpringBootVersion "3.") }}
-          {
-            name: 'spring.cloud.stream.binders.kafka.environment.spring.main.sources'
-            value: 'com.azure.spring.cloud.autoconfigure.implementation.eventhubs.kafka.AzureEventHubsKafkaAutoConfiguration'
-          }
-          {{- end}}
-          {{- end}}
-          {{- if (and .AzureEventHubs (eq .AzureEventHubs.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) }}
-          {
-            name: 'spring.cloud.azure.eventhubs.credential.managed-identity-enabled'
-            value: 'true'
-          }
-          {
-            name: 'spring.cloud.azure.eventhubs.credential.client-id'
-            value: {{bicepName .Name}}Identity.outputs.clientId
-          }
-          {
-            name: 'spring.cloud.azure.eventhubs.connection-string'
-            value: ''
-          }
-          {{- end}}
-          {{- if (and .AzureEventHubs (eq .AzureEventHubs.AuthType "CONNECTION_STRING")) }}
-          {
-            name: 'spring.cloud.azure.eventhubs.connection-string'
-            secretRef: 'event-hubs-connection-string'
-          }
-          {
-            name: 'spring.cloud.azure.eventhubs.credential.managed-identity-enabled'
-            value: 'false'
-          }
-          {
-            name: 'spring.cloud.azure.eventhubs.credential.client-id'
-            value: ''
-          }
-          {{- end}}
-          {{- if .AzureStorageAccount }}
-          {
-            name: 'spring.cloud.azure.eventhubs.processor.checkpoint-store.account-name'
-            value: storageAccountName
-          }
-          {{- end}}
-          {{- if (and .AzureStorageAccount (eq .AzureStorageAccount.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) }}
-          {
-            name: 'spring.cloud.azure.eventhubs.processor.checkpoint-store.connection-string'
-            value: ''
-          }
-          {
-            name: 'spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.managed-identity-enabled'
-            value: 'true'
-          }
-          {
-            name: 'spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.client-id'
-            value: {{bicepName .Name}}Identity.outputs.clientId
-          }
-          {{- end}}
-          {{- if (and .AzureStorageAccount (eq .AzureStorageAccount.AuthType "CONNECTION_STRING")) }}
-          {
-            name: 'spring.cloud.azure.eventhubs.processor.checkpoint-store.connection-string'
-            secretRef: 'storage-account-connection-string'
-          }
-          {
-            name: 'spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.managed-identity-enabled'
-            value: 'false'
-          }
-          {
-            name: 'spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.client-id'
-            value: ''
           }
           {{- end}}
           {{- if .Frontend}}
