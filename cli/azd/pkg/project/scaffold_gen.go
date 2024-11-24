@@ -413,7 +413,11 @@ func handleContainerAppProps(
 		// Here, DB_HOST is not a secret, but DB_SECRET is. And yet, DB_HOST will be marked as a secret.
 		// This is a limitation of the current implementation, but it's safer to mark both as secrets above.
 		evaluatedValue := genBicepParamsFromEnvSubst(value, isSecret, infraSpec)
-		serviceSpec.Env[envVar.Name] = evaluatedValue
+		err := addNewEnvironmentVariable(serviceSpec, envVar.Name, evaluatedValue)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
 	port := props.Port
@@ -471,16 +475,16 @@ func genBicepParamsFromEnvSubst(
 
 	var result string
 	if len(names) == 0 {
-		// literal string with no expressions, quote the value as a Bicep string
-		result = "'" + s + "'"
+		// literal string with no expressions
+		result = s
 	} else if len(names) == 1 {
 		// single expression, return the bicep parameter name to reference the expression
-		result = scaffold.BicepName(names[0])
+		result = "${" + scaffold.BicepName(names[0]) + "}"
 	} else {
 		// multiple expressions
 		// construct the string with all expressions replaced by parameter references as a Bicep interpolated string
 		previous := 0
-		result = "'"
+		result = ""
 		for i, loc := range locations {
 			// replace each expression with references by variable name
 			result += s[previous:loc.start]
@@ -489,7 +493,6 @@ func genBicepParamsFromEnvSubst(
 			result += "}"
 			previous = loc.stop + 1
 		}
-		result += "'"
 	}
 
 	return result

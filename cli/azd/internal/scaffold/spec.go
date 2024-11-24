@@ -99,7 +99,6 @@ type ServiceSpec struct {
 	Port int
 
 	EnvironmentVariableInformation EnvironmentVariableInformation // todo: merge EnvironmentVariableInformation and env
-	Env                            map[string]string
 
 	// Front-end properties.
 	Frontend *Frontend

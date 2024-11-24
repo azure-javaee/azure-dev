@@ -786,6 +786,24 @@ func mergeWithDuplicationCheck(a scaffold.EnvironmentVariableInformation,
 	return result, nil
 }
 
+func addNewEnvironmentVariable(serviceSpec *scaffold.ServiceSpec, name string, value string) error {
+	merged, err := mergeWithDuplicationCheck(serviceSpec.EnvironmentVariableInformation,
+		scaffold.EnvironmentVariableInformation{
+			StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+				{
+					Name:  name,
+					Value: value,
+				},
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	serviceSpec.EnvironmentVariableInformation = merged
+	return nil
+}
+
 func duplicatedSecretDefinitionError(name string, value1 string, value2 string) error {
 	return duplicatedError("secret definition", name, value1, value2)
 }
