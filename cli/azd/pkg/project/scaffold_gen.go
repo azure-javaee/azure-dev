@@ -304,7 +304,7 @@ func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (inte
 		return internal.AuthTypeUserAssignedManagedIdentity, nil
 	case ResourceTypeMessagingServiceBus:
 		return infraSpec.AzureServiceBus.AuthType, nil
-	case ResourceTypeMessagingEventHubs:
+	case ResourceTypeMessagingEventHubs, ResourceTypeMessagingKafka:
 		return infraSpec.AzureEventHubs.AuthType, nil
 	case ResourceTypeStorage:
 		return infraSpec.AzureStorageAccount.AuthType, nil

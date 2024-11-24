@@ -366,7 +366,7 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 							Value: "",
 						},
 						// Not add it because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
-						// Not add it even through the issue fixed, because customer may not use the new version
+						// Not add it even though the issue fixed, because customer may not use the new version
 						//{
 						//	Name:  "spring.cloud.azure.servicebus.connection-string",
 						//	Value: "",
@@ -406,138 +406,143 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 				return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
 			}
 		}
-	case ResourceTypeMessagingEventHubs:
-		if infraSpec.AzureEventHubs.UseKafka {
-			springBootVersionDecidedInformation := scaffold.EnvironmentVariableInformation{}
-			if strings.HasPrefix(infraSpec.AzureEventHubs.SpringBootVersion, "2.") {
-				springBootVersionDecidedInformation = scaffold.EnvironmentVariableInformation{
-					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-						{
-							Name:  "spring.cloud.stream.binders.kafka.environment.spring.main.sources",
-							Value: "com.azure.spring.cloud.autoconfigure.eventhubs.kafka.AzureEventHubsKafkaAutoConfiguration",
-						},
+	case ResourceTypeMessagingKafka:
+		// event hubs for kafka
+		springBootVersionDecidedInformation := scaffold.EnvironmentVariableInformation{}
+		if strings.HasPrefix(infraSpec.AzureEventHubs.SpringBootVersion, "2.") {
+			springBootVersionDecidedInformation = scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					{
+						Name:  "spring.cloud.stream.binders.kafka.environment.spring.main.sources",
+						Value: "com.azure.spring.cloud.autoconfigure.eventhubs.kafka.AzureEventHubsKafkaAutoConfiguration",
 					},
-				}
-			} else {
-				springBootVersionDecidedInformation = scaffold.EnvironmentVariableInformation{
-					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-						{
-							Name:  "spring.cloud.stream.binders.kafka.environment.spring.main.sources",
-							Value: "com.azure.spring.cloud.autoconfigure.implementation.eventhubs.kafka.AzureEventHubsKafkaAutoConfiguration",
-						},
-					},
-				}
+				},
 			}
-			commonInformation := scaffold.EnvironmentVariableInformation{}
-			switch authType {
-			case internal.AuthTypeUserAssignedManagedIdentity:
-				commonInformation = scaffold.EnvironmentVariableInformation{
-					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-						{
-							Name:  "spring.cloud.stream.kafka.binder.brokers",
-							Value: "${eventHubNamespace.outputs.name}.servicebus.windows.net:9093",
-						},
-						{
-							Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
-							Value: "true",
-						},
-						{
-							Name:  "spring.cloud.azure.eventhubs.credential.client-id",
-							Value: "__PlaceHolderForServiceIdentityClientId",
-						},
-						// Not add it because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
-						// Not add it even through the issue fixed, because customer may not use the new version
-						//{
-						//	Name:  "spring.cloud.azure.eventhubs.connection-string",
-						//	Value: "",
-						//},
-					},
-				}
-			case internal.AuthTypeConnectionString:
-				commonInformation = scaffold.EnvironmentVariableInformation{
-					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-						{
-							Name:  "spring.cloud.stream.kafka.binder.brokers",
-							Value: "${eventHubNamespace.outputs.name}.servicebus.windows.net:9093",
-						},
-						{
-							Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
-							Value: "false",
-						},
-						{
-							Name:  "spring.cloud.azure.eventhubs.credential.client-id",
-							Value: "",
-						},
-					},
-					SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
-						{
-							Name:      "spring.cloud.azure.eventhubs.connection-string",
-							SecretRef: "event-hubs-connection-string",
-						},
-					},
-					KeyVaultSecretDefinitions: []scaffold.KeyVaultSecretDefinition{
-						{
-							SecretName:  "event-hubs-connection-string",
-							KeyVaultUrl: "${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING",
-						},
-					},
-				}
-			default:
-				return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
-			}
-			return mergeWithDuplicationCheck(springBootVersionDecidedInformation, commonInformation)
 		} else {
-			// event hubs, not kafka
-			switch authType {
-			case internal.AuthTypeUserAssignedManagedIdentity:
-				return scaffold.EnvironmentVariableInformation{
-					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-						{
-							Name:  "spring.cloud.azure.eventhubs.namespace",
-							Value: "${eventHubNamespace.outputs.name}",
-						},
-						{
-							Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
-							Value: "true",
-						},
-						{
-							Name:  "spring.cloud.azure.eventhubs.credential.client-id",
-							Value: "__PlaceHolderForServiceIdentityClientId",
-						},
+			springBootVersionDecidedInformation = scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					{
+						Name:  "spring.cloud.stream.binders.kafka.environment.spring.main.sources",
+						Value: "com.azure.spring.cloud.autoconfigure.implementation.eventhubs.kafka.AzureEventHubsKafkaAutoConfiguration",
 					},
-				}, nil
-			case internal.AuthTypeConnectionString:
-				return scaffold.EnvironmentVariableInformation{
-					StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-						{
-							Name:  "spring.cloud.azure.eventhubs.namespace",
-							Value: "${eventHubNamespace.outputs.name}",
-						},
-						{
-							Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
-							Value: "false",
-						},
-						{
-							Name:  "spring.cloud.azure.eventhubs.credential.client-id",
-							Value: "",
-						},
-					},
-					SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
-						{
-							Name:      "spring.cloud.azure.eventhubs.connection-string",
-							SecretRef: "event-hubs-connection-string",
-						},
-					},
-					KeyVaultSecretDefinitions: []scaffold.KeyVaultSecretDefinition{
-						{
-							SecretName:  "event-hubs-connection-string",
-							KeyVaultUrl: "${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING",
-						},
-					},
-				}, nil
-			default:
-				return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+				},
 			}
+		}
+		commonInformation := scaffold.EnvironmentVariableInformation{}
+		switch authType {
+		case internal.AuthTypeUserAssignedManagedIdentity:
+			commonInformation = scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					{
+						Name:  "spring.cloud.stream.kafka.binder.brokers",
+						Value: "${eventHubNamespace.outputs.name}.servicebus.windows.net:9093",
+					},
+					{
+						Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
+						Value: "true",
+					},
+					{
+						Name:  "spring.cloud.azure.eventhubs.credential.client-id",
+						Value: "__PlaceHolderForServiceIdentityClientId",
+					},
+					// Not add it because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
+					// Not add it even though the issue fixed, because customer may not use the new version
+					//{
+					//	Name:  "spring.cloud.azure.eventhubs.connection-string",
+					//	Value: "",
+					//},
+				},
+			}
+		case internal.AuthTypeConnectionString:
+			commonInformation = scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					{
+						Name:  "spring.cloud.stream.kafka.binder.brokers",
+						Value: "${eventHubNamespace.outputs.name}.servicebus.windows.net:9093",
+					},
+					{
+						Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
+						Value: "false",
+					},
+					{
+						Name:  "spring.cloud.azure.eventhubs.credential.client-id",
+						Value: "",
+					},
+				},
+				SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
+					{
+						Name:      "spring.cloud.azure.eventhubs.connection-string",
+						SecretRef: "event-hubs-connection-string",
+					},
+				},
+				KeyVaultSecretDefinitions: []scaffold.KeyVaultSecretDefinition{
+					{
+						SecretName:  "event-hubs-connection-string",
+						KeyVaultUrl: "${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING",
+					},
+				},
+			}
+		default:
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+		}
+		return mergeWithDuplicationCheck(springBootVersionDecidedInformation, commonInformation)
+	case ResourceTypeMessagingEventHubs:
+		// event hubs, not kafka
+		switch authType {
+		case internal.AuthTypeUserAssignedManagedIdentity:
+			return scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					{
+						Name:  "spring.cloud.azure.eventhubs.namespace",
+						Value: "${eventHubNamespace.outputs.name}",
+					},
+					{
+						Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
+						Value: "true",
+					},
+					{
+						Name:  "spring.cloud.azure.eventhubs.credential.client-id",
+						Value: "__PlaceHolderForServiceIdentityClientId",
+					},
+					// Not add it because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
+					// Not add it even though the issue fixed, because customer may not use the new version
+					//{
+					//	Name:  "spring.cloud.azure.eventhubs.connection-string",
+					//	Value: "",
+					//},
+				},
+			}, nil
+		case internal.AuthTypeConnectionString:
+			return scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					{
+						Name:  "spring.cloud.azure.eventhubs.namespace",
+						Value: "${eventHubNamespace.outputs.name}",
+					},
+					{
+						Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
+						Value: "false",
+					},
+					{
+						Name:  "spring.cloud.azure.eventhubs.credential.client-id",
+						Value: "",
+					},
+				},
+				SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
+					{
+						Name:      "spring.cloud.azure.eventhubs.connection-string",
+						SecretRef: "event-hubs-connection-string",
+					},
+				},
+				KeyVaultSecretDefinitions: []scaffold.KeyVaultSecretDefinition{
+					{
+						SecretName:  "event-hubs-connection-string",
+						KeyVaultUrl: "${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING",
+					},
+				},
+			}, nil
+		default:
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
 		}
 	case ResourceTypeStorage:
 		switch authType {
