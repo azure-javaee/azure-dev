@@ -372,8 +372,6 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 				ResourceTypeStorage:
 			case ResourceTypeHostContainerApp:
 				printHintsAboutUseHostContainerApp(userResourceName, usedResourceName, console, context)
-			case ResourceTypeOpenAiModel:
-				printHintsAboutUseOpenAiModel(console, context)
 			default:
 				return fmt.Errorf("resource (%s) uses (%s), but the type of (%s) is (%s), "+
 					"which is doen't add necessary environment variable",
@@ -537,11 +535,4 @@ func printHintsAboutUseHostContainerApp(userResourceName string, usedResourceNam
 	(*console).Message(*context, fmt.Sprintf("%s_BASE_URL=xxx", strings.ToUpper(usedResourceName)))
 	(*console).Message(*context, fmt.Sprintf("Environemnt variables in %s:", usedResourceName))
 	(*console).Message(*context, fmt.Sprintf("%s_BASE_URL=xxx", strings.ToUpper(userResourceName)))
-}
-
-func printHintsAboutUseOpenAiModel(console *input.Console, context *context.Context) {
-	if *console == nil {
-		return
-	}
-	(*console).Message(*context, "AZURE_OPENAI_ENDPOINT")
 }
