@@ -599,6 +599,20 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 		default:
 			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
 		}
+	case ResourceTypeOpenAiModel: // Keep this as code template
+		switch authType {
+		case internal.AuthTypeUnspecified:
+			return scaffold.EnvironmentVariableInformation{
+				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
+					{
+						Name:  "AZURE_OPENAI_ENDPOINT",
+						Value: "${account.outputs.endpoint}",
+					},
+				},
+			}, nil
+		default:
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+		}
 		//case OtherType: // Keep this as code template
 		//	switch authType {
 		//	default:
@@ -606,7 +620,7 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 		//	}
 	case ResourceTypeHostContainerApp: // todo improve this and delete Frontend and Backend in scaffold.ServiceSpec
 		switch authType {
-		case internal.AuthTypeUserAssignedManagedIdentity:
+		case internal.AuthTypeUnspecified:
 			return scaffold.EnvironmentVariableInformation{}, nil
 		default:
 			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
@@ -706,10 +720,18 @@ func getEnvironmentVariablesCreatedByServiceConnector(resourceType ResourceType,
 			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
 		}
 	case ResourceTypeDbMongo,
-		ResourceTypeDbCosmos,
-		ResourceTypeHostContainerApp:
+		ResourceTypeDbCosmos:
 		switch authType {
 		case internal.AuthTypeUserAssignedManagedIdentity:
+			return scaffold.EnvironmentVariableInformation{}, nil
+		default:
+			// return error to make sure every case has been considered.
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+		}
+	case ResourceTypeOpenAiModel,
+		ResourceTypeHostContainerApp:
+		switch authType {
+		case internal.AuthTypeUnspecified:
 			return scaffold.EnvironmentVariableInformation{}, nil
 		default:
 			// return error to make sure every case has been considered.

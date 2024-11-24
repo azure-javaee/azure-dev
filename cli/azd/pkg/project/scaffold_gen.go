@@ -269,8 +269,9 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 				ResourceTypeMessagingServiceBus,
 				ResourceTypeMessagingEventHubs,
 				ResourceTypeMessagingKafka,
-				ResourceTypeStorage:
-				err := addUsage(infraSpec, userSpec, usedResource) // todo apply to all types
+				ResourceTypeStorage,
+				ResourceTypeOpenAiModel:
+				err := addUsage(infraSpec, userSpec, usedResource)
 				if err != nil {
 					return err
 				}
@@ -279,8 +280,6 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 				if err != nil {
 					return err
 				}
-			case ResourceTypeOpenAiModel:
-				userSpec.AIModels = append(userSpec.AIModels, scaffold.AIModelReference{Name: usedResource.Name})
 			default:
 				return fmt.Errorf("resource (%s) uses (%s), but the type of (%s) is (%s), which is unsupported",
 					userResource.Name, usedResource.Name, usedResource.Name, usedResource.Type)
@@ -299,9 +298,11 @@ func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (inte
 	case ResourceTypeDbRedis:
 		return internal.AuthTypePassword, nil
 	case ResourceTypeDbMongo,
-		ResourceTypeDbCosmos,
-		ResourceTypeHostContainerApp:
+		ResourceTypeDbCosmos:
 		return internal.AuthTypeUserAssignedManagedIdentity, nil
+	case ResourceTypeOpenAiModel,
+		ResourceTypeHostContainerApp:
+		return internal.AuthTypeUnspecified, nil
 	case ResourceTypeMessagingServiceBus:
 		return infraSpec.AzureServiceBus.AuthType, nil
 	case ResourceTypeMessagingEventHubs, ResourceTypeMessagingKafka:

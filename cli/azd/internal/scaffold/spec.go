@@ -105,9 +105,6 @@ type ServiceSpec struct {
 
 	// Back-end properties
 	Backend *Backend
-
-	// AI model connections
-	AIModels []AIModelReference
 }
 
 type EnvironmentVariableInformation struct {
