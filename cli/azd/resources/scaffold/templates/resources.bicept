@@ -932,6 +932,21 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           }
           {{- end}}
 
+          {{- range .DependsOn}}
+          {{- if (eq .DependsType "EurekaServer") }}
+          {
+            name: 'eureka.client.serviceUrl.defaultZone'
+            value: 'http://{{bicepName .ServiceName}}.outputs.name:8761/eureka/'
+          }
+          {{- end}}
+          {{- if (eq .DependsType "ConfigServer") }}
+          {
+            name: 'spring.config.import'
+            value: 'http://{{bicepName .ServiceName}}.outputs.name:8888'
+          }
+          {{- end}}
+          {{- end}}
+
           {{- if .Frontend}}
           {{- range $i, $e := .Frontend.Backends}}
           {

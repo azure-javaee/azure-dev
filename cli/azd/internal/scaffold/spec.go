@@ -95,8 +95,9 @@ type AzureDepStorageAccount struct {
 }
 
 type ServiceSpec struct {
-	Name string
-	Port int
+	Name      string
+	Port      int
+	DependsOn []DependsOn
 
 	Env map[string]string
 
@@ -135,6 +136,11 @@ type ServiceReference struct {
 
 type AIModelReference struct {
 	Name string
+}
+
+type DependsOn struct {
+	ServiceName string `yaml:"serviceName,omitempty"`
+	DependsType string `yaml:"dependsType,omitempty"`
 }
 
 func containerAppExistsParameter(serviceName string) Parameter {

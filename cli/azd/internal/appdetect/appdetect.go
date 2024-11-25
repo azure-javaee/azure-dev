@@ -59,6 +59,11 @@ const (
 	PyFlask   Dependency = "flask"
 	PyDjango  Dependency = "django"
 	PyFastApi Dependency = "fastapi"
+
+	EurekaServer Dependency = "eureka-server"
+	EurekaClient Dependency = "eureka-client"
+	ConfigServer Dependency = "config-server"
+	ConfigClient Dependency = "config-client"
 )
 
 var WebUIFrameworks = map[Dependency]struct{}{
@@ -89,6 +94,14 @@ func (f Dependency) Display() string {
 		return "Vite"
 	case JsNext:
 		return "Next.js"
+	case EurekaServer:
+		return "EurekaServer"
+	case EurekaClient:
+		return "EurekaClient"
+	case ConfigServer:
+		return "ConfigServer"
+	case ConfigClient:
+		return "ConfigClient"
 	}
 
 	return ""

@@ -680,6 +680,19 @@ func (i *Initializer) prjConfigFromDetect(
 			}
 		}
 
+		var eurekaServerService appdetect.Project
+		var configServerService appdetect.Project
+		for _, svc := range detect.Services {
+			for _, dep := range svc.Dependencies {
+				switch dep {
+				case appdetect.EurekaServer:
+					eurekaServerService = svc
+				case appdetect.ConfigServer:
+					configServerService = svc
+				}
+			}
+		}
+
 		backends := []*project.ResourceConfig{}
 		frontends := []*project.ResourceConfig{}
 
@@ -720,6 +733,21 @@ func (i *Initializer) prjConfigFromDetect(
 					}
 				case appdetect.AzureDepStorageAccount:
 					resSpec.Uses = append(resSpec.Uses, "storage")
+				}
+			}
+
+			for _, dep := range svc.Dependencies {
+				switch dep {
+				case appdetect.EurekaClient:
+					props.DependsOn = append(props.DependsOn, project.DependsOn{
+						ServiceName: svcMapping[eurekaServerService.Path],
+						DependsType: appdetect.EurekaServer.Display(),
+					})
+				case appdetect.ConfigClient:
+					props.DependsOn = append(props.DependsOn, project.DependsOn{
+						ServiceName: svcMapping[configServerService.Path],
+						DependsType: appdetect.ConfigServer.Display(),
+					})
 				}
 			}
 

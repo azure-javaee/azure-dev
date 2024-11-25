@@ -242,8 +242,9 @@ func (r *ResourceConfig) UnmarshalYAML(value *yaml.Node) error {
 }
 
 type ContainerAppProps struct {
-	Port int             `yaml:"port,omitempty"`
-	Env  []ServiceEnvVar `yaml:"env,omitempty"`
+	Port      int             `yaml:"port,omitempty"`
+	Env       []ServiceEnvVar `yaml:"env,omitempty"`
+	DependsOn []DependsOn     `yaml:"dependsOn,omitempty"`
 }
 
 type ServiceEnvVar struct {
@@ -252,6 +253,11 @@ type ServiceEnvVar struct {
 	// either Value or Secret can be set, but not both
 	Value  string `yaml:"value,omitempty"`
 	Secret string `yaml:"secret,omitempty"`
+}
+
+type DependsOn struct {
+	ServiceName string `yaml:"serviceName,omitempty"`
+	DependsType string `yaml:"dependsType,omitempty"`
 }
 
 type AIModelProps struct {

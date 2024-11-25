@@ -322,7 +322,7 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 					return err
 				}
 			case ResourceTypeDbMySQL:
-				err := printHintsAboutUseMySql(userSpec.DbPostgres.AuthType, console, context)
+				err := printHintsAboutUseMySql(userSpec.DbMySql.AuthType, console, context)
 				if err != nil {
 					return err
 				}
@@ -407,6 +407,12 @@ func handleContainerAppProps(
 	}
 
 	serviceSpec.Port = port
+	for _, dependsOn := range props.DependsOn {
+		serviceSpec.DependsOn = append(serviceSpec.DependsOn, scaffold.DependsOn{
+			ServiceName: dependsOn.ServiceName,
+			DependsType: dependsOn.DependsType,
+		})
+	}
 	return nil
 }
 
