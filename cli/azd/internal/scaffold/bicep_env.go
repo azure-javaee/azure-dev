@@ -1,0 +1,160 @@
+package scaffold
+
+import (
+	"fmt"
+	"strings"
+)
+
+func ToBicepEnv(env ResourceConnectionEnv) BicepEnv {
+	switch env.ResourceConnectionEnvType {
+	case ResourceConnectionEnvTypeServiceConnectorCreated:
+		return BicepEnv{
+			BicepEnvType: BicepEnvTypeServiceConnectorCreated,
+			Name:         env.Name,
+		}
+	case ResourceConnectionEnvTypePlainText:
+		return BicepEnv{
+			BicepEnvType: BicepEnvTypePlainText,
+			Name:         env.Name,
+			Value:        env.PlainTextValue,
+		}
+	case ResourceConnectionEnvTypeResourceSpecific:
+		value, ok := resourceSpecificBicepEnvValue[env.ResourceType][env.ResourceInfoType]
+		if !ok {
+			panic(unsupportedType(env))
+		}
+		if isSecret(env.ResourceInfoType) {
+			if isKeyVaultSecret(value) {
+				return BicepEnv{
+					BicepEnvType: BicepEnvTypeKeyVaultSecret,
+					Name:         env.Name,
+					SecretName:   secretName(env),
+					SecretValue:  unwrapKeyVaultSecretValue(value),
+				}
+			} else {
+				return BicepEnv{
+					BicepEnvType: BicepEnvTypeSecret,
+					Name:         env.Name,
+					SecretName:   secretName(env),
+					SecretValue:  value,
+				}
+			}
+		} else {
+			return BicepEnv{
+				BicepEnvType: BicepEnvTypePlainText,
+				Name:         env.Name,
+				Value:        value,
+			}
+		}
+	default:
+		panic(unsupportedType(env))
+	}
+}
+
+type BicepEnv struct {
+	BicepEnvType BicepEnvType
+	Name         string
+	Value        string
+	SecretName   string
+	SecretValue  string
+}
+
+type BicepEnvType string
+
+const (
+	BicepEnvTypeServiceConnectorCreated BicepEnvType = "serviceConnectorCreated"
+	BicepEnvTypePlainText               BicepEnvType = "plainText"
+	BicepEnvTypeSecret                  BicepEnvType = "secret"
+	BicepEnvTypeKeyVaultSecret          BicepEnvType = "keyVaultSecret"
+)
+
+var resourceSpecificBicepEnvValue = map[ResourceType]map[ResourceInfoType]string{
+	ResourceTypeDbPostgres: {
+		ResourceInfoTypeHost:         "${postgreServer.outputs.fqdn}",
+		ResourceInfoTypePort:         "5432",
+		ResourceInfoTypeDatabaseName: "${postgreSqlDatabaseName}",
+		ResourceInfoTypeUsername:     "${postgreSqlDatabaseUser}",
+		ResourceInfoTypePassword:     "${postgreSqlDatabasePassword}",
+		ResourceInfoTypeUrl:          "postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
+		ResourceInfoTypeJdbcUrl:      "jdbc:postgresql://${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
+	},
+	ResourceTypeDbMySQL: {
+		ResourceInfoTypeHost:         "${mysqlServer.outputs.fqdn}",
+		ResourceInfoTypePort:         "3306",
+		ResourceInfoTypeDatabaseName: "${mysqlDatabaseName}",
+		ResourceInfoTypeUsername:     "${mysqlDatabaseUser}",
+		ResourceInfoTypePassword:     "${mySqlDatabasePassword}",
+		ResourceInfoTypeUrl:          "mysql://${mysqlDatabaseUser}:${mysqlDatabasePassword}@${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}",
+		ResourceInfoTypeJdbcUrl:      "jdbc:mysql://${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}",
+	},
+	ResourceTypeDbRedis: {
+		ResourceInfoTypeHost:     "${redis.outputs.hostName}",
+		ResourceInfoTypePort:     "${redis.outputs.sslPort}",
+		ResourceInfoTypeEndpoint: "${redis.outputs.hostName}:${redis.outputs.sslPort}",
+		ResourceInfoTypePassword: wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/REDIS-PASSWORD"),
+		ResourceInfoTypeUrl:      wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/REDIS-URL"),
+	},
+	ResourceTypeDbMongo: {
+		ResourceInfoTypeDatabaseName: "${mongoDatabaseName}",
+		ResourceInfoTypeUrl:          wrapToKeyVaultSecretValue("cosmos.outputs.exportedSecrets['MONGODB-URL'].secretUri"),
+	},
+	ResourceTypeDbCosmos: {
+		ResourceInfoTypeEndpoint:     "${cosmos.outputs.endpoint}",
+		ResourceInfoTypeDatabaseName: "${cosmosDatabaseName}",
+	},
+	ResourceTypeMessagingServiceBus: {
+		ResourceInfoTypeNamespace:        "${serviceBusNamespace.outputs.name}",
+		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/SERVICEBUS-CONNECTION-STRING"),
+	},
+	ResourceTypeMessagingEventHubs: {
+		ResourceInfoTypeNamespace:        "${eventHubNamespace.outputs.name}",
+		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING"),
+	},
+	ResourceTypeMessagingKafka: {
+		ResourceInfoTypeEndpoint:         "${eventHubNamespace.outputs.name}.servicebus.windows.net:909",
+		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING"),
+	},
+	ResourceTypeStorage: {
+		ResourceInfoTypeAccountName:      "${storageAccountName}",
+		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/STORAGE-ACCOUNT-CONNECTION-STRING"),
+	},
+	ResourceTypeOpenAiModel: {
+		ResourceInfoTypeEndpoint: "${account.outputs.endpoint}",
+	},
+	ResourceTypeHostContainerApp: {},
+}
+
+func unsupportedType(env ResourceConnectionEnv) string {
+	return fmt.Sprintf("unsupported connection info type for resource type. "+
+		"resourceType = %s, connectionInfoType = %s", env.ResourceType, env.ResourceInfoType)
+}
+
+func PlaceHolderForServiceIdentityClientId() string {
+	return "__PlaceHolderForServiceIdentityClientId"
+}
+
+func isSecret(info ResourceInfoType) bool {
+	return info == ResourceInfoTypePassword || info == ResourceInfoTypeUrl || info == ResourceInfoTypeConnectionString
+}
+
+func secretName(env ResourceConnectionEnv) string {
+	name := fmt.Sprintf("%s-%s", env.ResourceType, env.ResourceInfoType)
+	lowerCaseName := strings.ToLower(name)
+	noDotName := strings.Replace(lowerCaseName, ".", "-", -1)
+	noUnderscoreName := strings.Replace(noDotName, "_", "-", -1)
+	return noUnderscoreName
+}
+
+var keyVaultSecretPrefix = "keyvault:"
+
+func isKeyVaultSecret(value string) bool {
+	return strings.HasPrefix(value, keyVaultSecretPrefix)
+}
+
+func wrapToKeyVaultSecretValue(value string) string {
+	return fmt.Sprintf("%s%s", keyVaultSecretPrefix, value)
+}
+
+func unwrapKeyVaultSecretValue(value string) string {
+	return strings.TrimPrefix(value, keyVaultSecretPrefix)
+}

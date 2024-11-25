@@ -98,9 +98,8 @@ type ServiceSpec struct {
 	Name string
 	Port int
 
-	EnvironmentVariableInformation EnvironmentVariableInformation // todo delete this
-	Envs                           []Env
-	ResourceConnectionEnvs         []ResourceConnectionEnv
+	Envs                   []Env
+	ResourceConnectionEnvs []ResourceConnectionEnv
 
 	// Front-end properties.
 	Frontend *Frontend
@@ -115,14 +114,24 @@ type Env struct {
 }
 
 type ResourceConnectionEnv struct {
-	Name               string
-	ResourceType       ResourceType
-	ConnectionInfoType ConnectionInfoType
+	ResourceConnectionEnvType ResourceConnectionEnvType
+	Name                      string
+	PlainTextValue            string
+	ResourceType              ResourceType
+	ResourceInfoType          ResourceInfoType
 }
 
+type ResourceConnectionEnvType string
+
+const (
+	ResourceConnectionEnvTypePlainText               ResourceConnectionEnvType = "plainText"
+	ResourceConnectionEnvTypeResourceSpecific        ResourceConnectionEnvType = "resourceSpecific"
+	ResourceConnectionEnvTypeServiceConnectorCreated ResourceConnectionEnvType = "serviceConnectorCreated"
+)
+
 func (env *ResourceConnectionEnv) ToString() string {
-	return fmt.Sprintf("ResourceConnectionEnv(Name=%s, ResourceType=%s, ConnectionInfoType=%s)",
-		env.Name, env.ResourceType, env.ConnectionInfoType)
+	return fmt.Sprintf("ResourceConnectionEnv(Name=%s, ResourceType=%s, ResourceInfoType=%s)",
+		env.Name, env.ResourceType, env.ResourceInfoType)
 }
 
 // todo merge ResourceType and project.ResourceType
@@ -146,65 +155,21 @@ const (
 	ResourceTypeStorage             ResourceType = "storage"
 )
 
-type ConnectionInfoType string
+type ResourceInfoType string
 
 const (
-	Host             ConnectionInfoType = "host"
-	Port             ConnectionInfoType = "port"
-	Endpoint         ConnectionInfoType = "endpoint"
-	DatabaseName     ConnectionInfoType = "databaseName"
-	Namespace        ConnectionInfoType = "namespace"
-	AccountName      ConnectionInfoType = "accountName"
-	Username         ConnectionInfoType = "username"
-	Password         ConnectionInfoType = "password"
-	Url              ConnectionInfoType = "url"
-	JdbcUrl          ConnectionInfoType = "jdbcUrl"
-	ConnectionString ConnectionInfoType = "connectionString"
-	IdentityClientId ConnectionInfoType = "identityClientId"
+	ResourceInfoTypeHost             ResourceInfoType = "host"
+	ResourceInfoTypePort             ResourceInfoType = "port"
+	ResourceInfoTypeEndpoint         ResourceInfoType = "endpoint"
+	ResourceInfoTypeDatabaseName     ResourceInfoType = "databaseName"
+	ResourceInfoTypeNamespace        ResourceInfoType = "namespace"
+	ResourceInfoTypeAccountName      ResourceInfoType = "accountName"
+	ResourceInfoTypeUsername         ResourceInfoType = "username"
+	ResourceInfoTypePassword         ResourceInfoType = "password"
+	ResourceInfoTypeUrl              ResourceInfoType = "url"
+	ResourceInfoTypeJdbcUrl          ResourceInfoType = "jdbcUrl"
+	ResourceInfoTypeConnectionString ResourceInfoType = "connectionString"
 )
-
-type EnvironmentVariableInformation struct {
-	StringEnvironmentVariables    []StringEnvironmentVariable
-	SecretRefEnvironmentVariables []SecretRefEnvironmentVariable
-	ValueSecretDefinitions        []ValueSecretDefinition
-	KeyVaultSecretDefinitions     []KeyVaultSecretDefinition
-}
-
-// StringEnvironmentVariable In generated bicep file, the Value will be quoted in bicep file.
-// Example in bicep value:
-//
-//	value: 'jdbc:postgresql://${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'
-type StringEnvironmentVariable struct {
-	Name  string
-	Value string
-}
-
-// SecretRefEnvironmentVariable In generated bicep file, the SecretRef will be quoted in bicep file.
-// Example in bicep value:
-//
-//	secretRef: 'postgresql-password'
-type SecretRefEnvironmentVariable struct {
-	Name      string
-	SecretRef string
-}
-
-// ValueSecretDefinition In generated bicep file, the SecretValue will be quoted in bicep file.
-// Example in bicep value:
-//
-//	value: 'postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'
-type ValueSecretDefinition struct {
-	SecretName  string
-	SecretValue string
-}
-
-// KeyVaultSecretDefinition In generated bicep file, the KeyVaultUrl will be quoted in bicep file.
-// Example in bicep value:
-//
-//	value: '${keyVault.outputs.uri}secrets/REDIS-URL'
-type KeyVaultSecretDefinition struct {
-	SecretName  string
-	KeyVaultUrl string
-}
 
 type Frontend struct {
 	Backends []ServiceReference

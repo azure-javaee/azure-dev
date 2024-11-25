@@ -325,20 +325,6 @@ func addUsage(infraSpec *scaffold.InfraSpec, userSpec *scaffold.ServiceSpec, use
 	return nil
 }
 
-// todo: delete this
-func addUsageOld(infraSpec *scaffold.InfraSpec, userSpec *scaffold.ServiceSpec, usedResource *ResourceConfig) error {
-	information, err := getEnvironmentVariableInformation(usedResource, infraSpec)
-	if err != nil {
-		return err
-	}
-	userSpec.EnvironmentVariableInformation, err = mergeWithDuplicationCheck(userSpec.EnvironmentVariableInformation,
-		information)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig,
 	console *input.Console,
 	context *context.Context) error {
@@ -372,7 +358,7 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 				ResourceTypeMessagingEventHubs,
 				ResourceTypeMessagingKafka,
 				ResourceTypeStorage:
-				variables, err := getAllResourceConnectionEnvForPrint(usedResource, infraSpec)
+				variables, err := getResourceConnectionEnvs(usedResource, infraSpec)
 				if err != nil {
 					return err
 				}
