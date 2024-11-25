@@ -32,6 +32,7 @@ func Load() (*template.Template, error) {
 		"alphaSnakeUpper":  AlphaSnakeUpper,
 		"formatParam":      FormatParameter,
 		"hasPrefix":        strings.HasPrefix,
+		"envBicepInfo":     GetEnvBicepInfo,
 	}
 
 	t, err := template.New("templates").

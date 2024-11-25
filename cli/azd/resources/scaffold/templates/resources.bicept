@@ -557,18 +557,21 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
     scaleMaxReplicas: 10
     secrets: {
       secureList:  union([
-        {{- range .EnvironmentVariableInformation.ValueSecretDefinitions}}
+        {{- range $env := .ResourceConnectionEnvs}}
+        {{- if (envBicepInfo $env).IsSecret}}
+        {{- if (envBicepInfo $env).IsKeyVaultSecret}}
         {
-          name: '{{.SecretName}}'
-          value: '{{.SecretValue}}'
+          name: '{{ (envBicepInfo $env).SecretName }}'
+          identity:{{bicepName $service.Name}}Identity.outputs.resourceId
+          keyVaultUrl: '{{ (envBicepInfo $env).SecretValue }}'
+        }
+        {{- else}}
+        {
+          name: '{{ (envBicepInfo $env).SecretName }}'
+          value: '{{ (envBicepInfo $env).SecretValue }}'
         }
         {{- end}}
-        {{- range .EnvironmentVariableInformation.KeyVaultSecretDefinitions}}
-        {
-          name: '{{.SecretName}}'
-          identity:{{bicepName $service.Name}}Identity.outputs.resourceId
-          keyVaultUrl: '{{.KeyVaultUrl}}'
-        }
+        {{- end}}
         {{- end}}
       ],
       map({{bicepName .Name}}Secrets, secret => {
@@ -585,21 +588,28 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           memory: '1.0Gi'
         }
         env: union([
-          {{- range .EnvironmentVariableInformation.StringEnvironmentVariables}}
+          {{- range $env := .Envs }}
           {
-            name: '{{.Name}}'
-            {{- if (eq .Value "__PlaceHolderForServiceIdentityClientId")}}
+            name: '{{ $env.Name }}'
+            value: '{{ $env.Value }}'
+          }
+          {{- end}}
+          {{- range $env := .ResourceConnectionEnvs }}
+          {{- if (envBicepInfo $env).IsSecret }}
+          {
+            name: '{{ $env.Name }}'
+            secretRef: '{{ (envBicepInfo $env).SecretName }}'
+          }
+          {{- else}}
+          {
+            name: '{{ $env.Name }}'
+            {{- if (eq (envBicepInfo $env).Value "__PlaceHolderForServiceIdentityClientId")}}
             value: {{bicepName $service.Name}}Identity.outputs.clientId
             {{- else}}
-            value: '{{.Value}}'
+            value: '{{ (envBicepInfo $env).Value }}'
             {{- end}}
           }
           {{- end}}
-          {{- range .EnvironmentVariableInformation.SecretRefEnvironmentVariables}}
-          {
-            name: '{{.Name}}'
-            secretRef: '{{.SecretRef}}'
-          }
           {{- end}}
           {
             name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'

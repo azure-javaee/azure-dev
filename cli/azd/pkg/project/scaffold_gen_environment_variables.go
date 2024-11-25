@@ -7,6 +7,97 @@ import (
 	"strings"
 )
 
+func getResourceConnectionEnvs(usedResource *ResourceConfig,
+	infraSpec *scaffold.InfraSpec) ([]scaffold.ResourceConnectionEnv, error) {
+	resourceType := usedResource.Type
+	authType, err := getAuthType(infraSpec, usedResource.Type)
+	if err != nil {
+		return []scaffold.ResourceConnectionEnv{}, err
+	}
+	switch resourceType {
+	case ResourceTypeDbPostgres:
+		switch authType {
+		case internal.AuthTypePassword:
+			return []scaffold.ResourceConnectionEnv{
+				{
+					Name:               "POSTGRES_USERNAME",
+					ResourceType:       scaffold.ResourceTypeDbPostgres,
+					ConnectionInfoType: scaffold.Username,
+				},
+				{
+					Name:               "POSTGRES_PASSWORD",
+					ResourceType:       scaffold.ResourceTypeDbPostgres,
+					ConnectionInfoType: scaffold.Password,
+				},
+				{
+					Name:               "POSTGRES_HOST",
+					ResourceType:       scaffold.ResourceTypeDbPostgres,
+					ConnectionInfoType: scaffold.Host,
+				},
+				{
+					Name:               "POSTGRES_DATABASE",
+					ResourceType:       scaffold.ResourceTypeDbPostgres,
+					ConnectionInfoType: scaffold.DatabaseName,
+				},
+				{
+					Name:               "POSTGRES_PORT",
+					ResourceType:       scaffold.ResourceTypeDbPostgres,
+					ConnectionInfoType: scaffold.Port,
+				},
+				{
+					Name:               "POSTGRES_URL",
+					ResourceType:       scaffold.ResourceTypeDbPostgres,
+					ConnectionInfoType: scaffold.Url,
+				},
+				{
+					Name:               "spring.datasource.url",
+					ResourceType:       scaffold.ResourceTypeDbPostgres,
+					ConnectionInfoType: scaffold.JdbcUrl,
+				},
+				{
+					Name:               "spring.datasource.username",
+					ResourceType:       scaffold.ResourceTypeDbPostgres,
+					ConnectionInfoType: scaffold.Username,
+				},
+				{
+					Name:               "spring.datasource.password",
+					ResourceType:       scaffold.ResourceTypeDbPostgres,
+					ConnectionInfoType: scaffold.Password,
+				},
+			}, nil
+		case internal.AuthTypeUserAssignedManagedIdentity:
+			// Some other environment variables are added by service connector,
+			// should not add to bicep generation context
+			return []scaffold.ResourceConnectionEnv{
+				{
+					Name:               "POSTGRES_USERNAME",
+					ResourceType:       scaffold.ResourceTypeDbPostgres,
+					ConnectionInfoType: scaffold.Username,
+				},
+				{
+					Name:               "POSTGRES_HOST",
+					ResourceType:       scaffold.ResourceTypeDbPostgres,
+					ConnectionInfoType: scaffold.Host,
+				},
+				{
+					Name:               "POSTGRES_DATABASE",
+					ResourceType:       scaffold.ResourceTypeDbPostgres,
+					ConnectionInfoType: scaffold.DatabaseName,
+				},
+				{
+					Name:               "POSTGRES_PORT",
+					ResourceType:       scaffold.ResourceTypeDbPostgres,
+					ConnectionInfoType: scaffold.Port,
+				},
+			}, nil
+		default:
+			return []scaffold.ResourceConnectionEnv{}, unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
+		}
+	default:
+		return []scaffold.ResourceConnectionEnv{}, unsupportedResourceTypeWhenGetResourceConnectionEnvsError(resourceType)
+	}
+}
+
 func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 	infraSpec *scaffold.InfraSpec) (scaffold.EnvironmentVariableInformation, error) {
 	resourceType := usedResource.Type
@@ -15,87 +106,6 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 		return scaffold.EnvironmentVariableInformation{}, err
 	}
 	switch resourceType {
-	case ResourceTypeDbPostgres:
-		switch authType {
-		case internal.AuthTypePassword:
-			return scaffold.EnvironmentVariableInformation{
-				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-					{
-						Name:  "POSTGRES_USERNAME",
-						Value: "${postgreSqlDatabaseUser}", // todo manage all variables names
-					},
-					{
-						Name:  "POSTGRES_HOST",
-						Value: "${postgreServer.outputs.fqdn}", // todo manage variables like postgreServer
-					},
-					{
-						Name:  "POSTGRES_DATABASE",
-						Value: "${postgreSqlDatabaseName}",
-					},
-					{
-						Name:  "POSTGRES_PORT",
-						Value: "5432",
-					},
-					{
-						Name:  "spring.datasource.url",
-						Value: "jdbc:postgresql://${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
-					},
-					{
-						Name:  "spring.datasource.username",
-						Value: "${postgreSqlDatabaseUser}",
-					},
-				},
-				SecretRefEnvironmentVariables: []scaffold.SecretRefEnvironmentVariable{
-					{
-						Name:      "POSTGRES_URL",
-						SecretRef: "postgresql-db-url",
-					},
-					{
-						Name:      "POSTGRES_PASSWORD",
-						SecretRef: "postgresql-password",
-					},
-					{
-						Name:      "spring.datasource.password",
-						SecretRef: "postgresql-password",
-					},
-				},
-				ValueSecretDefinitions: []scaffold.ValueSecretDefinition{
-					{
-						SecretName:  "postgresql-db-url",
-						SecretValue: "postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
-					},
-					{
-						SecretName:  "postgresql-password",
-						SecretValue: "${postgreSqlDatabasePassword}",
-					},
-				},
-			}, nil
-		case internal.AuthTypeUserAssignedManagedIdentity:
-			return scaffold.EnvironmentVariableInformation{
-				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-					// Some other environment variables are added by service connector,
-					// should not add to bicep generation context
-					{
-						Name:  "POSTGRES_USERNAME",
-						Value: "${postgreSqlDatabaseUser}", // todo manage all variables names
-					},
-					{
-						Name:  "POSTGRES_HOST",
-						Value: "${postgreServer.outputs.fqdn}", // todo manage variables like postgreServer
-					},
-					{
-						Name:  "POSTGRES_DATABASE",
-						Value: "${postgreSqlDatabaseName}",
-					},
-					{
-						Name:  "POSTGRES_PORT",
-						Value: "5432",
-					},
-				},
-			}, nil
-		default:
-			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
-		}
 	case ResourceTypeDbMySQL:
 		switch authType {
 		case internal.AuthTypePassword:
@@ -175,7 +185,8 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 				},
 			}, nil
 		default:
-			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			return scaffold.EnvironmentVariableInformation{},
+				unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 		}
 	case ResourceTypeDbRedis:
 		switch authType {
@@ -221,7 +232,8 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 				},
 			}, nil
 		default:
-			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			return scaffold.EnvironmentVariableInformation{},
+				unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 		}
 	case ResourceTypeDbMongo:
 		switch authType {
@@ -251,7 +263,8 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 				},
 			}, nil
 		default:
-			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			return scaffold.EnvironmentVariableInformation{},
+				unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 		}
 	case ResourceTypeDbCosmos:
 		switch authType {
@@ -269,7 +282,8 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 				},
 			}, nil
 		default:
-			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			return scaffold.EnvironmentVariableInformation{},
+				unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 		}
 	case ResourceTypeMessagingServiceBus:
 		if infraSpec.AzureServiceBus.IsJms {
@@ -341,7 +355,7 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 					},
 				}, nil
 			default:
-				return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+				return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 			}
 		} else {
 			// service bus, not jms
@@ -403,7 +417,7 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 					},
 				}, nil
 			default:
-				return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+				return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 			}
 		}
 	case ResourceTypeMessagingKafka:
@@ -483,7 +497,7 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 				},
 			}
 		default:
-			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 		}
 		return mergeWithDuplicationCheck(springBootVersionDecidedInformation, commonInformation)
 	case ResourceTypeMessagingEventHubs:
@@ -542,7 +556,7 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 				},
 			}, nil
 		default:
-			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 		}
 	case ResourceTypeStorage:
 		switch authType {
@@ -597,7 +611,7 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 				},
 			}, nil
 		default:
-			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 		}
 	case ResourceTypeOpenAiModel: // Keep this as code template
 		switch authType {
@@ -611,113 +625,109 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 				},
 			}, nil
 		default:
-			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 		}
 		//case OtherType: // Keep this as code template
 		//	switch authType {
 		//	default:
-		//		return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+		//		return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 		//	}
 	case ResourceTypeHostContainerApp: // todo improve this and delete Frontend and Backend in scaffold.ServiceSpec
 		switch authType {
 		case internal.AuthTypeUserAssignedManagedIdentity:
 			return scaffold.EnvironmentVariableInformation{}, nil
 		default:
-			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 		}
 	default:
-		return scaffold.EnvironmentVariableInformation{}, unsupportedResourceTypeError(resourceType)
+		return scaffold.EnvironmentVariableInformation{}, unsupportedResourceTypeWhenGetResourceConnectionEnvsError(resourceType)
 	}
 }
 
-func unsupportedResourceTypeError(resourceType ResourceType) error {
-	return fmt.Errorf("unsupported resource type when get environment variable information, resourceType = %s",
+func unsupportedResourceTypeWhenGetResourceConnectionEnvsError(resourceType ResourceType) error {
+	return fmt.Errorf("unsupported resource type when getResourceConnectionEnvs, resourceType = %s",
 		resourceType)
 }
 
-func unsupportedAuthTypeError(resourceType ResourceType, authType internal.AuthType) error {
-	return fmt.Errorf("unsupported auth type when get environment variable information, "+
+func unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType ResourceType, authType internal.AuthType) error {
+	return fmt.Errorf("unsupported auth type when getResourceConnectionEnvs, "+
 		"resourceType = %s, authType = %s", resourceType, authType)
 }
 
-func getAllEnvironmentVariablesForPrint(usedResource *ResourceConfig,
-	infraSpec *scaffold.InfraSpec) (scaffold.EnvironmentVariableInformation, error) {
-	information, err := getEnvironmentVariableInformation(usedResource, infraSpec)
+func getAllResourceConnectionEnvForPrint(usedResource *ResourceConfig,
+	infraSpec *scaffold.InfraSpec) ([]scaffold.ResourceConnectionEnv, error) {
+	envs, err := getResourceConnectionEnvs(usedResource, infraSpec)
 	if err != nil {
-		return scaffold.EnvironmentVariableInformation{}, err
+		return []scaffold.ResourceConnectionEnv{}, err
 	}
 	resourceType := usedResource.Type
 	authType, err := getAuthType(infraSpec, usedResource.Type)
 	if err != nil {
-		return scaffold.EnvironmentVariableInformation{}, err
+		return []scaffold.ResourceConnectionEnv{}, err
 	}
-	additional, err := getEnvironmentVariablesCreatedByServiceConnector(resourceType, authType)
+	additional, err := getResourceConnectionEnvNamesCreatedByServiceConnector(resourceType, authType)
 	if err != nil {
-		return scaffold.EnvironmentVariableInformation{}, err
+		return []scaffold.ResourceConnectionEnv{}, err
 	}
-	result, err := mergeWithDuplicationCheck(information, additional)
+	result, err := mergeResourceConnectionEnvWithDuplicationCheck(envs, additional)
 	if err != nil {
-		return scaffold.EnvironmentVariableInformation{}, err
+		return []scaffold.ResourceConnectionEnv{}, err
 	}
 	return result, nil
 }
 
 // Return environment variables added by service connector, they do not need to add to scaffold.ServiceSpec
 // todo: Now only support springBoot application type. Need to support other types
-func getEnvironmentVariablesCreatedByServiceConnector(resourceType ResourceType,
-	authType internal.AuthType) (scaffold.EnvironmentVariableInformation, error) {
+func getResourceConnectionEnvNamesCreatedByServiceConnector(resourceType ResourceType,
+	authType internal.AuthType) ([]scaffold.ResourceConnectionEnv, error) {
 	switch resourceType {
 	case ResourceTypeDbPostgres:
 		switch authType {
 		case internal.AuthTypePassword:
-			return scaffold.EnvironmentVariableInformation{}, nil
+			return []scaffold.ResourceConnectionEnv{}, nil
 		case internal.AuthTypeUserAssignedManagedIdentity:
-			return scaffold.EnvironmentVariableInformation{
-				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-					{
-						Name: "spring.datasource.url",
-					},
-					{
-						Name: "spring.datasource.username",
-					},
-					{
-						Name: "spring.datasource.azure.passwordless-enabled",
-					},
+			return []scaffold.ResourceConnectionEnv{
+				{
+					Name: "spring.datasource.url",
+				},
+				{
+					Name: "spring.datasource.username",
+				},
+				{
+					Name: "spring.datasource.azure.passwordless-enabled",
 				},
 			}, nil
 		default:
 			// return error to make sure every case has been considered.
-			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			return []scaffold.ResourceConnectionEnv{}, unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 		}
 	case ResourceTypeDbMySQL:
 		switch authType {
 		case internal.AuthTypePassword:
-			return scaffold.EnvironmentVariableInformation{}, nil
+			return []scaffold.ResourceConnectionEnv{}, nil
 		case internal.AuthTypeUserAssignedManagedIdentity:
-			return scaffold.EnvironmentVariableInformation{
-				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
-					{
-						Name: "spring.datasource.url",
-					},
-					{
-						Name: "spring.datasource.username",
-					},
-					{
-						Name: "spring.datasource.azure.passwordless-enabled",
-					},
+			return []scaffold.ResourceConnectionEnv{
+				{
+					Name: "spring.datasource.url",
+				},
+				{
+					Name: "spring.datasource.username",
+				},
+				{
+					Name: "spring.datasource.azure.passwordless-enabled",
 				},
 			}, nil
 		default:
 			// return error to make sure every case has been considered.
-			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			return []scaffold.ResourceConnectionEnv{}, unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 		}
 	case ResourceTypeDbRedis:
 		switch authType {
 		case internal.AuthTypePassword:
-			return scaffold.EnvironmentVariableInformation{}, nil
+			return []scaffold.ResourceConnectionEnv{}, nil
 		default:
 			// return error to make sure every case has been considered.
-			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			return []scaffold.ResourceConnectionEnv{}, unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 		}
 	case ResourceTypeDbMongo,
 		ResourceTypeDbCosmos,
@@ -725,10 +735,10 @@ func getEnvironmentVariablesCreatedByServiceConnector(resourceType ResourceType,
 		ResourceTypeHostContainerApp:
 		switch authType {
 		case internal.AuthTypeUserAssignedManagedIdentity:
-			return scaffold.EnvironmentVariableInformation{}, nil
+			return []scaffold.ResourceConnectionEnv{}, nil
 		default:
 			// return error to make sure every case has been considered.
-			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			return []scaffold.ResourceConnectionEnv{}, unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 		}
 	case
 		ResourceTypeMessagingServiceBus,
@@ -737,15 +747,31 @@ func getEnvironmentVariablesCreatedByServiceConnector(resourceType ResourceType,
 		ResourceTypeStorage:
 		switch authType {
 		case internal.AuthTypeUserAssignedManagedIdentity, internal.AuthTypeConnectionString:
-			return scaffold.EnvironmentVariableInformation{}, nil
+			return []scaffold.ResourceConnectionEnv{}, nil
 		default:
 			// return error to make sure every case has been considered.
-			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
+			return []scaffold.ResourceConnectionEnv{}, unsupportedAuthTypeWhenGetResourceConnectionEnvsError(resourceType, authType)
 		}
 	default:
 		// return error to make sure every case has been considered.
-		return scaffold.EnvironmentVariableInformation{}, unsupportedResourceTypeError(resourceType)
+		return []scaffold.ResourceConnectionEnv{}, unsupportedResourceTypeWhenGetResourceConnectionEnvsError(resourceType)
 	}
+}
+
+func mergeResourceConnectionEnvWithDuplicationCheck(a []scaffold.ResourceConnectionEnv,
+	b []scaffold.ResourceConnectionEnv) ([]scaffold.ResourceConnectionEnv, error) {
+	result := append(a, b...)
+	seen := make(map[string]scaffold.ResourceConnectionEnv)
+	for _, value := range result {
+		if existingValue, exist := seen[value.Name]; exist {
+			if value != existingValue {
+				return []scaffold.ResourceConnectionEnv{}, duplicatedResourceConnectionEnvError(existingValue, value)
+			}
+		} else {
+			seen[value.Name] = existingValue
+		}
+	}
+	return result, nil
 }
 
 func mergeWithDuplicationCheck(a scaffold.EnvironmentVariableInformation,
@@ -821,6 +847,13 @@ func addNewEnvironmentVariable(serviceSpec *scaffold.ServiceSpec, name string, v
 
 func duplicatedSecretDefinitionError(name string, value1 string, value2 string) error {
 	return duplicatedError("secret definition", name, value1, value2)
+}
+
+func duplicatedResourceConnectionEnvError(existingValue scaffold.ResourceConnectionEnv,
+	value scaffold.ResourceConnectionEnv) error {
+	return fmt.Errorf(
+		"duplicated ResourceConnectionEnv. existingValue = %s, value = %s",
+		existingValue.ToString(), value.ToString())
 }
 
 func duplicatedEnvironmentError(name string, value1 string, value2 string) error {

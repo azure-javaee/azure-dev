@@ -314,6 +314,19 @@ func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (inte
 }
 
 func addUsage(infraSpec *scaffold.InfraSpec, userSpec *scaffold.ServiceSpec, usedResource *ResourceConfig) error {
+	envs, err := getResourceConnectionEnvs(usedResource, infraSpec)
+	if err != nil {
+		return err
+	}
+	userSpec.ResourceConnectionEnvs, err = mergeResourceConnectionEnvWithDuplicationCheck(userSpec.ResourceConnectionEnvs, envs)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// todo: delete this
+func addUsageOld(infraSpec *scaffold.InfraSpec, userSpec *scaffold.ServiceSpec, usedResource *ResourceConfig) error {
 	information, err := getEnvironmentVariableInformation(usedResource, infraSpec)
 	if err != nil {
 		return err
@@ -349,16 +362,6 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 				"Please make sure your application used the right environment variable. \n"+
 				"Here is the list of environment variables: ",
 				userResourceName, usedResourceName))
-			variables, err := getAllEnvironmentVariablesForPrint(usedResource, infraSpec)
-			if err != nil {
-				return err
-			}
-			for _, variable := range variables.SecretRefEnvironmentVariables {
-				(*console).Message(*context, fmt.Sprintf("  %s=xxx", variable.Name))
-			}
-			for _, variable := range variables.StringEnvironmentVariables {
-				(*console).Message(*context, fmt.Sprintf("  %s=xxx", variable.Name))
-			}
 			switch usedResource.Type {
 			case ResourceTypeDbPostgres, // do nothing. todo: add all other types
 				ResourceTypeDbMySQL,
@@ -369,6 +372,13 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 				ResourceTypeMessagingEventHubs,
 				ResourceTypeMessagingKafka,
 				ResourceTypeStorage:
+				variables, err := getAllResourceConnectionEnvForPrint(usedResource, infraSpec)
+				if err != nil {
+					return err
+				}
+				for _, variable := range variables {
+					(*console).Message(*context, fmt.Sprintf("  %s=xxx", variable.Name))
+				}
 			case ResourceTypeHostContainerApp:
 				printHintsAboutUseHostContainerApp(userResourceName, usedResourceName, console, context)
 			default:

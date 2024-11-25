@@ -98,7 +98,9 @@ type ServiceSpec struct {
 	Name string
 	Port int
 
-	EnvironmentVariableInformation EnvironmentVariableInformation // todo: merge EnvironmentVariableInformation and env
+	EnvironmentVariableInformation EnvironmentVariableInformation // todo delete this
+	Envs                           []Env
+	ResourceConnectionEnvs         []ResourceConnectionEnv
 
 	// Front-end properties.
 	Frontend *Frontend
@@ -106,6 +108,60 @@ type ServiceSpec struct {
 	// Back-end properties
 	Backend *Backend
 }
+
+type Env struct {
+	Name  string
+	Value string
+}
+
+type ResourceConnectionEnv struct {
+	Name               string
+	ResourceType       ResourceType
+	ConnectionInfoType ConnectionInfoType
+}
+
+func (env *ResourceConnectionEnv) ToString() string {
+	return fmt.Sprintf("ResourceConnectionEnv(Name=%s, ResourceType=%s, ConnectionInfoType=%s)",
+		env.Name, env.ResourceType, env.ConnectionInfoType)
+}
+
+// todo merge ResourceType and project.ResourceType
+// Not use project.ResourceType because it will cause cycle import.
+// Not merge it in current PR to avoid conflict with upstream main branch.
+// Solution proposal: define a ResourceType in lower level that can be used both in scaffold and project package.
+
+type ResourceType string
+
+const (
+	ResourceTypeDbRedis             ResourceType = "db.redis"
+	ResourceTypeDbPostgres          ResourceType = "db.postgres"
+	ResourceTypeDbMySQL             ResourceType = "db.mysql"
+	ResourceTypeDbMongo             ResourceType = "db.mongo"
+	ResourceTypeDbCosmos            ResourceType = "db.cosmos"
+	ResourceTypeHostContainerApp    ResourceType = "host.containerapp"
+	ResourceTypeOpenAiModel         ResourceType = "ai.openai.model"
+	ResourceTypeMessagingServiceBus ResourceType = "messaging.servicebus"
+	ResourceTypeMessagingEventHubs  ResourceType = "messaging.eventhubs"
+	ResourceTypeMessagingKafka      ResourceType = "messaging.kafka"
+	ResourceTypeStorage             ResourceType = "storage"
+)
+
+type ConnectionInfoType string
+
+const (
+	Host             ConnectionInfoType = "host"
+	Port             ConnectionInfoType = "port"
+	Endpoint         ConnectionInfoType = "endpoint"
+	DatabaseName     ConnectionInfoType = "databaseName"
+	Namespace        ConnectionInfoType = "namespace"
+	AccountName      ConnectionInfoType = "accountName"
+	Username         ConnectionInfoType = "username"
+	Password         ConnectionInfoType = "password"
+	Url              ConnectionInfoType = "url"
+	JdbcUrl          ConnectionInfoType = "jdbcUrl"
+	ConnectionString ConnectionInfoType = "connectionString"
+	IdentityClientId ConnectionInfoType = "identityClientId"
+)
 
 type EnvironmentVariableInformation struct {
 	StringEnvironmentVariables    []StringEnvironmentVariable
