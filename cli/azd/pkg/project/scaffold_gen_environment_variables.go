@@ -294,13 +294,13 @@ func getResourceConnectionEnvs(usedResource *ResourceConfig,
 				{
 					ResourceConnectionEnvType: scaffold.ResourceConnectionEnvTypeResourceSpecific,
 					Name:                      "spring.cloud.azure.cosmos.endpoint",
-					ResourceType:              scaffold.ResourceTypeDbMongo,
+					ResourceType:              scaffold.ResourceTypeDbCosmos,
 					ResourceInfoType:          scaffold.ResourceInfoTypeEndpoint,
 				},
 				{
 					ResourceConnectionEnvType: scaffold.ResourceConnectionEnvTypeResourceSpecific,
 					Name:                      "spring.cloud.azure.cosmos.database",
-					ResourceType:              scaffold.ResourceTypeDbMongo,
+					ResourceType:              scaffold.ResourceTypeDbCosmos,
 					ResourceInfoType:          scaffold.ResourceInfoTypeDatabaseName,
 				},
 			}, nil
