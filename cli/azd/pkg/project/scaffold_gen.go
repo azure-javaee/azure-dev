@@ -298,11 +298,10 @@ func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (inte
 	case ResourceTypeDbRedis:
 		return internal.AuthTypePassword, nil
 	case ResourceTypeDbMongo,
-		ResourceTypeDbCosmos:
-		return internal.AuthTypeUserAssignedManagedIdentity, nil
-	case ResourceTypeOpenAiModel,
+		ResourceTypeDbCosmos,
+		ResourceTypeOpenAiModel,
 		ResourceTypeHostContainerApp:
-		return internal.AuthTypeUnspecified, nil
+		return internal.AuthTypeUserAssignedManagedIdentity, nil
 	case ResourceTypeMessagingServiceBus:
 		return infraSpec.AzureServiceBus.AuthType, nil
 	case ResourceTypeMessagingEventHubs, ResourceTypeMessagingKafka:

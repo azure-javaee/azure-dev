@@ -601,7 +601,7 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 		}
 	case ResourceTypeOpenAiModel: // Keep this as code template
 		switch authType {
-		case internal.AuthTypeUnspecified:
+		case internal.AuthTypeUserAssignedManagedIdentity:
 			return scaffold.EnvironmentVariableInformation{
 				StringEnvironmentVariables: []scaffold.StringEnvironmentVariable{
 					{
@@ -620,7 +620,7 @@ func getEnvironmentVariableInformation(usedResource *ResourceConfig,
 		//	}
 	case ResourceTypeHostContainerApp: // todo improve this and delete Frontend and Backend in scaffold.ServiceSpec
 		switch authType {
-		case internal.AuthTypeUnspecified:
+		case internal.AuthTypeUserAssignedManagedIdentity:
 			return scaffold.EnvironmentVariableInformation{}, nil
 		default:
 			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
@@ -720,18 +720,11 @@ func getEnvironmentVariablesCreatedByServiceConnector(resourceType ResourceType,
 			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
 		}
 	case ResourceTypeDbMongo,
-		ResourceTypeDbCosmos:
-		switch authType {
-		case internal.AuthTypeUserAssignedManagedIdentity:
-			return scaffold.EnvironmentVariableInformation{}, nil
-		default:
-			// return error to make sure every case has been considered.
-			return scaffold.EnvironmentVariableInformation{}, unsupportedAuthTypeError(resourceType, authType)
-		}
-	case ResourceTypeOpenAiModel,
+		ResourceTypeDbCosmos,
+		ResourceTypeOpenAiModel,
 		ResourceTypeHostContainerApp:
 		switch authType {
-		case internal.AuthTypeUnspecified:
+		case internal.AuthTypeUserAssignedManagedIdentity:
 			return scaffold.EnvironmentVariableInformation{}, nil
 		default:
 			// return error to make sure every case has been considered.
