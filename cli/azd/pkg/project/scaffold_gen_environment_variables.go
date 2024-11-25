@@ -340,7 +340,7 @@ func getResourceConnectionEnvs(usedResource *ResourceConfig,
 					{
 						ResourceConnectionEnvType: scaffold.ResourceConnectionEnvTypeResourceSpecific,
 						Name:                      "spring.jms.servicebus.namespace",
-						ResourceType:              scaffold.ResourceTypeDbMongo,
+						ResourceType:              scaffold.ResourceTypeMessagingServiceBus,
 						ResourceInfoType:          scaffold.ResourceInfoTypeNamespace,
 					},
 				}, nil
