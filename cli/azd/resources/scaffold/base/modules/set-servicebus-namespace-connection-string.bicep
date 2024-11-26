@@ -17,3 +17,5 @@ resource serviceBusConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@202
     value: listKeys(concat(resourceId('Microsoft.ServiceBus/namespaces', serviceBusNamespaceName), '/AuthorizationRules/RootManageSharedAccessKey'), serviceBusNamespace.apiVersion).primaryConnectionString
   }
 }
+
+output keyVaultUrl string = 'https://${keyVaultName}.vault.azure.net/secrets/${connectionStringSecretName}'

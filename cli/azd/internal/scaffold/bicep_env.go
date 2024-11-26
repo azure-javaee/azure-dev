@@ -148,7 +148,7 @@ var resourceSpecificBicepEnvValue = map[ResourceType]map[ResourceInfoType]string
 	},
 	ResourceTypeMessagingServiceBus: {
 		ResourceInfoTypeNamespace:        "serviceBusNamespace.outputs.name",
-		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("'${keyVault.outputs.uri}secrets/SERVICEBUS-CONNECTION-STRING'"),
+		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("serviceBusConnectionString.outputs.keyVaultUrl"),
 	},
 	ResourceTypeMessagingEventHubs: {
 		ResourceInfoTypeNamespace:        "eventHubNamespace.outputs.name",
