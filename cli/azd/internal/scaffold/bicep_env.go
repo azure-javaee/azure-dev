@@ -152,15 +152,15 @@ var resourceSpecificBicepEnvValue = map[ResourceType]map[ResourceInfoType]string
 	},
 	ResourceTypeMessagingEventHubs: {
 		ResourceInfoTypeNamespace:        "eventHubNamespace.outputs.name",
-		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("'${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING'"),
+		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("'eventHubsConnectionString.outputs.keyVaultUrl"),
 	},
 	ResourceTypeMessagingKafka: {
 		ResourceInfoTypeEndpoint:         "${eventHubNamespace.outputs.name}.servicebus.windows.net:909",
-		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("'${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING'"),
+		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("eventHubsConnectionString.outputs.keyVaultUrl"),
 	},
 	ResourceTypeStorage: {
 		ResourceInfoTypeAccountName:      "storageAccountName",
-		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("'${keyVault.outputs.uri}secrets/STORAGE-ACCOUNT-CONNECTION-STRING'"),
+		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("storageAccountConnectionString.outputs.keyVaultUrl"),
 	},
 	ResourceTypeOpenAiModel: {
 		ResourceInfoTypeEndpoint: "account.outputs.endpoint",
