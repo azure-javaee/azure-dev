@@ -455,6 +455,7 @@ func setParameter(spec *scaffold.InfraSpec, name string, value string, isSecret 
 //
 // If the string is a literal, it is returned as is.
 // If isSecret is true, the parameter is marked as a secret.
+// The returned value is string, all expression inside are wrapped by "${}".
 func genBicepParamsFromEnvSubst(
 	s string,
 	isSecret bool,
