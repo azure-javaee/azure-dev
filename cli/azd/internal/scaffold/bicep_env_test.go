@@ -32,7 +32,7 @@ func TestGetEnvBicepInfo(t *testing.T) {
 			want: BicepEnv{
 				BicepEnvType:   BicepEnvTypePlainText,
 				Name:           "enable-customer-related-feature",
-				PlainTextValue: "'true'",
+				PlainTextValue: "'true'", // Note: Quotation add automatically
 			},
 		},
 		{
@@ -45,7 +45,7 @@ func TestGetEnvBicepInfo(t *testing.T) {
 			want: BicepEnv{
 				BicepEnvType:   BicepEnvTypePlainText,
 				Name:           "spring.jms.servicebus.pricing-tier",
-				PlainTextValue: "'premium'",
+				PlainTextValue: "'premium'", // Note: Quotation add automatically
 			},
 		},
 		{
