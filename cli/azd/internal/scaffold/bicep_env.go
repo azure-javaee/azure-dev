@@ -88,9 +88,10 @@ func toBicepEnvPlainTextValue(input string) string {
 // BicepEnv
 //
 // For Name and SecretName, they are handled as string by default.
-// Which means quotation will be added before usage in bicep file, because they are always string value.
+// Which means quotation will be added before they are used in bicep file, because they are always string value.
+//
 // For PlainTextValue and SecretValue, they are handled as variable by default.
-// They should contain quotation by themselves if they are string value.
+// When they are string value, quotation should be contained by themselves.
 // Set variable as default is mainly to avoid this problem:
 // https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/linter-rule-simplify-interpolation
 type BicepEnv struct {
