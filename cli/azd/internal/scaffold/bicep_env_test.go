@@ -100,3 +100,33 @@ func TestGetEnvBicepInfo(t *testing.T) {
 		})
 	}
 }
+
+func TestToBicepEnvPlainTextValue(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{
+			name: "string",
+			in:   "inputStringExample",
+			want: "'inputStringExample'",
+		},
+		{
+			name: "single variable",
+			in:   "${inputSingleVariableExample}",
+			want: "inputSingleVariableExample",
+		},
+		{
+			name: "multiple variable",
+			in:   "${HOST}:${PORT}",
+			want: "'${HOST}:${PORT}'",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := toBicepEnvPlainTextValue(tt.in)
+			assert.Equal(t, tt.want, actual)
+		})
+	}
+}

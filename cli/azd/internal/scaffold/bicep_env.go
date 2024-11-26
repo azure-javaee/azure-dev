@@ -16,7 +16,7 @@ func ToBicepEnv(env Env) BicepEnv {
 		return BicepEnv{
 			BicepEnvType:   BicepEnvTypePlainText,
 			Name:           env.Name,
-			PlainTextValue: addQuotation(env.PlainTextValue),
+			PlainTextValue: toBicepEnvPlainTextValue(env.PlainTextValue),
 		}
 	case EnvTypeResourceConnectionResourceInfo:
 		value, ok := resourceSpecificBicepEnvValue[env.ResourceType][env.ResourceInfoType]
@@ -51,15 +51,45 @@ func ToBicepEnv(env Env) BicepEnv {
 	}
 }
 
+// inputStringExample -> 'inputStringExample'
 func addQuotation(input string) string {
 	return fmt.Sprintf("'%s'", input)
 }
 
+// 'inputStringExample' -> 'inputStringExample'
+// '${inputSingleVariableExample}' -> inputSingleVariableExample
+// '${HOST}:${PORT}' -> '${HOST}:${PORT}'
+func removeQuotationIfItIsASingleVariable(input string) string {
+	prefix := "'${"
+	suffix := "}'"
+	if strings.HasPrefix(input, prefix) && strings.HasSuffix(input, suffix) {
+		prefixTrimmed := strings.TrimPrefix(input, prefix)
+		trimmed := strings.TrimSuffix(prefixTrimmed, suffix)
+		if strings.IndexAny(trimmed, "}") == -1 {
+			return trimmed
+		} else {
+			return input
+		}
+	} else {
+		return input
+	}
+}
+
+// As commented in BicepEnv, The Value is handled as variable by default.
+// If the value is string, it should contain (').
+// Here are some examples of input and output:
+// inputStringExample -> 'inputStringExample'
+// ${inputSingleVariableExample} -> inputSingleVariableExample
+// ${HOST}:${PORT} -> '${HOST}:${PORT}'
+func toBicepEnvPlainTextValue(input string) string {
+	return removeQuotationIfItIsASingleVariable(addQuotation(input))
+}
+
 // BicepEnv
 //
-// When be used in bicep file, quotation will be added only for these fields: Name, SecretName, because they are always
-// string value. If other fields want to be used as sting, the itself should contain quotation, otherwise it will be
-// viewed as variable.
+// When Name or SecretName be used in bicep file, quotation will be added , because they are always string value.
+// For PlainTextValue and SecretValue, they should contain quotation if they are string value, otherwise it will be
+// handled as variable.
 type BicepEnv struct {
 	BicepEnvType   BicepEnvType
 	Name           string
@@ -85,8 +115,8 @@ var resourceSpecificBicepEnvValue = map[ResourceType]map[ResourceInfoType]string
 		ResourceInfoTypeDatabaseName: "postgreSqlDatabaseName",
 		ResourceInfoTypeUsername:     "postgreSqlDatabaseUser",
 		ResourceInfoTypePassword:     "postgreSqlDatabasePassword",
-		ResourceInfoTypeUrl:          "postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
-		ResourceInfoTypeJdbcUrl:      "jdbc:postgresql://${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
+		ResourceInfoTypeUrl:          "'postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'",
+		ResourceInfoTypeJdbcUrl:      "'jdbc:postgresql://${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'",
 	},
 	ResourceTypeDbMySQL: {
 		ResourceInfoTypeHost:         "mysqlServer.outputs.fqdn",
@@ -94,15 +124,15 @@ var resourceSpecificBicepEnvValue = map[ResourceType]map[ResourceInfoType]string
 		ResourceInfoTypeDatabaseName: "mysqlDatabaseName",
 		ResourceInfoTypeUsername:     "mysqlDatabaseUser",
 		ResourceInfoTypePassword:     "mysqlDatabasePassword",
-		ResourceInfoTypeUrl:          "mysql://${mysqlDatabaseUser}:${mysqlDatabasePassword}@${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}",
-		ResourceInfoTypeJdbcUrl:      "jdbc:mysql://${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}",
+		ResourceInfoTypeUrl:          "'mysql://${mysqlDatabaseUser}:${mysqlDatabasePassword}@${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}'",
+		ResourceInfoTypeJdbcUrl:      "'jdbc:mysql://${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}'",
 	},
 	ResourceTypeDbRedis: {
 		ResourceInfoTypeHost:     "redis.outputs.hostName",
 		ResourceInfoTypePort:     "redis.outputs.sslPort",
-		ResourceInfoTypeEndpoint: "${redis.outputs.hostName}:${redis.outputs.sslPort}",
-		ResourceInfoTypePassword: wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/REDIS-PASSWORD"),
-		ResourceInfoTypeUrl:      wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/REDIS-URL"),
+		ResourceInfoTypeEndpoint: "'${redis.outputs.hostName}:${redis.outputs.sslPort}'",
+		ResourceInfoTypePassword: wrapToKeyVaultSecretValue("'${keyVault.outputs.uri}secrets/REDIS-PASSWORD'"),
+		ResourceInfoTypeUrl:      wrapToKeyVaultSecretValue("'${keyVault.outputs.uri}secrets/REDIS-URL'"),
 	},
 	ResourceTypeDbMongo: {
 		ResourceInfoTypeDatabaseName: "mongoDatabaseName",
@@ -114,19 +144,19 @@ var resourceSpecificBicepEnvValue = map[ResourceType]map[ResourceInfoType]string
 	},
 	ResourceTypeMessagingServiceBus: {
 		ResourceInfoTypeNamespace:        "serviceBusNamespace.outputs.name",
-		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/SERVICEBUS-CONNECTION-STRING"),
+		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("'${keyVault.outputs.uri}secrets/SERVICEBUS-CONNECTION-STRING'"),
 	},
 	ResourceTypeMessagingEventHubs: {
 		ResourceInfoTypeNamespace:        "eventHubNamespace.outputs.name",
-		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING"),
+		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("'${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING'"),
 	},
 	ResourceTypeMessagingKafka: {
 		ResourceInfoTypeEndpoint:         "${eventHubNamespace.outputs.name}.servicebus.windows.net:909",
-		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING"),
+		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("'${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING'"),
 	},
 	ResourceTypeStorage: {
 		ResourceInfoTypeAccountName:      "storageAccountName",
-		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/STORAGE-ACCOUNT-CONNECTION-STRING"),
+		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("'${keyVault.outputs.uri}secrets/STORAGE-ACCOUNT-CONNECTION-STRING'"),
 	},
 	ResourceTypeOpenAiModel: {
 		ResourceInfoTypeEndpoint: "account.outputs.endpoint",
