@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/azure/azure-dev/cli/azd/pkg/ext"
 	"maps"
 	"os"
 	"path/filepath"
@@ -434,6 +435,7 @@ func (i *Initializer) prjConfigFromDetect(
 		},
 		Services:  map[string]*project.ServiceConfig{},
 		Resources: map[string]*project.ResourceConfig{},
+		Hooks:     map[string][]*ext.HookConfig{},
 	}
 
 	svcMapping := map[string]string{}
@@ -532,6 +534,24 @@ func (i *Initializer) prjConfigFromDetect(
 					}
 
 				}
+			}
+		}
+
+		if prj.Language == appdetect.Java && prj.Docker != nil && prj.Docker.Path != "" {
+			hookConfig := ext.HookConfig{
+				Posix: &ext.HookConfig{
+					Shell: ext.ShellTypeBash,
+					Run:   "mvn clean package -DskipTests",
+				},
+				Windows: &ext.HookConfig{
+					Shell: ext.ShellTypePowershell,
+					Run:   "mvn clean package -DskipTests",
+				},
+			}
+			svc.Hooks = project.HooksConfig{
+				"prebuild": {
+					&hookConfig,
+				},
 			}
 		}
 
