@@ -557,7 +557,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
     scaleMaxReplicas: 10
     secrets: {
       secureList:  union([
-        {{- range $env := .ResourceConnectionEnvs}}
+        {{- range $env := .Envs}}
         {{- if (eq (toBicepEnv $env).BicepEnvType "keyVaultSecret") }}
         {
           name: '{{ (toBicepEnv $env).SecretName }}'
@@ -588,12 +588,6 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
         }
         env: union([
           {{- range $env := .Envs }}
-          {
-            name: '{{ $env.Name }}'
-            value: '{{ $env.Value }}'
-          }
-          {{- end}}
-          {{- range $env := .ResourceConnectionEnvs }}
           {{- if (or (eq (toBicepEnv $env).BicepEnvType "keyVaultSecret") (eq (toBicepEnv $env).BicepEnvType "secret")) }}
           {
             name: '{{ (toBicepEnv $env).Name }}'
@@ -602,11 +596,11 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {{- end}}
           {{- if (eq (toBicepEnv $env).BicepEnvType "plainText") }}
           {
-            name: '{{ $env.Name }}'
-            {{- if (eq (toBicepEnv $env).Value "__PlaceHolderForServiceIdentityClientId")}}
+            name: '{{ (toBicepEnv $env).Name }}'
+            {{- if (eq (toBicepEnv $env).PlainTextValue "__PlaceHolderForServiceIdentityClientId")}}
             value: {{bicepName $service.Name}}Identity.outputs.clientId
             {{- else}}
-            value: '{{ (toBicepEnv $env).Value }}'
+            value: '{{ (toBicepEnv $env).PlainTextValue }}'
             {{- end}}
           }
           {{- end}}

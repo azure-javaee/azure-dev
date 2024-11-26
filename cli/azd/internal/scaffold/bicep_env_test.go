@@ -30,9 +30,9 @@ func TestGetEnvBicepInfo(t *testing.T) {
 				PlainTextValue: "true",
 			},
 			want: BicepEnv{
-				BicepEnvType: BicepEnvTypePlainText,
-				Name:         "enable-customer-related-feature",
-				Value:        "true",
+				BicepEnvType:   BicepEnvTypePlainText,
+				Name:           "enable-customer-related-feature",
+				PlainTextValue: "true",
 			},
 		},
 		{
@@ -43,9 +43,9 @@ func TestGetEnvBicepInfo(t *testing.T) {
 				PlainTextValue: "premium",
 			},
 			want: BicepEnv{
-				BicepEnvType: BicepEnvTypePlainText,
-				Name:         "spring.jms.servicebus.pricing-tier",
-				Value:        "premium",
+				BicepEnvType:   BicepEnvTypePlainText,
+				Name:           "spring.jms.servicebus.pricing-tier",
+				PlainTextValue: "premium",
 			},
 		},
 		{
@@ -57,11 +57,11 @@ func TestGetEnvBicepInfo(t *testing.T) {
 				ResourceInfoType: ResourceInfoTypePort,
 			},
 			want: BicepEnv{
-				BicepEnvType: BicepEnvTypePlainText,
-				Name:         "POSTGRES_PORT",
-				Value:        "5432",
-				SecretName:   "",
-				SecretValue:  "",
+				BicepEnvType:   BicepEnvTypePlainText,
+				Name:           "POSTGRES_PORT",
+				PlainTextValue: "5432",
+				SecretName:     "",
+				SecretValue:    "",
 			},
 		},
 		{

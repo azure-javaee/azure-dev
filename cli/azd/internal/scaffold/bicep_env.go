@@ -14,9 +14,9 @@ func ToBicepEnv(env Env) BicepEnv {
 		}
 	case EnvTypePlainText, EnvTypeResourceConnectionPlainText:
 		return BicepEnv{
-			BicepEnvType: BicepEnvTypePlainText,
-			Name:         env.Name,
-			Value:        env.PlainTextValue,
+			BicepEnvType:   BicepEnvTypePlainText,
+			Name:           env.Name,
+			PlainTextValue: env.PlainTextValue,
 		}
 	case EnvTypeResourceConnectionResourceInfo:
 		value, ok := resourceSpecificBicepEnvValue[env.ResourceType][env.ResourceInfoType]
@@ -41,9 +41,9 @@ func ToBicepEnv(env Env) BicepEnv {
 			}
 		} else {
 			return BicepEnv{
-				BicepEnvType: BicepEnvTypePlainText,
-				Name:         env.Name,
-				Value:        value,
+				BicepEnvType:   BicepEnvTypePlainText,
+				Name:           env.Name,
+				PlainTextValue: value,
 			}
 		}
 	default:
@@ -52,11 +52,11 @@ func ToBicepEnv(env Env) BicepEnv {
 }
 
 type BicepEnv struct {
-	BicepEnvType BicepEnvType
-	Name         string
-	Value        string
-	SecretName   string
-	SecretValue  string
+	BicepEnvType   BicepEnvType
+	Name           string
+	PlainTextValue string
+	SecretName     string
+	SecretValue    string
 }
 
 type BicepEnvType string
