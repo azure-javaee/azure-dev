@@ -369,6 +369,7 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 					"which is doen't add necessary environment variable",
 					userResource.Name, usedResource.Name, usedResource.Name, usedResource.Type)
 			}
+			console.Message(ctx, "\n")
 		}
 	}
 	return nil
