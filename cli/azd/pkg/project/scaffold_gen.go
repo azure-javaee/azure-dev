@@ -21,14 +21,13 @@ import (
 )
 
 // Generates the in-memory contents of an `infra` directory.
-func infraFs(_ context.Context, prjConfig *ProjectConfig,
-	console *input.Console, context *context.Context) (fs.FS, error) {
+func infraFs(cxt context.Context, prjConfig *ProjectConfig, console input.Console) (fs.FS, error) {
 	t, err := scaffold.Load()
 	if err != nil {
 		return nil, fmt.Errorf("loading scaffold templates: %w", err)
 	}
 
-	infraSpec, err := infraSpec(prjConfig, console, context)
+	infraSpec, err := infraSpec(prjConfig, console, cxt)
 	if err != nil {
 		return nil, fmt.Errorf("generating infrastructure spec: %w", err)
 	}
@@ -45,14 +44,13 @@ func infraFs(_ context.Context, prjConfig *ProjectConfig,
 func tempInfra(
 	ctx context.Context,
 	prjConfig *ProjectConfig,
-	console *input.Console,
-	context *context.Context) (*Infra, error) {
+	console input.Console) (*Infra, error) {
 	tmpDir, err := os.MkdirTemp("", "azd-infra")
 	if err != nil {
 		return nil, fmt.Errorf("creating temporary directory: %w", err)
 	}
 
-	files, err := infraFs(ctx, prjConfig, console, context)
+	files, err := infraFs(ctx, prjConfig, console)
 	if err != nil {
 		return nil, err
 	}
@@ -95,8 +93,8 @@ func tempInfra(
 // Generates the filesystem of all infrastructure files to be placed, rooted at the project directory.
 // The content only includes `./infra` currently.
 func infraFsForProject(ctx context.Context, prjConfig *ProjectConfig,
-	console *input.Console, context *context.Context) (fs.FS, error) {
-	infraFS, err := infraFs(ctx, prjConfig, console, context)
+	console input.Console) (fs.FS, error) {
+	infraFS, err := infraFs(ctx, prjConfig, console)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +135,7 @@ func infraFsForProject(ctx context.Context, prjConfig *ProjectConfig,
 }
 
 func infraSpec(projectConfig *ProjectConfig,
-	console *input.Console, context *context.Context) (*scaffold.InfraSpec, error) {
+	console input.Console, ctx context.Context) (*scaffold.InfraSpec, error) {
 	infraSpec := scaffold.InfraSpec{}
 	for _, resource := range projectConfig.Resources {
 		switch resource.Type {
@@ -233,7 +231,7 @@ func infraSpec(projectConfig *ProjectConfig,
 		return nil, err
 	}
 
-	err = printHintsAboutUses(&infraSpec, projectConfig, console, context)
+	err = printHintsAboutUses(&infraSpec, projectConfig, console, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -326,8 +324,7 @@ func addUsage(infraSpec *scaffold.InfraSpec, userSpec *scaffold.ServiceSpec, use
 }
 
 func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig,
-	console *input.Console,
-	context *context.Context) error {
+	console input.Console, ctx context.Context) error {
 	for i := range infraSpec.Services {
 		userSpec := &infraSpec.Services[i]
 		userResourceName := userSpec.Name
@@ -342,7 +339,7 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 				return fmt.Errorf("in azure.yaml, (%s) uses (%s), but (%s) doesn't",
 					userResourceName, usedResourceName, usedResourceName)
 			}
-			(*console).Message(*context, fmt.Sprintf("CAUTION: \n"+
+			console.Message(ctx, fmt.Sprintf("\nInformation about environment variables:\n"+
 				"In azure.yaml, '%s' uses '%s'. \n"+
 				"The 'uses' relashipship is implemented by environment variables. \n"+
 				"Please make sure your application used the right environment variable. \n"+
@@ -363,10 +360,10 @@ func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectCo
 					return err
 				}
 				for _, variable := range variables {
-					(*console).Message(*context, fmt.Sprintf("  %s=xxx", variable.Name))
+					console.Message(ctx, fmt.Sprintf("  %s=xxx", variable.Name))
 				}
 			case ResourceTypeHostContainerApp:
-				printHintsAboutUseHostContainerApp(userResourceName, usedResourceName, console, context)
+				printHintsAboutUseHostContainerApp(userResourceName, usedResourceName, console, ctx)
 			default:
 				return fmt.Errorf("resource (%s) uses (%s), but the type of (%s) is (%s), "+
 					"which is doen't add necessary environment variable",
@@ -523,12 +520,12 @@ func getServiceSpecByName(infraSpec *scaffold.InfraSpec, name string) *scaffold.
 }
 
 func printHintsAboutUseHostContainerApp(userResourceName string, usedResourceName string,
-	console *input.Console, context *context.Context) {
-	if *console == nil {
+	console input.Console, ctx context.Context) {
+	if console == nil {
 		return
 	}
-	(*console).Message(*context, fmt.Sprintf("Environemnt variables in %s:", userResourceName))
-	(*console).Message(*context, fmt.Sprintf("%s_BASE_URL=xxx", strings.ToUpper(usedResourceName)))
-	(*console).Message(*context, fmt.Sprintf("Environemnt variables in %s:", usedResourceName))
-	(*console).Message(*context, fmt.Sprintf("%s_BASE_URL=xxx", strings.ToUpper(userResourceName)))
+	console.Message(ctx, fmt.Sprintf("Environemnt variables in %s:", userResourceName))
+	console.Message(ctx, fmt.Sprintf("%s_BASE_URL=xxx", strings.ToUpper(usedResourceName)))
+	console.Message(ctx, fmt.Sprintf("Environemnt variables in %s:", usedResourceName))
+	console.Message(ctx, fmt.Sprintf("%s_BASE_URL=xxx", strings.ToUpper(userResourceName)))
 }
