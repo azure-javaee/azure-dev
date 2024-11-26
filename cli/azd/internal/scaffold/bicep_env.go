@@ -75,7 +75,7 @@ func removeQuotationIfItIsASingleVariable(input string) string {
 	}
 }
 
-// As commented in BicepEnv, The Value is handled as variable by default.
+// The BicepEnv.PlainTextValue is handled as variable by default.
 // If the value is string, it should contain (').
 // Here are some examples of input and output:
 // inputStringExample -> 'inputStringExample'
@@ -87,9 +87,10 @@ func toBicepEnvPlainTextValue(input string) string {
 
 // BicepEnv
 //
-// When Name or SecretName be used in bicep file, quotation will be added , because they are always string value.
-// For PlainTextValue and SecretValue, they should contain quotation if they are string value, otherwise it will be
-// handled as variable.
+// For Name and SecretName, they are handled as string by default.
+// Which means quotation will be added before usage in bicep file, because they are always string value.
+// For PlainTextValue and SecretValue, they are handled as variable by default.
+// They should contain quotation by themselves if they are string value.
 type BicepEnv struct {
 	BicepEnvType   BicepEnvType
 	Name           string
