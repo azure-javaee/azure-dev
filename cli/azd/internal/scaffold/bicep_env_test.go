@@ -32,7 +32,7 @@ func TestGetEnvBicepInfo(t *testing.T) {
 			want: BicepEnv{
 				BicepEnvType:   BicepEnvTypePlainText,
 				Name:           "enable-customer-related-feature",
-				PlainTextValue: "true",
+				PlainTextValue: "'true'",
 			},
 		},
 		{
@@ -45,7 +45,7 @@ func TestGetEnvBicepInfo(t *testing.T) {
 			want: BicepEnv{
 				BicepEnvType:   BicepEnvTypePlainText,
 				Name:           "spring.jms.servicebus.pricing-tier",
-				PlainTextValue: "premium",
+				PlainTextValue: "'premium'",
 			},
 		},
 		{
@@ -59,9 +59,7 @@ func TestGetEnvBicepInfo(t *testing.T) {
 			want: BicepEnv{
 				BicepEnvType:   BicepEnvTypePlainText,
 				Name:           "POSTGRES_PORT",
-				PlainTextValue: "5432",
-				SecretName:     "",
-				SecretValue:    "",
+				PlainTextValue: "'5432'",
 			},
 		},
 		{
@@ -76,7 +74,7 @@ func TestGetEnvBicepInfo(t *testing.T) {
 				BicepEnvType: BicepEnvTypeSecret,
 				Name:         "POSTGRES_PASSWORD",
 				SecretName:   "db-postgres-password",
-				SecretValue:  "${postgreSqlDatabasePassword}",
+				SecretValue:  "postgreSqlDatabasePassword",
 			},
 		},
 		{

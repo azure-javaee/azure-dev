@@ -562,13 +562,13 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
         {
           name: '{{ (toBicepEnv $env).SecretName }}'
           identity:{{bicepName $service.Name}}Identity.outputs.resourceId
-          keyVaultUrl: '{{ (toBicepEnv $env).SecretValue }}'
+          keyVaultUrl: {{ (toBicepEnv $env).SecretValue }}
         }
         {{- end}}
         {{- if (eq (toBicepEnv $env).BicepEnvType "secret") }}
         {
           name: '{{ (toBicepEnv $env).SecretName }}'
-          value: '{{ (toBicepEnv $env).SecretValue }}'
+          value: {{ (toBicepEnv $env).SecretValue }}
         }
         {{- end}}
         {{- end}}
@@ -600,7 +600,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
             {{- if (eq (toBicepEnv $env).PlainTextValue "__PlaceHolderForServiceIdentityClientId")}}
             value: {{bicepName $service.Name}}Identity.outputs.clientId
             {{- else}}
-            value: '{{ (toBicepEnv $env).PlainTextValue }}'
+            value: {{ (toBicepEnv $env).PlainTextValue }}
             {{- end}}
           }
           {{- end}}

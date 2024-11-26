@@ -16,7 +16,7 @@ func ToBicepEnv(env Env) BicepEnv {
 		return BicepEnv{
 			BicepEnvType:   BicepEnvTypePlainText,
 			Name:           env.Name,
-			PlainTextValue: env.PlainTextValue,
+			PlainTextValue: addQuotation(env.PlainTextValue),
 		}
 	case EnvTypeResourceConnectionResourceInfo:
 		value, ok := resourceSpecificBicepEnvValue[env.ResourceType][env.ResourceInfoType]
@@ -51,6 +51,15 @@ func ToBicepEnv(env Env) BicepEnv {
 	}
 }
 
+func addQuotation(input string) string {
+	return fmt.Sprintf("'%s'", input)
+}
+
+// BicepEnv
+//
+// When be used in bicep file, quotation will be added only for these fields: Name, SecretName, because they are always
+// string value. If other fields want to be used as sting, the itself should contain quotation, otherwise it will be
+// viewed as variable.
 type BicepEnv struct {
 	BicepEnvType   BicepEnvType
 	Name           string
@@ -70,44 +79,44 @@ const (
 
 var resourceSpecificBicepEnvValue = map[ResourceType]map[ResourceInfoType]string{
 	ResourceTypeDbPostgres: {
-		ResourceInfoTypeHost:         "${postgreServer.outputs.fqdn}",
-		ResourceInfoTypePort:         "5432",
-		ResourceInfoTypeDatabaseName: "${postgreSqlDatabaseName}",
-		ResourceInfoTypeUsername:     "${postgreSqlDatabaseUser}",
-		ResourceInfoTypePassword:     "${postgreSqlDatabasePassword}",
+		ResourceInfoTypeHost:         "postgreServer.outputs.fqdn",
+		ResourceInfoTypePort:         "'5432'",
+		ResourceInfoTypeDatabaseName: "postgreSqlDatabaseName",
+		ResourceInfoTypeUsername:     "postgreSqlDatabaseUser",
+		ResourceInfoTypePassword:     "postgreSqlDatabasePassword",
 		ResourceInfoTypeUrl:          "postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
 		ResourceInfoTypeJdbcUrl:      "jdbc:postgresql://${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}",
 	},
 	ResourceTypeDbMySQL: {
-		ResourceInfoTypeHost:         "${mysqlServer.outputs.fqdn}",
-		ResourceInfoTypePort:         "3306",
-		ResourceInfoTypeDatabaseName: "${mysqlDatabaseName}",
-		ResourceInfoTypeUsername:     "${mysqlDatabaseUser}",
-		ResourceInfoTypePassword:     "${mysqlDatabasePassword}",
+		ResourceInfoTypeHost:         "mysqlServer.outputs.fqdn",
+		ResourceInfoTypePort:         "'3306'",
+		ResourceInfoTypeDatabaseName: "mysqlDatabaseName",
+		ResourceInfoTypeUsername:     "mysqlDatabaseUser",
+		ResourceInfoTypePassword:     "mysqlDatabasePassword",
 		ResourceInfoTypeUrl:          "mysql://${mysqlDatabaseUser}:${mysqlDatabasePassword}@${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}",
 		ResourceInfoTypeJdbcUrl:      "jdbc:mysql://${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}",
 	},
 	ResourceTypeDbRedis: {
-		ResourceInfoTypeHost:     "${redis.outputs.hostName}",
-		ResourceInfoTypePort:     "${redis.outputs.sslPort}",
+		ResourceInfoTypeHost:     "redis.outputs.hostName",
+		ResourceInfoTypePort:     "redis.outputs.sslPort",
 		ResourceInfoTypeEndpoint: "${redis.outputs.hostName}:${redis.outputs.sslPort}",
 		ResourceInfoTypePassword: wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/REDIS-PASSWORD"),
 		ResourceInfoTypeUrl:      wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/REDIS-URL"),
 	},
 	ResourceTypeDbMongo: {
-		ResourceInfoTypeDatabaseName: "${mongoDatabaseName}",
+		ResourceInfoTypeDatabaseName: "mongoDatabaseName",
 		ResourceInfoTypeUrl:          wrapToKeyVaultSecretValue("cosmos.outputs.exportedSecrets['MONGODB-URL'].secretUri"),
 	},
 	ResourceTypeDbCosmos: {
-		ResourceInfoTypeEndpoint:     "${cosmos.outputs.endpoint}",
-		ResourceInfoTypeDatabaseName: "${cosmosDatabaseName}",
+		ResourceInfoTypeEndpoint:     "cosmos.outputs.endpoint",
+		ResourceInfoTypeDatabaseName: "cosmosDatabaseName",
 	},
 	ResourceTypeMessagingServiceBus: {
-		ResourceInfoTypeNamespace:        "${serviceBusNamespace.outputs.name}",
+		ResourceInfoTypeNamespace:        "serviceBusNamespace.outputs.name",
 		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/SERVICEBUS-CONNECTION-STRING"),
 	},
 	ResourceTypeMessagingEventHubs: {
-		ResourceInfoTypeNamespace:        "${eventHubNamespace.outputs.name}",
+		ResourceInfoTypeNamespace:        "eventHubNamespace.outputs.name",
 		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING"),
 	},
 	ResourceTypeMessagingKafka: {
@@ -115,11 +124,11 @@ var resourceSpecificBicepEnvValue = map[ResourceType]map[ResourceInfoType]string
 		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/EVENT-HUBS-CONNECTION-STRING"),
 	},
 	ResourceTypeStorage: {
-		ResourceInfoTypeAccountName:      "${storageAccountName}",
+		ResourceInfoTypeAccountName:      "storageAccountName",
 		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("${keyVault.outputs.uri}secrets/STORAGE-ACCOUNT-CONNECTION-STRING"),
 	},
 	ResourceTypeOpenAiModel: {
-		ResourceInfoTypeEndpoint: "${account.outputs.endpoint}",
+		ResourceInfoTypeEndpoint: "account.outputs.endpoint",
 	},
 	ResourceTypeHostContainerApp: {},
 }
