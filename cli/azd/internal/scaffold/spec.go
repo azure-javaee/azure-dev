@@ -128,8 +128,8 @@ const (
 )
 
 func (env *Env) ToString() string {
-	return fmt.Sprintf("Env(Name=%s, ResourceType=%s, ResourceInfoType=%s)",
-		env.Name, env.ResourceType, env.ResourceInfoType)
+	return fmt.Sprintf("Env(EnvType=%s, Name=%s, PlainTextValue=%s, ResourceType=%s, ResourceInfoType=%s)",
+		env.EnvType, env.Name, env.PlainTextValue, env.ResourceType, env.ResourceInfoType)
 }
 
 // todo merge ResourceType and project.ResourceType
