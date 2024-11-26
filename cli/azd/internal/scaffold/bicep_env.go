@@ -133,7 +133,7 @@ var resourceSpecificBicepEnvValue = map[ResourceType]map[ResourceInfoType]string
 	},
 	ResourceTypeDbRedis: {
 		ResourceInfoTypeHost:     "redis.outputs.hostName",
-		ResourceInfoTypePort:     "redis.outputs.sslPort",
+		ResourceInfoTypePort:     "string(redis.outputs.sslPort)",
 		ResourceInfoTypeEndpoint: "'${redis.outputs.hostName}:${redis.outputs.sslPort}'",
 		ResourceInfoTypePassword: wrapToKeyVaultSecretValue("'${keyVault.outputs.uri}secrets/REDIS-PASSWORD'"),
 		ResourceInfoTypeUrl:      wrapToKeyVaultSecretValue("'${keyVault.outputs.uri}secrets/REDIS-URL'"),
