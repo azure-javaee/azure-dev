@@ -83,7 +83,7 @@ var resourceSpecificBicepEnvValue = map[ResourceType]map[ResourceInfoType]string
 		ResourceInfoTypePort:         "3306",
 		ResourceInfoTypeDatabaseName: "${mysqlDatabaseName}",
 		ResourceInfoTypeUsername:     "${mysqlDatabaseUser}",
-		ResourceInfoTypePassword:     "${mySqlDatabasePassword}",
+		ResourceInfoTypePassword:     "${mysqlDatabasePassword}",
 		ResourceInfoTypeUrl:          "mysql://${mysqlDatabaseUser}:${mysqlDatabasePassword}@${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}",
 		ResourceInfoTypeJdbcUrl:      "jdbc:mysql://${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}",
 	},
