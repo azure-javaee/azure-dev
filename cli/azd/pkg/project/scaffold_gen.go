@@ -318,7 +318,7 @@ func addUsage(infraSpec *scaffold.InfraSpec, userSpec *scaffold.ServiceSpec, use
 	if err != nil {
 		return err
 	}
-	userSpec.ResourceConnectionEnvs, err = mergeResourceConnectionEnvWithDuplicationCheck(userSpec.ResourceConnectionEnvs, envs)
+	userSpec.Envs, err = mergeEnvWithDuplicationCheck(userSpec.Envs, envs)
 	if err != nil {
 		return err
 	}

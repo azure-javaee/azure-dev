@@ -5,20 +5,20 @@ import (
 	"strings"
 )
 
-func ToBicepEnv(env ResourceConnectionEnv) BicepEnv {
-	switch env.ResourceConnectionEnvType {
-	case ResourceConnectionEnvTypeServiceConnectorCreated:
+func ToBicepEnv(env Env) BicepEnv {
+	switch env.EnvType {
+	case EnvTypeResourceConnectionServiceConnectorCreated:
 		return BicepEnv{
-			BicepEnvType: BicepEnvTypeServiceConnectorCreated,
+			BicepEnvType: BicepEnvTypeOthers,
 			Name:         env.Name,
 		}
-	case ResourceConnectionEnvTypePlainText:
+	case EnvTypePlainText, EnvTypeResourceConnectionPlainText:
 		return BicepEnv{
 			BicepEnvType: BicepEnvTypePlainText,
 			Name:         env.Name,
 			Value:        env.PlainTextValue,
 		}
-	case ResourceConnectionEnvTypeResourceSpecific:
+	case EnvTypeResourceConnectionResourceInfo:
 		value, ok := resourceSpecificBicepEnvValue[env.ResourceType][env.ResourceInfoType]
 		if !ok {
 			panic(unsupportedType(env))
@@ -62,10 +62,10 @@ type BicepEnv struct {
 type BicepEnvType string
 
 const (
-	BicepEnvTypeServiceConnectorCreated BicepEnvType = "serviceConnectorCreated"
-	BicepEnvTypePlainText               BicepEnvType = "plainText"
-	BicepEnvTypeSecret                  BicepEnvType = "secret"
-	BicepEnvTypeKeyVaultSecret          BicepEnvType = "keyVaultSecret"
+	BicepEnvTypePlainText      BicepEnvType = "plainText"
+	BicepEnvTypeSecret         BicepEnvType = "secret"
+	BicepEnvTypeKeyVaultSecret BicepEnvType = "keyVaultSecret"
+	BicepEnvTypeOthers         BicepEnvType = "others" // This will not be added in to bicep file
 )
 
 var resourceSpecificBicepEnvValue = map[ResourceType]map[ResourceInfoType]string{
@@ -124,7 +124,7 @@ var resourceSpecificBicepEnvValue = map[ResourceType]map[ResourceInfoType]string
 	ResourceTypeHostContainerApp: {},
 }
 
-func unsupportedType(env ResourceConnectionEnv) string {
+func unsupportedType(env Env) string {
 	return fmt.Sprintf("unsupported connection info type for resource type. "+
 		"resourceType = %s, connectionInfoType = %s", env.ResourceType, env.ResourceInfoType)
 }
@@ -137,7 +137,7 @@ func isSecret(info ResourceInfoType) bool {
 	return info == ResourceInfoTypePassword || info == ResourceInfoTypeUrl || info == ResourceInfoTypeConnectionString
 }
 
-func secretName(env ResourceConnectionEnv) string {
+func secretName(env Env) string {
 	name := fmt.Sprintf("%s-%s", env.ResourceType, env.ResourceInfoType)
 	lowerCaseName := strings.ToLower(name)
 	noDotName := strings.Replace(lowerCaseName, ".", "-", -1)

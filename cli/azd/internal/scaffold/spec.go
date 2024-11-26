@@ -98,8 +98,7 @@ type ServiceSpec struct {
 	Name string
 	Port int
 
-	Envs                   []Env
-	ResourceConnectionEnvs []ResourceConnectionEnv
+	Envs []Env
 
 	// Front-end properties.
 	Frontend *Frontend
@@ -109,28 +108,27 @@ type ServiceSpec struct {
 }
 
 type Env struct {
-	Name  string
-	Value string
+	EnvType          EnvType
+	Name             string
+	PlainTextValue   string
+	ResourceType     ResourceType
+	ResourceInfoType ResourceInfoType
 }
 
-type ResourceConnectionEnv struct {
-	ResourceConnectionEnvType ResourceConnectionEnvType
-	Name                      string
-	PlainTextValue            string
-	ResourceType              ResourceType
-	ResourceInfoType          ResourceInfoType
-}
+type EnvType string
 
-type ResourceConnectionEnvType string
-
+// The difference between EnvTypePlainText and EnvTypeResourceConnectionPlainText is that
+// EnvTypePlainText include env added by azure.yaml, will not appear in console output about "uses".
+// EnvTypeResourceConnectionPlainText will appear in console output about "uses".
 const (
-	ResourceConnectionEnvTypePlainText               ResourceConnectionEnvType = "plainText"
-	ResourceConnectionEnvTypeResourceSpecific        ResourceConnectionEnvType = "resourceSpecific"
-	ResourceConnectionEnvTypeServiceConnectorCreated ResourceConnectionEnvType = "serviceConnectorCreated"
+	EnvTypePlainText                                 EnvType = "plainText"
+	EnvTypeResourceConnectionPlainText               EnvType = "resourceConnectionPlainText"
+	EnvTypeResourceConnectionResourceInfo            EnvType = "resourceConnectionResourceInfo"
+	EnvTypeResourceConnectionServiceConnectorCreated EnvType = "resourceConnectionServiceConnectorCreated"
 )
 
-func (env *ResourceConnectionEnv) ToString() string {
-	return fmt.Sprintf("ResourceConnectionEnv(Name=%s, ResourceType=%s, ResourceInfoType=%s)",
+func (env *Env) ToString() string {
+	return fmt.Sprintf("Env(Name=%s, ResourceType=%s, ResourceInfoType=%s)",
 		env.Name, env.ResourceType, env.ResourceInfoType)
 }
 

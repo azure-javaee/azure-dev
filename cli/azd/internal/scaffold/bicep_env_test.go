@@ -8,26 +8,39 @@ import (
 func TestGetEnvBicepInfo(t *testing.T) {
 	tests := []struct {
 		name string
-		in   ResourceConnectionEnv
+		in   Env
 		want BicepEnv
 	}{
 		{
 			name: "Service connector created",
-			in: ResourceConnectionEnv{
-				ResourceConnectionEnvType: ResourceConnectionEnvTypeServiceConnectorCreated,
-				Name:                      "spring.datasource.url",
+			in: Env{
+				EnvType: EnvTypeResourceConnectionServiceConnectorCreated,
+				Name:    "spring.datasource.url",
 			},
 			want: BicepEnv{
-				BicepEnvType: BicepEnvTypeServiceConnectorCreated,
+				BicepEnvType: BicepEnvTypeOthers,
 				Name:         "spring.datasource.url",
 			},
 		},
 		{
-			name: "Plain text created by ResourceConnectionEnvTypePlainText",
-			in: ResourceConnectionEnv{
-				ResourceConnectionEnvType: ResourceConnectionEnvTypePlainText,
-				Name:                      "spring.jms.servicebus.pricing-tier",
-				PlainTextValue:            "premium",
+			name: "Plain text",
+			in: Env{
+				EnvType:        EnvTypePlainText,
+				Name:           "enable-customer-related-feature",
+				PlainTextValue: "true",
+			},
+			want: BicepEnv{
+				BicepEnvType: BicepEnvTypePlainText,
+				Name:         "enable-customer-related-feature",
+				Value:        "true",
+			},
+		},
+		{
+			name: "Plain text from EnvTypeResourceConnectionPlainText",
+			in: Env{
+				EnvType:        EnvTypeResourceConnectionPlainText,
+				Name:           "spring.jms.servicebus.pricing-tier",
+				PlainTextValue: "premium",
 			},
 			want: BicepEnv{
 				BicepEnvType: BicepEnvTypePlainText,
@@ -36,12 +49,12 @@ func TestGetEnvBicepInfo(t *testing.T) {
 			},
 		},
 		{
-			name: "Plain text created by ResourceConnectionEnvTypeResourceSpecific",
-			in: ResourceConnectionEnv{
-				ResourceConnectionEnvType: ResourceConnectionEnvTypeResourceSpecific,
-				Name:                      "POSTGRES_PORT",
-				ResourceType:              ResourceTypeDbPostgres,
-				ResourceInfoType:          ResourceInfoTypePort,
+			name: "Plain text from EnvTypeResourceConnectionResourceInfo",
+			in: Env{
+				EnvType:          EnvTypeResourceConnectionResourceInfo,
+				Name:             "POSTGRES_PORT",
+				ResourceType:     ResourceTypeDbPostgres,
+				ResourceInfoType: ResourceInfoTypePort,
 			},
 			want: BicepEnv{
 				BicepEnvType: BicepEnvTypePlainText,
@@ -53,11 +66,11 @@ func TestGetEnvBicepInfo(t *testing.T) {
 		},
 		{
 			name: "Secret",
-			in: ResourceConnectionEnv{
-				ResourceConnectionEnvType: ResourceConnectionEnvTypeResourceSpecific,
-				Name:                      "POSTGRES_PASSWORD",
-				ResourceType:              ResourceTypeDbPostgres,
-				ResourceInfoType:          ResourceInfoTypePassword,
+			in: Env{
+				EnvType:          EnvTypeResourceConnectionResourceInfo,
+				Name:             "POSTGRES_PASSWORD",
+				ResourceType:     ResourceTypeDbPostgres,
+				ResourceInfoType: ResourceInfoTypePassword,
 			},
 			want: BicepEnv{
 				BicepEnvType: BicepEnvTypeSecret,
@@ -68,11 +81,11 @@ func TestGetEnvBicepInfo(t *testing.T) {
 		},
 		{
 			name: "KeuVault Secret",
-			in: ResourceConnectionEnv{
-				ResourceConnectionEnvType: ResourceConnectionEnvTypeResourceSpecific,
-				Name:                      "REDIS_PASSWORD",
-				ResourceType:              ResourceTypeDbRedis,
-				ResourceInfoType:          ResourceInfoTypePassword,
+			in: Env{
+				EnvType:          EnvTypeResourceConnectionResourceInfo,
+				Name:             "REDIS_PASSWORD",
+				ResourceType:     ResourceTypeDbRedis,
+				ResourceInfoType: ResourceInfoTypePassword,
 			},
 			want: BicepEnv{
 				BicepEnvType: BicepEnvTypeKeyVaultSecret,
