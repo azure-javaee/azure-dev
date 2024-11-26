@@ -77,6 +77,7 @@ const (
 	BicepEnvTypeOthers         BicepEnvType = "others" // This will not be added in to bicep file
 )
 
+// Note: If the value is string, it should add quotation, otherwise it will be viewed as variable.
 var resourceSpecificBicepEnvValue = map[ResourceType]map[ResourceInfoType]string{
 	ResourceTypeDbPostgres: {
 		ResourceInfoTypeHost:         "postgreServer.outputs.fqdn",
