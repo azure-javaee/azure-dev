@@ -18,4 +18,4 @@ resource serviceBusConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@202
   }
 }
 
-output keyVaultUrl string = 'https://${keyVaultName}.vault.azure.net/secrets/${connectionStringSecretName}'
+output keyVaultUrl string = 'https://${keyVaultName}${environment().suffixes.keyvaultDns}/secrets/${connectionStringSecretName}'

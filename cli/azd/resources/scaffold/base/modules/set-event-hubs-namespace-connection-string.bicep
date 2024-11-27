@@ -18,4 +18,4 @@ resource connectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' =
   }
 }
 
-output keyVaultUrl string = 'https://${keyVaultName}.vault.azure.net/secrets/${connectionStringSecretName}'
+output keyVaultUrl string = 'https://${keyVaultName}${environment().suffixes.keyvaultDns}/secrets/${connectionStringSecretName}'
