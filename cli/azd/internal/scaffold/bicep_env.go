@@ -156,7 +156,7 @@ var bicepEnv = map[ResourceType]map[ResourceInfoType]string{
 		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("eventHubsConnectionString.outputs.keyVaultUrl"),
 	},
 	ResourceTypeMessagingKafka: {
-		ResourceInfoTypeEndpoint:         "'${eventHubNamespace.outputs.name}.servicebus.windows.net:909'",
+		ResourceInfoTypeEndpoint:         "'${eventHubNamespace.outputs.name}.servicebus.windows.net:9093'",
 		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("eventHubsConnectionString.outputs.keyVaultUrl"),
 	},
 	ResourceTypeStorage: {
