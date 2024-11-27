@@ -308,6 +308,7 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 					return err
 				}
 			case ResourceTypeOpenAiModel:
+				userSpec.AIModels = append(userSpec.AIModels, scaffold.AIModelReference{Name: usedResource.Name})
 				err := addUsageByEnv(infraSpec, userSpec, usedResource)
 				if err != nil {
 					return err
