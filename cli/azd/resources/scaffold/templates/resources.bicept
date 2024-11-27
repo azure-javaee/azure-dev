@@ -936,7 +936,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {{- if (eq .DependsType "EurekaServer") }}
           {
             name: 'eureka.client.serviceUrl.defaultZone'
-            value: 'http://{{bicepName .ServiceName}}.${containerAppsEnvironment.outputs.defaultDomain}/eureka/'
+            value: 'http://{{.ServiceName}}.${containerAppsEnvironment.outputs.defaultDomain}/eureka/'
           }
           {
             name: 'eureka.client.register-with-eureka'
@@ -954,7 +954,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {{- if (eq .DependsType "ConfigServer") }}
           {
             name: 'spring.config.import'
-            value: 'optional:configserver:https://{{bicepName .ServiceName}}.${containerAppsEnvironment.outputs.defaultDomain}'
+            value: 'optional:configserver:https://{{.ServiceName}}.${containerAppsEnvironment.outputs.defaultDomain}'
           }
           {{- end}}
           {{- end}}
