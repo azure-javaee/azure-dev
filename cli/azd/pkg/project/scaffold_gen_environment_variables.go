@@ -461,6 +461,12 @@ func getResourceConnectionEnvs(usedResource *ResourceConfig,
 				// Not add this: spring.cloud.azure.eventhubs.connection-string = ""
 				// because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
 				{
+					EnvType:          scaffold.EnvTypeResourceConnectionResourceInfo,
+					Name:             "spring.cloud.stream.kafka.binder.brokers",
+					ResourceType:     scaffold.ResourceTypeMessagingKafka,
+					ResourceInfoType: scaffold.ResourceInfoTypeEndpoint,
+				},
+				{
 					EnvType:        scaffold.EnvTypeResourceConnectionPlainText,
 					Name:           "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
 					PlainTextValue: "true",
@@ -469,12 +475,6 @@ func getResourceConnectionEnvs(usedResource *ResourceConfig,
 					EnvType:        scaffold.EnvTypeResourceConnectionPlainText,
 					Name:           "spring.cloud.azure.eventhubs.credential.client-id",
 					PlainTextValue: scaffold.PlaceHolderForServiceIdentityClientId(),
-				},
-				{
-					EnvType:          scaffold.EnvTypeResourceConnectionResourceInfo,
-					Name:             "spring.cloud.stream.kafka.binder.brokers",
-					ResourceType:     scaffold.ResourceTypeMessagingKafka,
-					ResourceInfoType: scaffold.ResourceInfoTypeEndpoint,
 				},
 			}
 		case internal.AuthTypeConnectionString:
