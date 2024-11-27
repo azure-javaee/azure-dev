@@ -105,6 +105,20 @@ type ServiceSpec struct {
 
 	// Back-end properties
 	Backend *Backend
+
+	// Connection to a database
+	DbPostgres    *DatabasePostgres
+	DbMySql       *DatabaseMySql
+	DbRedis       *DatabaseRedis
+	DbCosmosMongo *DatabaseCosmosMongo
+	DbCosmos      *DatabaseCosmosAccount
+
+	// AI model connections
+	AIModels []AIModelReference
+
+	AzureServiceBus     *AzureDepServiceBus
+	AzureEventHubs      *AzureDepEventHubs
+	AzureStorageAccount *AzureDepStorageAccount
 }
 
 type Env struct {

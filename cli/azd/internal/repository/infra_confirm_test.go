@@ -188,6 +188,10 @@ func TestInitializer_infraSpecFromDetect(t *testing.T) {
 								},
 							},
 						},
+						DbPostgres: &scaffold.DatabasePostgres{
+							DatabaseName: "myappdb",
+							AuthType:     "USER_ASSIGNED_MANAGED_IDENTITY",
+						},
 					},
 					{
 						Name: "js",

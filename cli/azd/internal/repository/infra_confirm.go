@@ -126,6 +126,36 @@ func (i *Initializer) infraSpecFromDetect(
 				serviceSpec.Frontend = &scaffold.Frontend{}
 			}
 		}
+		for _, db := range svc.DatabaseDeps {
+			// filter out databases that were removed
+			if _, ok := detect.Databases[db]; !ok {
+				continue
+			}
+
+			switch db {
+			case appdetect.DbMongo:
+				serviceSpec.DbCosmosMongo = spec.DbCosmosMongo
+			case appdetect.DbPostgres:
+				serviceSpec.DbPostgres = spec.DbPostgres
+			case appdetect.DbMySql:
+				serviceSpec.DbMySql = spec.DbMySql
+			case appdetect.DbCosmos:
+				serviceSpec.DbCosmos = spec.DbCosmos
+			case appdetect.DbRedis:
+				serviceSpec.DbRedis = spec.DbRedis
+			}
+		}
+
+		for _, azureDep := range svc.AzureDeps {
+			switch azureDep.(type) {
+			case appdetect.AzureDepServiceBus:
+				serviceSpec.AzureServiceBus = spec.AzureServiceBus
+			case appdetect.AzureDepEventHubs:
+				serviceSpec.AzureEventHubs = spec.AzureEventHubs
+			case appdetect.AzureDepStorageAccount:
+				serviceSpec.AzureStorageAccount = spec.AzureStorageAccount
+			}
+		}
 
 		spec.Services = append(spec.Services, serviceSpec)
 	}
