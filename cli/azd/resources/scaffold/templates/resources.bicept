@@ -936,13 +936,25 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {{- if (eq .DependsType "EurekaServer") }}
           {
             name: 'eureka.client.serviceUrl.defaultZone'
-            value: 'http://{{bicepName .ServiceName}}.outputs.name:8761/eureka/'
+            value: 'http://{{bicepName .ServiceName}}.${containerAppsEnvironment.outputs.defaultDomain}/eureka/'
+          }
+          {
+            name: 'eureka.client.register-with-eureka'
+            value: 'true'
+          }
+          {
+            name: 'eureka.client.fetch-registry'
+            value: 'true'
+          }
+          {
+            name: 'eureka.instance.prefer-ip-address'
+            value: 'true'
           }
           {{- end}}
           {{- if (eq .DependsType "ConfigServer") }}
           {
             name: 'spring.config.import'
-            value: 'http://{{bicepName .ServiceName}}.outputs.name:8888'
+            value: 'optional:configserver:https://{{bicepName .ServiceName}}.${containerAppsEnvironment.outputs.defaultDomain}'
           }
           {{- end}}
           {{- end}}
