@@ -146,7 +146,9 @@ module cosmos 'br/public:avm/res/document-db/database-account:0.8.1' = {
     ]
     sqlRoleAssignmentsPrincipalIds: [
       {{- range .Services}}
+      {{- if .DbCosmos }}
       {{bicepName .Name}}Identity.outputs.principalId
+      {{- end}}
       {{- end}}
     ]
     sqlRoleDefinitions: [
@@ -320,8 +322,8 @@ module eventHubNamespace 'br/public:avm/res/event-hub/namespace:0.7.1' = {
     name: '${abbrs.eventHubNamespaces}${resourceToken}'
     location: location
     roleAssignments: [
-      {{- if (and .AzureEventHubs (eq .AzureEventHubs.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) }}
       {{- range .Services}}
+      {{- if (and .AzureEventHubs (eq .AzureEventHubs.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) }}
       {
         principalId: {{bicepName .Name}}Identity.outputs.principalId
         principalType: 'ServicePrincipal'
@@ -371,8 +373,8 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.14.3' = {
     }
     location: location
     roleAssignments: [
-      {{- if (and .AzureStorageAccount (eq .AzureStorageAccount.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) }}
       {{- range .Services}}
+      {{- if (and .AzureStorageAccount (eq .AzureStorageAccount.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) }}
       {
         principalId: {{bicepName .Name}}Identity.outputs.principalId
         principalType: 'ServicePrincipal'
@@ -410,8 +412,8 @@ module serviceBusNamespace 'br/public:avm/res/service-bus/namespace:0.10.0' = {
     // Non-required parameters
     location: location
     roleAssignments: [
-      {{- if (and .AzureServiceBus (eq .AzureServiceBus.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) }}
       {{- range .Services}}
+      {{- if (and .AzureServiceBus (eq .AzureServiceBus.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) }}
       {
         principalId: {{bicepName .Name}}Identity.outputs.principalId
         principalType: 'ServicePrincipal'
@@ -504,7 +506,7 @@ module {{bicepName .Name}}Identity 'br/public:avm/res/managed-identity/user-assi
   }
 }
 
-{{- if $.AIModels }}
+{{- if .AIModels }}
 resource {{bicepName .Name}}OpenAIIdentity 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(subscription().id, resourceGroup().id, '{{bicepName .Name}}identity', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
   properties: {
