@@ -122,24 +122,35 @@ type ServiceSpec struct {
 }
 
 type Env struct {
-	EnvType          EnvType
-	Name             string
-	PlainTextValue   string
-	ResourceType     ResourceType
-	ResourceInfoType ResourceInfoType
+	Name  string
+	Value string
 }
 
-type EnvType string
+var resourceConnectionEnvPrefix = "$resource.connection"
 
-// The difference between EnvTypePlainText and EnvTypeResourceConnectionPlainText is that
-// EnvTypePlainText include env added by azure.yaml, will not appear in console output about "uses".
-// EnvTypeResourceConnectionPlainText will appear in console output about "uses".
-const (
-	EnvTypePlainText                                 EnvType = "plainText"
-	EnvTypeResourceConnectionPlainText               EnvType = "resourceConnectionPlainText"
-	EnvTypeResourceConnectionResourceInfo            EnvType = "resourceConnectionResourceInfo"
-	EnvTypeResourceConnectionServiceConnectorCreated EnvType = "resourceConnectionServiceConnectorCreated"
-)
+func isResourceConnectionEnv(env string) bool {
+	if !strings.HasPrefix(env, resourceConnectionEnvPrefix) {
+		return false
+	}
+	a := strings.Split(env, ":")
+	if len(a) != 3 {
+		return false
+	}
+	return a[0] != "" && a[1] != "" && a[2] != ""
+}
+
+func ToResourceConnectionEnv(resourceType ResourceType, resourceInfoType ResourceInfoType) string {
+	return fmt.Sprintf("%s:%s:%s", resourceConnectionEnvPrefix, resourceType, resourceInfoType)
+}
+
+func toResourceConnectionInfo(resourceConnectionEnv string) (resourceType ResourceType,
+	resourceInfoType ResourceInfoType) {
+	if !isResourceConnectionEnv(resourceConnectionEnv) {
+		return "", ""
+	}
+	a := strings.Split(resourceConnectionEnv, ":")
+	return ResourceType(a[1]), ResourceInfoType(a[2])
+}
 
 // todo merge ResourceType and project.ResourceType
 // Not use project.ResourceType because it will cause cycle import.

@@ -560,6 +560,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
     secrets: {
       secureList:  union([
         {{- range $env := .Envs}}
+        {{- if (shouldAddToBicepFile $service $env.Name) }}
         {{- if (eq (toBicepEnv $env).BicepEnvType "keyVaultSecret") }}
         {
           name: '{{ (toBicepEnv $env).SecretName }}'
@@ -572,6 +573,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           name: '{{ (toBicepEnv $env).SecretName }}'
           value: {{ (toBicepEnv $env).SecretValue }}
         }
+        {{- end}}
         {{- end}}
         {{- end}}
       ],
@@ -590,6 +592,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
         }
         env: union([
           {{- range $env := .Envs }}
+          {{- if (shouldAddToBicepFile $service $env.Name) }}
           {{- if (or (eq (toBicepEnv $env).BicepEnvType "keyVaultSecret") (eq (toBicepEnv $env).BicepEnvType "secret")) }}
           {
             name: '{{ (toBicepEnv $env).Name }}'
@@ -605,6 +608,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
             value: {{ (toBicepEnv $env).PlainTextValue }}
             {{- end}}
           }
+          {{- end}}
           {{- end}}
           {{- end}}
           {

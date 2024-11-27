@@ -2,28 +2,18 @@ package scaffold
 
 import (
 	"fmt"
+	"github.com/azure/azure-dev/cli/azd/internal"
 	"strings"
 )
 
 func ToBicepEnv(env Env) BicepEnv {
-	switch env.EnvType {
-	case EnvTypeResourceConnectionServiceConnectorCreated:
-		return BicepEnv{
-			BicepEnvType: BicepEnvTypeOthers,
-			Name:         env.Name,
-		}
-	case EnvTypePlainText, EnvTypeResourceConnectionPlainText:
-		return BicepEnv{
-			BicepEnvType:   BicepEnvTypePlainText,
-			Name:           env.Name,
-			PlainTextValue: toBicepEnvPlainTextValue(env.PlainTextValue),
-		}
-	case EnvTypeResourceConnectionResourceInfo:
-		value, ok := bicepEnv[env.ResourceType][env.ResourceInfoType]
+	if isResourceConnectionEnv(env.Value) {
+		resourceType, resourceInfoType := toResourceConnectionInfo(env.Value)
+		value, ok := bicepEnv[resourceType][resourceInfoType]
 		if !ok {
 			panic(unsupportedType(env))
 		}
-		if isSecret(env.ResourceInfoType) {
+		if isSecret(resourceInfoType) {
 			if isKeyVaultSecret(value) {
 				return BicepEnv{
 					BicepEnvType: BicepEnvTypeKeyVaultSecret,
@@ -46,8 +36,27 @@ func ToBicepEnv(env Env) BicepEnv {
 				PlainTextValue: value,
 			}
 		}
-	default:
-		panic(unsupportedType(env))
+	} else {
+		return BicepEnv{
+			BicepEnvType:   BicepEnvTypePlainText,
+			Name:           env.Name,
+			PlainTextValue: toBicepEnvPlainTextValue(env.Value),
+		}
+	}
+}
+
+func ShouldAddToBicepFile(spec ServiceSpec, name string) bool {
+	return !willBeAddedByServiceConnector(spec, name)
+}
+
+func willBeAddedByServiceConnector(spec ServiceSpec, name string) bool {
+	if (spec.DbPostgres != nil && spec.DbPostgres.AuthType == internal.AuthTypeUserAssignedManagedIdentity) ||
+		(spec.DbMySql != nil && spec.DbMySql.AuthType == internal.AuthTypeUserAssignedManagedIdentity) {
+		return name == "spring.datasource.url" ||
+			name == "spring.datasource.username" ||
+			name == "spring.datasource.azure.passwordless-enabled"
+	} else {
+		return false
 	}
 }
 
@@ -108,7 +117,6 @@ const (
 	BicepEnvTypePlainText      BicepEnvType = "plainText"
 	BicepEnvTypeSecret         BicepEnvType = "secret"
 	BicepEnvTypeKeyVaultSecret BicepEnvType = "keyVaultSecret"
-	BicepEnvTypeOthers         BicepEnvType = "others" // This will not be added in to bicep file
 )
 
 // Note: The value is handled as variable.
@@ -171,7 +179,7 @@ var bicepEnv = map[ResourceType]map[ResourceInfoType]string{
 
 func unsupportedType(env Env) string {
 	return fmt.Sprintf("unsupported connection info type for resource type. "+
-		"resourceType = %s, connectionInfoType = %s", env.ResourceType, env.ResourceInfoType)
+		"value = %s", env.Value)
 }
 
 func PlaceHolderForServiceIdentityClientId() string {
@@ -183,7 +191,8 @@ func isSecret(info ResourceInfoType) bool {
 }
 
 func secretName(env Env) string {
-	name := fmt.Sprintf("%s-%s", env.ResourceType, env.ResourceInfoType)
+	resourceType, resourceInfoType := toResourceConnectionInfo(env.Value)
+	name := fmt.Sprintf("%s-%s", resourceType, resourceInfoType)
 	lowerCaseName := strings.ToLower(name)
 	noDotName := strings.Replace(lowerCaseName, ".", "-", -1)
 	noUnderscoreName := strings.Replace(noDotName, "_", "-", -1)

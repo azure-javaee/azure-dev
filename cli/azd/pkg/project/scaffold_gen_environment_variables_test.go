@@ -11,30 +11,30 @@ func TestMergeEnvWithDuplicationCheck(t *testing.T) {
 	var empty []scaffold.Env
 	name1Value1 := []scaffold.Env{
 		{
-			Name:           "name1",
-			PlainTextValue: "value1",
+			Name:  "name1",
+			Value: "value1",
 		},
 	}
 	name1Value2 := []scaffold.Env{
 		{
-			Name:           "name1",
-			PlainTextValue: "value2",
+			Name:  "name1",
+			Value: "value2",
 		},
 	}
 	name2Value2 := []scaffold.Env{
 		{
-			Name:           "name2",
-			PlainTextValue: "value2",
+			Name:  "name2",
+			Value: "value2",
 		},
 	}
 	name1Value1Name2Value2 := []scaffold.Env{
 		{
-			Name:           "name1",
-			PlainTextValue: "value1",
+			Name:  "name1",
+			Value: "value1",
 		},
 		{
-			Name:           "name2",
-			PlainTextValue: "value2",
+			Name:  "name2",
+			Value: "value2",
 		},
 	}
 
