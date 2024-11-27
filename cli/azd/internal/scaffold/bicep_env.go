@@ -19,7 +19,7 @@ func ToBicepEnv(env Env) BicepEnv {
 			PlainTextValue: toBicepEnvPlainTextValue(env.PlainTextValue),
 		}
 	case EnvTypeResourceConnectionResourceInfo:
-		value, ok := resourceSpecificBicepEnvValue[env.ResourceType][env.ResourceInfoType]
+		value, ok := bicepEnv[env.ResourceType][env.ResourceInfoType]
 		if !ok {
 			panic(unsupportedType(env))
 		}
@@ -111,8 +111,9 @@ const (
 	BicepEnvTypeOthers         BicepEnvType = "others" // This will not be added in to bicep file
 )
 
-// Note: If the value is string, it should contain quotation, otherwise it will be viewed as variable.
-var resourceSpecificBicepEnvValue = map[ResourceType]map[ResourceInfoType]string{
+// Note: The value is handled as variable.
+// If the value is string, it should contain quotation inside itself.
+var bicepEnv = map[ResourceType]map[ResourceInfoType]string{
 	ResourceTypeDbPostgres: {
 		ResourceInfoTypeHost:         "postgreServer.outputs.fqdn",
 		ResourceInfoTypePort:         "'5432'",
@@ -152,10 +153,10 @@ var resourceSpecificBicepEnvValue = map[ResourceType]map[ResourceInfoType]string
 	},
 	ResourceTypeMessagingEventHubs: {
 		ResourceInfoTypeNamespace:        "eventHubNamespace.outputs.name",
-		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("'eventHubsConnectionString.outputs.keyVaultUrl"),
+		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("eventHubsConnectionString.outputs.keyVaultUrl"),
 	},
 	ResourceTypeMessagingKafka: {
-		ResourceInfoTypeEndpoint:         "${eventHubNamespace.outputs.name}.servicebus.windows.net:909",
+		ResourceInfoTypeEndpoint:         "'${eventHubNamespace.outputs.name}.servicebus.windows.net:909'",
 		ResourceInfoTypeConnectionString: wrapToKeyVaultSecretValue("eventHubsConnectionString.outputs.keyVaultUrl"),
 	},
 	ResourceTypeStorage: {
