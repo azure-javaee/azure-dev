@@ -261,53 +261,54 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 			switch usedResource.Type {
 			case ResourceTypeDbPostgres:
 				userSpec.DbPostgres = infraSpec.DbPostgres
-				err := addUsage(infraSpec, userSpec, usedResource)
+				err := addUsageByEnv(infraSpec, userSpec, usedResource)
 				if err != nil {
 					return err
 				}
 			case ResourceTypeDbMySQL:
 				userSpec.DbMySql = infraSpec.DbMySql
-				err := addUsage(infraSpec, userSpec, usedResource)
+				err := addUsageByEnv(infraSpec, userSpec, usedResource)
 				if err != nil {
 					return err
 				}
 			case ResourceTypeDbRedis:
 				userSpec.DbRedis = infraSpec.DbRedis
-				err := addUsage(infraSpec, userSpec, usedResource)
+				err := addUsageByEnv(infraSpec, userSpec, usedResource)
 				if err != nil {
 					return err
 				}
 			case ResourceTypeDbMongo:
 				userSpec.DbCosmosMongo = infraSpec.DbCosmosMongo
-				err := addUsage(infraSpec, userSpec, usedResource)
+				err := addUsageByEnv(infraSpec, userSpec, usedResource)
 				if err != nil {
 					return err
 				}
 			case ResourceTypeDbCosmos:
 				userSpec.DbCosmos = infraSpec.DbCosmos
-				err := addUsage(infraSpec, userSpec, usedResource)
+				err := addUsageByEnv(infraSpec, userSpec, usedResource)
 				if err != nil {
 					return err
 				}
 			case ResourceTypeMessagingServiceBus:
 				userSpec.AzureServiceBus = infraSpec.AzureServiceBus
-				err := addUsage(infraSpec, userSpec, usedResource)
+				err := addUsageByEnv(infraSpec, userSpec, usedResource)
 				if err != nil {
 					return err
 				}
 			case ResourceTypeMessagingEventHubs, ResourceTypeMessagingKafka:
-				err := addUsage(infraSpec, userSpec, usedResource)
+				userSpec.AzureEventHubs = infraSpec.AzureEventHubs
+				err := addUsageByEnv(infraSpec, userSpec, usedResource)
 				if err != nil {
 					return err
 				}
 			case ResourceTypeStorage:
 				userSpec.AzureStorageAccount = infraSpec.AzureStorageAccount
-				err := addUsage(infraSpec, userSpec, usedResource)
+				err := addUsageByEnv(infraSpec, userSpec, usedResource)
 				if err != nil {
 					return err
 				}
 			case ResourceTypeOpenAiModel:
-				err := addUsage(infraSpec, userSpec, usedResource)
+				err := addUsageByEnv(infraSpec, userSpec, usedResource)
 				if err != nil {
 					return err
 				}
@@ -349,7 +350,7 @@ func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (inte
 	}
 }
 
-func addUsage(infraSpec *scaffold.InfraSpec, userSpec *scaffold.ServiceSpec, usedResource *ResourceConfig) error {
+func addUsageByEnv(infraSpec *scaffold.InfraSpec, userSpec *scaffold.ServiceSpec, usedResource *ResourceConfig) error {
 	envs, err := getResourceConnectionEnvs(usedResource, infraSpec)
 	if err != nil {
 		return err
