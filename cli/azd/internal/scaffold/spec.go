@@ -141,11 +141,6 @@ const (
 	EnvTypeResourceConnectionServiceConnectorCreated EnvType = "resourceConnectionServiceConnectorCreated"
 )
 
-func (env *Env) ToString() string {
-	return fmt.Sprintf("Env(EnvType=%s, Name=%s, PlainTextValue=%s, ResourceType=%s, ResourceInfoType=%s)",
-		env.EnvType, env.Name, env.PlainTextValue, env.ResourceType, env.ResourceInfoType)
-}
-
 // todo merge ResourceType and project.ResourceType
 // Not use project.ResourceType because it will cause cycle import.
 // Not merge it in current PR to avoid conflict with upstream main branch.

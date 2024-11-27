@@ -647,15 +647,17 @@ func unsupportedAuthTypeError(resourceType ResourceType, authType internal.AuthT
 
 func mergeEnvWithDuplicationCheck(a []scaffold.Env,
 	b []scaffold.Env) ([]scaffold.Env, error) {
-	result := append(a, b...)
+	ab := append(a, b...)
+	var result []scaffold.Env
 	seenName := make(map[string]scaffold.Env)
-	for _, value := range result {
+	for _, value := range ab {
 		if existingValue, exist := seenName[value.Name]; exist {
 			if value != existingValue {
 				return []scaffold.Env{}, duplicatedEnvError(existingValue, value)
 			}
 		} else {
-			seenName[value.Name] = existingValue
+			seenName[value.Name] = value
+			result = append(result, value)
 		}
 	}
 	return result, nil
@@ -678,8 +680,7 @@ func addNewEnvironmentVariable(serviceSpec *scaffold.ServiceSpec, name string, v
 	return nil
 }
 
-func duplicatedEnvError(existingValue scaffold.Env, value scaffold.Env) error {
-	return fmt.Errorf(
-		"duplicated environment variable. existingValue = %s, value = %s",
-		existingValue.ToString(), value.ToString())
+func duplicatedEnvError(existingValue scaffold.Env, newValue scaffold.Env) error {
+	return fmt.Errorf("duplicated environment variable. existingValue = %s, newValue = %s",
+		existingValue, newValue)
 }
