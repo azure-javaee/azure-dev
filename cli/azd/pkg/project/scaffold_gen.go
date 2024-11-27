@@ -231,7 +231,7 @@ func infraSpec(projectConfig *ProjectConfig,
 		return nil, err
 	}
 
-	err = printHintsAboutUses(&infraSpec, projectConfig, console, ctx)
+	err = printEnvListAboutUses(&infraSpec, projectConfig, console, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -362,7 +362,7 @@ func addUsageByEnv(infraSpec *scaffold.InfraSpec, userSpec *scaffold.ServiceSpec
 	return nil
 }
 
-func printHintsAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig,
+func printEnvListAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig,
 	console input.Console, ctx context.Context) error {
 	for i := range infraSpec.Services {
 		userSpec := &infraSpec.Services[i]
