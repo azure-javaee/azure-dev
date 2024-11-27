@@ -494,7 +494,7 @@ module {{bicepName .Name}}Identity 'br/public:avm/res/managed-identity/user-assi
   params: {
     name: '${abbrs.managedIdentityUserAssignedIdentities}{{bicepName .Name}}-${resourceToken}'
     location: location
-    {{- if (or (and $.DbPostgres (eq $.DbPostgres.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) (and $.DbMySql (eq $.DbMySql.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")))}}
+    {{- if (or (and .DbPostgres (eq .DbPostgres.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) (and .DbMySql (eq .DbMySql.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")))}}
     roleAssignments: [
       {
         principalId: connectionCreatorIdentity.outputs.principalId
@@ -658,7 +658,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
     environmentResourceId: containerAppsEnvironment.outputs.resourceId
     location: location
     tags: union(tags, { 'azd-service-name': '{{.Name}}' })
-    {{- if (or (and $.DbPostgres (eq $.DbPostgres.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) (and $.DbMySql (eq $.DbMySql.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")))}}
+    {{- if (or (and .DbPostgres (eq .DbPostgres.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")) (and .DbMySql (eq .DbMySql.AuthType "USER_ASSIGNED_MANAGED_IDENTITY")))}}
     roleAssignments: [
       {
         principalId: connectionCreatorIdentity.outputs.principalId
