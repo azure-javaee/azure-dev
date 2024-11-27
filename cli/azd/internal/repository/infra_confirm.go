@@ -126,6 +126,7 @@ func (i *Initializer) infraSpecFromDetect(
 				serviceSpec.Frontend = &scaffold.Frontend{}
 			}
 		}
+
 		for _, db := range svc.DatabaseDeps {
 			// filter out databases that were removed
 			if _, ok := detect.Databases[db]; !ok {
@@ -156,7 +157,6 @@ func (i *Initializer) infraSpecFromDetect(
 				serviceSpec.AzureStorageAccount = spec.AzureStorageAccount
 			}
 		}
-
 		spec.Services = append(spec.Services, serviceSpec)
 	}
 
