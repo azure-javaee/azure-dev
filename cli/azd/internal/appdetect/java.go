@@ -4,13 +4,15 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
-	"github.com/azure/azure-dev/cli/azd/internal/tracing"
-	"github.com/azure/azure-dev/cli/azd/internal/tracing/fields"
 	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+
+	"github.com/azure/azure-dev/cli/azd/internal/tracing"
+	"github.com/azure/azure-dev/cli/azd/internal/tracing/fields"
 )
 
 type javaDetector struct {
@@ -130,14 +132,36 @@ func readMavenProject(filePath string) (*mavenProject, error) {
 		return nil, err
 	}
 
+	var initialProject mavenProject
+	if err := xml.Unmarshal(bytes, &initialProject); err != nil {
+		return nil, fmt.Errorf("parsing xml: %w", err)
+	}
+
+	// replace all placeholders with properties
+	str := replaceAllPlaceholders(initialProject, string(bytes))
+
 	var project mavenProject
-	if err := xml.Unmarshal(bytes, &project); err != nil {
+	if err := xml.Unmarshal([]byte(str), &project); err != nil {
 		return nil, fmt.Errorf("parsing xml: %w", err)
 	}
 
 	project.path = filepath.Dir(filePath)
 
 	return &project, nil
+}
+
+func replaceAllPlaceholders(project mavenProject, input string) string {
+	propsMap := parseProperties(project.Properties)
+
+	re := regexp.MustCompile(`\$\{([A-Za-z0-9-_.]+)}`)
+	return re.ReplaceAllStringFunc(input, func(match string) string {
+		// Extract the key inside ${}
+		key := re.FindStringSubmatch(match)[1]
+		if value, exists := propsMap[key]; exists {
+			return value
+		}
+		return match
+	})
 }
 
 func addDockerfileUnderProject(path string) error {
@@ -168,6 +192,14 @@ ENTRYPOINT ["java", "-jar", "/app.jar"]`
 	}
 
 	return nil
+}
+
+func parseProperties(properties Properties) map[string]string {
+	result := make(map[string]string)
+	for _, entry := range properties.Entries {
+		result[entry.XMLName.Local] = entry.Value
+	}
+	return result
 }
 
 func detectDependencies(currentRoot *mavenProject, mavenProject *mavenProject, project *Project) (*Project, error) {
