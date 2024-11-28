@@ -3,6 +3,7 @@ package appdetect
 import (
 	"bufio"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -10,11 +11,7 @@ import (
 	"strings"
 )
 
-func detectDockerInDirectory(path string) (*Docker, error) {
-	entries, err := os.ReadDir(path)
-	if err != nil {
-		return nil, fmt.Errorf("reading directory: %w", err)
-	}
+func detectDockerInDirectory(path string, entries []fs.DirEntry) (*Docker, error) {
 	for _, entry := range entries {
 		if strings.ToLower(entry.Name()) == "dockerfile" {
 			dockerFilePath := filepath.Join(path, entry.Name())

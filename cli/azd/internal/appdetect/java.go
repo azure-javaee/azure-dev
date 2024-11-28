@@ -47,10 +47,6 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 				// we can say that the project is in the root project if the path is under the project
 				if inRoot := strings.HasPrefix(pomFile, rootProject.path); inRoot {
 					currentRoot = &rootProject
-					err := addDockerfileUnderProject(path)
-					if err != nil {
-						return nil, err
-					}
 				}
 			}
 
@@ -162,36 +158,6 @@ func replaceAllPlaceholders(project mavenProject, input string) string {
 		}
 		return match
 	})
-}
-
-func addDockerfileUnderProject(path string) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return fmt.Errorf("path does not exist: %s", path)
-	}
-
-	dockerfilePath := filepath.Join(path, "Dockerfile")
-	if _, err := os.Stat(dockerfilePath); err == nil {
-		fmt.Println("Dockerfile already exists, skipping creation.")
-		return nil
-	}
-
-	dockerfileContent := `ARG JAVA_VERSION=17
-FROM mcr.microsoft.com/openjdk/jdk:${JAVA_VERSION}-distroless
-COPY ./target/*.jar app.jar
-ENTRYPOINT ["java", "-jar", "/app.jar"]`
-
-	file, err := os.Create(dockerfilePath)
-	if err != nil {
-		return fmt.Errorf("failed to create Dockerfile: %w", err)
-	}
-	defer file.Close()
-
-	_, err = file.WriteString(dockerfileContent)
-	if err != nil {
-		return fmt.Errorf("failed to write to Dockerfile: %w", err)
-	}
-
-	return nil
 }
 
 func parseProperties(properties Properties) map[string]string {
