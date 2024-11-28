@@ -868,7 +868,9 @@ func processSpringCloudAzureDepByPrompt(console input.Console, ctx context.Conte
 
 	switch continueOption {
 	case 0:
-		return errors.New("you have to manually add dependency com.azure.spring:spring-cloud-azure-starter by following https://github.com/Azure/azure-sdk-for-java/wiki/Spring-Versions-Mapping")
+		return errors.New("you have to manually add dependency com.azure.spring:spring-cloud-azure-starter. " +
+			"And use right version according to this page: " +
+			"https://github.com/Azure/azure-sdk-for-java/wiki/Spring-Versions-Mapping")
 	case 1:
 		return nil
 	case 2:

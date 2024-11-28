@@ -128,8 +128,9 @@ var bicepEnv = map[ResourceType]map[ResourceInfoType]string{
 		ResourceInfoTypeDatabaseName: "postgreSqlDatabaseName",
 		ResourceInfoTypeUsername:     "postgreSqlDatabaseUser",
 		ResourceInfoTypePassword:     "postgreSqlDatabasePassword",
-		ResourceInfoTypeUrl:          "'postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'",
-		ResourceInfoTypeJdbcUrl:      "'jdbc:postgresql://${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'",
+		ResourceInfoTypeUrl: "'postgresql://${postgreSqlDatabaseUser}:${postgreSqlDatabasePassword}@" +
+			"${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'",
+		ResourceInfoTypeJdbcUrl: "'jdbc:postgresql://${postgreServer.outputs.fqdn}:5432/${postgreSqlDatabaseName}'",
 	},
 	ResourceTypeDbMySQL: {
 		ResourceInfoTypeHost:         "mysqlServer.outputs.fqdn",
@@ -137,8 +138,9 @@ var bicepEnv = map[ResourceType]map[ResourceInfoType]string{
 		ResourceInfoTypeDatabaseName: "mysqlDatabaseName",
 		ResourceInfoTypeUsername:     "mysqlDatabaseUser",
 		ResourceInfoTypePassword:     "mysqlDatabasePassword",
-		ResourceInfoTypeUrl:          "'mysql://${mysqlDatabaseUser}:${mysqlDatabasePassword}@${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}'",
-		ResourceInfoTypeJdbcUrl:      "'jdbc:mysql://${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}'",
+		ResourceInfoTypeUrl: "'mysql://${mysqlDatabaseUser}:${mysqlDatabasePassword}@" +
+			"${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}'",
+		ResourceInfoTypeJdbcUrl: "'jdbc:mysql://${mysqlServer.outputs.fqdn}:3306/${mysqlDatabaseName}'",
 	},
 	ResourceTypeDbRedis: {
 		ResourceInfoTypeHost:     "redis.outputs.hostName",
