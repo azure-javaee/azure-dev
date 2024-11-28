@@ -21,12 +21,6 @@ import (
 	"github.com/braydonk/yaml"
 )
 
-const (
-	//nolint:lll
-	// todo(haozhan): update this line for sjad private preview, need to revert it when merge into azure-dev/main branch
-	projectSchemaAnnotation = "# yaml-language-server: $schema=https://raw.githubusercontent.com/azure-javaee/azure-dev/feature/sjad/schemas/alpha/azure.yaml.json"
-)
-
 func New(ctx context.Context, projectFilePath string, projectName string) (*ProjectConfig, error) {
 	newProject := &ProjectConfig{
 		Name: projectName,

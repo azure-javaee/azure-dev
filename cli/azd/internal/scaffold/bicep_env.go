@@ -74,7 +74,7 @@ func removeQuotationIfItIsASingleVariable(input string) string {
 	if strings.HasPrefix(input, prefix) && strings.HasSuffix(input, suffix) {
 		prefixTrimmed := strings.TrimPrefix(input, prefix)
 		trimmed := strings.TrimSuffix(prefixTrimmed, suffix)
-		if strings.IndexAny(trimmed, "}") == -1 {
+		if !strings.ContainsAny(trimmed, "}") {
 			return trimmed
 		} else {
 			return input

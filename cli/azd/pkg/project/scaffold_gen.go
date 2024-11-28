@@ -449,7 +449,6 @@ func handleContainerAppProps(
 		if err != nil {
 			return err
 		}
-		return nil
 	}
 
 	port := props.Port
