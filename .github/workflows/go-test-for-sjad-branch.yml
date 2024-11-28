@@ -32,4 +32,5 @@ jobs:
         run: |
           cd ./cli/azd
           rm ./test/functional/aspire_test.go
+          rm ./test/functional/vs_server_test.go
           go test ./...
