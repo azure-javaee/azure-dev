@@ -20,6 +20,7 @@ words:
   - passwordless
   - postgre
   - mysqladmin
+  - sjad
 languageSettings:
   - languageId: go
     ignoreRegExpList:
