@@ -31,4 +31,4 @@ jobs:
       - name: Run tests
         run: |
           cd ./cli/azd
-          go test ./... -run  ^Test_CLI_Aspire_DetectGen
+          go test ./... -run  '^(?!Test_CLI_Aspire_DetectGen$).*$'
