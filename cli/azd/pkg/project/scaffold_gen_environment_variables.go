@@ -395,8 +395,9 @@ func getResourceConnectionEnvs(usedResource *ResourceConfig,
 		} else {
 			springBootVersionDecidedInformation = []scaffold.Env{
 				{
-					Name:  "spring.cloud.stream.binders.kafka.environment.spring.main.sources",
-					Value: "com.azure.spring.cloud.autoconfigure.implementation.eventhubs.kafka.AzureEventHubsKafkaAutoConfiguration",
+					Name: "spring.cloud.stream.binders.kafka.environment.spring.main.sources",
+					Value: "com.azure.spring.cloud.autoconfigure.implementation.eventhubs.kafka" +
+						".AzureEventHubsKafkaAutoConfiguration",
 				},
 			}
 		}

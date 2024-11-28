@@ -292,9 +292,8 @@ func Save(ctx context.Context, projectConfig *ProjectConfig, projectFilePath str
 		version = projectConfig.MetaSchemaVersion
 	}
 
-	annotation := fmt.Sprintf(
-		"# yaml-language-server: $schema=https://raw.githubusercontent.com/azure-javaee/azure-dev/feature/sjad/schemas/%s/azure.yaml.json",
-		version)
+	annotation := fmt.Sprintf("# yaml-language-server: $schema=https://raw.githubusercontent.com/azure-javaee/"+
+		"azure-dev/feature/sjad/schemas/%s/azure.yaml.json", version)
 	projectFileContents := bytes.NewBufferString(annotation + "\n\n")
 	_, err = projectFileContents.Write(projectBytes)
 	if err != nil {
