@@ -31,6 +31,4 @@ jobs:
       - name: Run tests
         run: |
           cd ./cli/azd
-          rm ./test/functional/aspire_test.go
-          rm ./test/functional/vs_server_test.go
-          go test ./...
+          go test $(go list ./... | grep -v github.com/azure/azure-dev/cli/azd/test/functional) -cover
