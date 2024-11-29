@@ -206,6 +206,7 @@ func infraSpec(projectConfig *ProjectConfig,
 			if err != nil {
 				return nil, err
 			}
+			serviceSpec.Envs = append(serviceSpec.Envs, serviceConfigEnv(projectConfig.Services[resource.Name])...)
 			infraSpec.Services = append(infraSpec.Services, serviceSpec)
 		case ResourceTypeOpenAiModel:
 			props := resource.Props.(AIModelProps)
@@ -382,7 +383,7 @@ func printEnvListAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *Project
 			}
 			console.Message(ctx, fmt.Sprintf("\nInformation about environment variables:\n"+
 				"In azure.yaml, '%s' uses '%s'. \n"+
-				"The 'uses' relashipship is implemented by environment variables. \n"+
+				"The 'uses' relationship is implemented by environment variables. \n"+
 				"Please make sure your application used the right environment variable. \n"+
 				"Here is the list of environment variables: ",
 				userResourceName, usedResourceName))
@@ -450,7 +451,6 @@ func handleContainerAppProps(
 		if err != nil {
 			return err
 		}
-		return nil
 	}
 
 	port := props.Port
@@ -459,12 +459,6 @@ func handleContainerAppProps(
 	}
 
 	serviceSpec.Port = port
-	for _, dependsOn := range props.DependsOn {
-		serviceSpec.DependsOn = append(serviceSpec.DependsOn, scaffold.DependsOn{
-			ServiceName: dependsOn.ServiceName,
-			DependsType: dependsOn.DependsType,
-		})
-	}
 	return nil
 }
 
@@ -517,9 +511,9 @@ func genBicepParamsFromEnvSubst(
 	if len(names) == 0 {
 		// literal string with no expressions
 		result = s
-	} else if len(names) == 1 {
+		/*} else if len(names) == 1 {
 		// single expression, return the bicep parameter name to reference the expression
-		result = "${" + scaffold.BicepName(names[0]) + "}"
+		result = "${" + scaffold.BicepName(names[0]) + "}"*/
 	} else {
 		// multiple expressions
 		// construct the string with all expressions replaced by parameter references as a Bicep interpolated string
@@ -533,6 +527,7 @@ func genBicepParamsFromEnvSubst(
 			result += "}"
 			previous = loc.stop + 1
 		}
+		result += s[previous:]
 	}
 
 	return result
@@ -576,4 +571,15 @@ func printHintsAboutUseHostContainerApp(userResourceName string, usedResourceNam
 	console.Message(ctx, fmt.Sprintf("%s_BASE_URL=xxx", strings.ToUpper(usedResourceName)))
 	console.Message(ctx, fmt.Sprintf("Environemnt variables in %s:", usedResourceName))
 	console.Message(ctx, fmt.Sprintf("%s_BASE_URL=xxx", strings.ToUpper(userResourceName)))
+}
+
+func serviceConfigEnv(svcConfig *ServiceConfig) []scaffold.Env {
+	var envs []scaffold.Env
+	for key, val := range svcConfig.Env {
+		envs = append(envs, scaffold.Env{
+			Name:  key,
+			Value: val,
+		})
+	}
+	return envs
 }

@@ -1,7 +1,6 @@
 package appdetect
 
 import (
-	"encoding/xml"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -48,32 +47,6 @@ func TestDetectSpringBootVersion(t *testing.T) {
 			"2.x",
 		},
 		{
-			"project.dependencyManagement.property",
-			nil,
-			&mavenProject{
-				Properties: Properties{
-					Entries: []Property{
-						{
-							XMLName: xml.Name{
-								Local: "version.spring.boot",
-							},
-							Value: "2.x",
-						},
-					},
-				},
-				DependencyManagement: dependencyManagement{
-					Dependencies: []dependency{
-						{
-							GroupId:    "org.springframework.boot",
-							ArtifactId: "spring-boot-dependencies",
-							Version:    "${version.spring.boot}",
-						},
-					},
-				},
-			},
-			"2.x",
-		},
-		{
 			"root.parent",
 			&mavenProject{
 				Parent: parent{
@@ -99,32 +72,6 @@ func TestDetectSpringBootVersion(t *testing.T) {
 				},
 			},
 			nil,
-			"3.x",
-		},
-		{
-			"root.dependencyManagement.property",
-			nil,
-			&mavenProject{
-				Properties: Properties{
-					Entries: []Property{
-						{
-							XMLName: xml.Name{
-								Local: "version.spring.boot",
-							},
-							Value: "3.x",
-						},
-					},
-				},
-				DependencyManagement: dependencyManagement{
-					Dependencies: []dependency{
-						{
-							GroupId:    "org.springframework.boot",
-							ArtifactId: "spring-boot-dependencies",
-							Version:    "${version.spring.boot}",
-						},
-					},
-				},
-			},
 			"3.x",
 		},
 		{
@@ -172,50 +119,48 @@ func TestDetectSpringBootVersion(t *testing.T) {
 			"3.x",
 		},
 		{
-			"both.root.and.project.dependencyManagement.property",
+			"parent.should.detect.root.when.project.not.found",
 			&mavenProject{
-				Properties: Properties{
-					Entries: []Property{
-						{
-							XMLName: xml.Name{
-								Local: "version.spring.boot",
-							},
-							Value: "2.x",
-						},
-					},
+				Parent: parent{
+					GroupId:    "org.springframework.boot",
+					ArtifactId: "spring-boot-starter-parent",
+					Version:    "2.x",
 				},
+			},
+			&mavenProject{
+				Parent: parent{
+					GroupId:    "org.springframework.test",
+					ArtifactId: "spring-boot-test-parent",
+					Version:    "3.x",
+				},
+			},
+			"2.x",
+		},
+		{
+			"dependencyManagement.should.detect.root.when.project.not.found",
+			&mavenProject{
 				DependencyManagement: dependencyManagement{
 					Dependencies: []dependency{
 						{
 							GroupId:    "org.springframework.boot",
 							ArtifactId: "spring-boot-dependencies",
-							Version:    "${version.spring.boot}",
+							Version:    "2.x",
 						},
 					},
 				},
 			},
 			&mavenProject{
-				Properties: Properties{
-					Entries: []Property{
-						{
-							XMLName: xml.Name{
-								Local: "version.spring.boot",
-							},
-							Value: "3.x",
-						},
-					},
-				},
 				DependencyManagement: dependencyManagement{
 					Dependencies: []dependency{
 						{
-							GroupId:    "org.springframework.boot",
-							ArtifactId: "spring-boot-dependencies",
-							Version:    "${version.spring.boot}",
+							GroupId:    "org.springframework.test",
+							ArtifactId: "test-dependencies",
+							Version:    "3.x",
 						},
 					},
 				},
 			},
-			"3.x",
+			"2.x",
 		},
 	}
 	for _, tt := range tests {

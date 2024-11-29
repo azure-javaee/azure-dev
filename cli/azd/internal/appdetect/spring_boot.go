@@ -255,15 +255,15 @@ func detectSpringCloudEureka(azdProject *Project, springBootProject *SpringBootP
 	var targetGroupId = "org.springframework.cloud"
 	var targetArtifactId = "spring-cloud-starter-netflix-eureka-server"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
-		azdProject.Dependencies = append(azdProject.Dependencies, EurekaServer)
-		logServiceAddedAccordingToMavenDependency(EurekaServer.Display(), targetGroupId, targetArtifactId)
+		azdProject.Dependencies = append(azdProject.Dependencies, JavaEurekaServer)
+		logServiceAddedAccordingToMavenDependency(JavaEurekaServer.Display(), targetGroupId, targetArtifactId)
 	}
 
 	targetGroupId = "org.springframework.cloud"
 	targetArtifactId = "spring-cloud-starter-netflix-eureka-client"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
-		azdProject.Dependencies = append(azdProject.Dependencies, EurekaClient)
-		logServiceAddedAccordingToMavenDependency(EurekaClient.Display(), targetGroupId, targetArtifactId)
+		azdProject.Dependencies = append(azdProject.Dependencies, JavaEurekaClient)
+		logServiceAddedAccordingToMavenDependency(JavaEurekaClient.Display(), targetGroupId, targetArtifactId)
 	}
 }
 
@@ -271,15 +271,15 @@ func detectSpringCloudConfig(azdProject *Project, springBootProject *SpringBootP
 	var targetGroupId = "org.springframework.cloud"
 	var targetArtifactId = "spring-cloud-config-server"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
-		azdProject.Dependencies = append(azdProject.Dependencies, ConfigServer)
-		logServiceAddedAccordingToMavenDependency(ConfigServer.Display(), targetGroupId, targetArtifactId)
+		azdProject.Dependencies = append(azdProject.Dependencies, JavaConfigServer)
+		logServiceAddedAccordingToMavenDependency(JavaConfigServer.Display(), targetGroupId, targetArtifactId)
 	}
 
 	targetGroupId = "org.springframework.cloud"
 	targetArtifactId = "spring-cloud-starter-config"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
-		azdProject.Dependencies = append(azdProject.Dependencies, ConfigClient)
-		logServiceAddedAccordingToMavenDependency(ConfigClient.Display(), targetGroupId, targetArtifactId)
+		azdProject.Dependencies = append(azdProject.Dependencies, JavaConfigClient)
+		logServiceAddedAccordingToMavenDependency(JavaConfigClient.Display(), targetGroupId, targetArtifactId)
 	}
 }
 

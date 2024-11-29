@@ -60,10 +60,10 @@ const (
 	PyDjango  Dependency = "django"
 	PyFastApi Dependency = "fastapi"
 
-	EurekaServer Dependency = "eureka-server"
-	EurekaClient Dependency = "eureka-client"
-	ConfigServer Dependency = "config-server"
-	ConfigClient Dependency = "config-client"
+	JavaEurekaServer Dependency = "eureka-server"
+	JavaEurekaClient Dependency = "eureka-client"
+	JavaConfigServer Dependency = "config-server"
+	JavaConfigClient Dependency = "config-client"
 )
 
 var WebUIFrameworks = map[Dependency]struct{}{
@@ -94,14 +94,14 @@ func (f Dependency) Display() string {
 		return "Vite"
 	case JsNext:
 		return "Next.js"
-	case EurekaServer:
-		return "EurekaServer"
-	case EurekaClient:
-		return "EurekaClient"
-	case ConfigServer:
-		return "ConfigServer"
-	case ConfigClient:
-		return "ConfigClient"
+	case JavaEurekaServer:
+		return "JavaEurekaServer"
+	case JavaEurekaClient:
+		return "JavaEurekaClient"
+	case JavaConfigServer:
+		return "JavaConfigServer"
+	case JavaConfigClient:
+		return "JavaConfigClient"
 	}
 
 	return ""

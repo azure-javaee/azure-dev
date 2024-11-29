@@ -159,6 +159,14 @@
                         "type": "object",
                         "additionalProperties": true
                     },
+                    "env": {
+                        "type": "object",
+                        "title": "A map of key value pairs used to set as environment variables for the service.",
+                        "description": "Optional. Supports environment variable substitution.",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
                     "hooks": {
                         "type": "object",
                         "title": "Service level hooks",
@@ -1277,27 +1285,6 @@
                             }
                         }
                     }
-                },
-                "dependsOn": {
-                    "type": "array",
-                    "title": "Other services that this service depends on",
-                    "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                            "serviceName": {
-                                "type": "string",
-                                "title": "Service Name",
-                                "description": "The name of the service."
-                            },
-                            "dependsType": {
-                                "type": "string",
-                                "title": "Depend Type",
-                                "description": "The type of depends on."
-                            }
-                        }
-                    },
-                    "uniqueItems": true
                 }
             }
         },

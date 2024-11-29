@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/azure/azure-dev/cli/azd/pkg/ext"
 	"maps"
 	"os"
 	"path/filepath"
@@ -435,7 +434,26 @@ func (i *Initializer) prjConfigFromDetect(
 		},
 		Services:  map[string]*project.ServiceConfig{},
 		Resources: map[string]*project.ResourceConfig{},
-		Hooks:     map[string][]*ext.HookConfig{},
+	}
+
+	var javaEurekaServerService project.ServiceConfig
+	var javaConfigServerService project.ServiceConfig
+	var err error
+	for _, svc := range detect.Services {
+		for _, dep := range svc.Dependencies {
+			switch dep {
+			case appdetect.JavaEurekaServer:
+				javaEurekaServerService, err = ServiceFromDetect(root, "", svc)
+				if err != nil {
+					return config, err
+				}
+			case appdetect.JavaConfigServer:
+				javaConfigServerService, err = ServiceFromDetect(root, "", svc)
+				if err != nil {
+					return config, err
+				}
+			}
+		}
 	}
 
 	svcMapping := map[string]string{}
@@ -537,21 +555,12 @@ func (i *Initializer) prjConfigFromDetect(
 			}
 		}
 
-		if prj.Language == appdetect.Java && prj.Docker != nil && prj.Docker.Path != "" {
-			hookConfig := ext.HookConfig{
-				Posix: &ext.HookConfig{
-					Shell: ext.ShellTypeBash,
-					Run:   "mvn clean package -DskipTests",
-				},
-				Windows: &ext.HookConfig{
-					Shell: ext.ShellTypePowershell,
-					Run:   "mvn clean package -DskipTests",
-				},
-			}
-			svc.Hooks = project.HooksConfig{
-				"prebuild": {
-					&hookConfig,
-				},
+		for _, dep := range prj.Dependencies {
+			switch dep {
+			case appdetect.JavaEurekaClient:
+				appendJavaEurekaClientEnv(svc, javaEurekaServerService)
+			case appdetect.JavaConfigClient:
+				appendJavaConfigClientEnv(svc, javaConfigServerService)
 			}
 		}
 
@@ -700,19 +709,6 @@ func (i *Initializer) prjConfigFromDetect(
 			}
 		}
 
-		var eurekaServerService appdetect.Project
-		var configServerService appdetect.Project
-		for _, svc := range detect.Services {
-			for _, dep := range svc.Dependencies {
-				switch dep {
-				case appdetect.EurekaServer:
-					eurekaServerService = svc
-				case appdetect.ConfigServer:
-					configServerService = svc
-				}
-			}
-		}
-
 		backends := []*project.ResourceConfig{}
 		frontends := []*project.ResourceConfig{}
 
@@ -731,6 +727,35 @@ func (i *Initializer) prjConfigFromDetect(
 				return config, err
 			}
 			props.Port = port
+
+			for _, dep := range svc.Dependencies {
+				switch dep {
+				case appdetect.JavaEurekaClient:
+					resSpec.Uses = append(resSpec.Uses, javaEurekaServerService.Name)
+					/*props.Env = append(props.Env, project.ServiceEnvVar{
+						Name:  "eureka.client.register-with-eureka",
+						Value: "true",
+					})
+					props.Env = append(props.Env, project.ServiceEnvVar{
+						Name:  "eureka.client.fetch-registry",
+						Value: "true",
+					})
+					props.Env = append(props.Env, project.ServiceEnvVar{
+						Name:  "eureka.instance.prefer-ip-address",
+						Value: "true",
+					})
+					props.Env = append(props.Env, project.ServiceEnvVar{
+						Name:  "eureka.client.serviceUrl.defaultZone",
+						Value: fmt.Sprintf("${%s_BASE_URL}/eureka", strings.ToUpper(javaEurekaServerService.Name)),
+					})*/
+				case appdetect.JavaConfigClient:
+					resSpec.Uses = append(resSpec.Uses, javaConfigServerService.Name)
+					/*props.Env = append(props.Env, project.ServiceEnvVar{
+						Name:  "spring.config.import",
+						Value: fmt.Sprintf("optional:configserver:${%s_BASE_URL}", strings.ToUpper(javaConfigServerService.Name)),
+					})*/
+				}
+			}
 
 			for _, db := range svc.DatabaseDeps {
 				// filter out databases that were removed
@@ -753,21 +778,6 @@ func (i *Initializer) prjConfigFromDetect(
 					}
 				case appdetect.AzureDepStorageAccount:
 					resSpec.Uses = append(resSpec.Uses, "storage")
-				}
-			}
-
-			for _, dep := range svc.Dependencies {
-				switch dep {
-				case appdetect.EurekaClient:
-					props.DependsOn = append(props.DependsOn, project.DependsOn{
-						ServiceName: svcMapping[eurekaServerService.Path],
-						DependsType: appdetect.EurekaServer.Display(),
-					})
-				case appdetect.ConfigClient:
-					props.DependsOn = append(props.DependsOn, project.DependsOn{
-						ServiceName: svcMapping[configServerService.Path],
-						DependsType: appdetect.ConfigServer.Display(),
-					})
 				}
 			}
 
@@ -836,6 +846,7 @@ func ServiceFromDetect(
 	prj appdetect.Project) (project.ServiceConfig, error) {
 	svc := project.ServiceConfig{
 		Name: svcName,
+		Env:  map[string]string{},
 	}
 	rel, err := filepath.Rel(root, prj.Path)
 	if err != nil {
@@ -955,4 +966,15 @@ func promptSpringBootVersion(console input.Console, ctx context.Context) (string
 	default:
 		return appdetect.UnknownSpringBootVersion, nil
 	}
+}
+
+func appendJavaEurekaClientEnv(svc project.ServiceConfig, javaEurekaServerService project.ServiceConfig) {
+	svc.Env["eureka.client.register-with-eureka"] = "true"
+	svc.Env["eureka.client.fetch-registry"] = "true"
+	svc.Env["eureka.instance.prefer-ip-address"] = "true"
+	svc.Env["eureka.client.serviceUrl.defaultZone"] = fmt.Sprintf("\\${%s_BASE_URL}/eureka", strings.ToUpper(javaEurekaServerService.Name))
+}
+
+func appendJavaConfigClientEnv(svc project.ServiceConfig, javaConfigServerService project.ServiceConfig) {
+	svc.Env["spring.config.import"] = fmt.Sprintf("optional:configserver:\\${%s_BASE_URL}", strings.ToUpper(javaConfigServerService.Name))
 }

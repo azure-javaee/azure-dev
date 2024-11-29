@@ -276,9 +276,9 @@ func PromptPort(
 		if svc.Language == appdetect.Java {
 			for _, dep := range svc.Dependencies {
 				switch dep {
-				case appdetect.EurekaServer:
+				case appdetect.JavaEurekaServer:
 					return 8761, nil
-				case appdetect.ConfigServer:
+				case appdetect.JavaConfigServer:
 					return 8888, nil
 				}
 			}
