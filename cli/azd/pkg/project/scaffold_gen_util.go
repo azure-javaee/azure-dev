@@ -38,7 +38,7 @@ func parseEnvSubstVariables(s string) (names []string, expressions []location) {
 		if inVar {
 			if inVarName { // detect the end of the variable name
 				// a variable name can contain letters, digits, and underscores, and nothing else.
-				if unicode.IsLetter(rune(s[i])) || unicode.IsDigit(rune(s[i])) || s[i] == '_' || s[i] == '-' {
+				if unicode.IsLetter(rune(s[i])) || unicode.IsDigit(rune(s[i])) || s[i] == '_' {
 					_ = name.WriteByte(s[i])
 				} else { // a non-matching character means we've reached the end of the name
 					inVarName = false

@@ -730,28 +730,8 @@ func (i *Initializer) prjConfigFromDetect(
 				switch dep {
 				case appdetect.JavaEurekaClient:
 					resSpec.Uses = append(resSpec.Uses, javaEurekaServerService.Name)
-					/*props.Env = append(props.Env, project.ServiceEnvVar{
-						Name:  "eureka.client.register-with-eureka",
-						Value: "true",
-					})
-					props.Env = append(props.Env, project.ServiceEnvVar{
-						Name:  "eureka.client.fetch-registry",
-						Value: "true",
-					})
-					props.Env = append(props.Env, project.ServiceEnvVar{
-						Name:  "eureka.instance.prefer-ip-address",
-						Value: "true",
-					})
-					props.Env = append(props.Env, project.ServiceEnvVar{
-						Name:  "eureka.client.serviceUrl.defaultZone",
-						Value: fmt.Sprintf("${%s_BASE_URL}/eureka", strings.ToUpper(javaEurekaServerService.Name)),
-					})*/
 				case appdetect.JavaConfigClient:
 					resSpec.Uses = append(resSpec.Uses, javaConfigServerService.Name)
-					/*props.Env = append(props.Env, project.ServiceEnvVar{
-						Name:  "spring.config.import",
-						Value: fmt.Sprintf("optional:configserver:${%s_BASE_URL}", strings.ToUpper(javaConfigServerService.Name)),
-					})*/
 				}
 			}
 

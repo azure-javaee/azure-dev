@@ -511,9 +511,9 @@ func genBicepParamsFromEnvSubst(
 	if len(names) == 0 {
 		// literal string with no expressions
 		result = s
-		/*} else if len(names) == 1 {
+	} else if len(names) == 1 {
 		// single expression, return the bicep parameter name to reference the expression
-		result = "${" + scaffold.BicepName(names[0]) + "}"*/
+		result = "${" + scaffold.BicepName(names[0]) + "}"
 	} else {
 		// multiple expressions
 		// construct the string with all expressions replaced by parameter references as a Bicep interpolated string
@@ -527,7 +527,6 @@ func genBicepParamsFromEnvSubst(
 			result += "}"
 			previous = loc.stop + 1
 		}
-		result += s[previous:]
 	}
 
 	return result
