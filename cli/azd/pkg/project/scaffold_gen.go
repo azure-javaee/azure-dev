@@ -408,7 +408,7 @@ func printEnvListAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *Project
 				printHintsAboutUseHostContainerApp(userResourceName, usedResourceName, console, ctx)
 			default:
 				return fmt.Errorf("resource (%s) uses (%s), but the type of (%s) is (%s), "+
-					"which is doen't add necessary environment variable",
+					"which is doesn't add necessary environment variable",
 					userResource.Name, usedResource.Name, usedResource.Name, usedResource.Type)
 			}
 			console.Message(ctx, "\n")
@@ -567,9 +567,9 @@ func printHintsAboutUseHostContainerApp(userResourceName string, usedResourceNam
 	if console == nil {
 		return
 	}
-	console.Message(ctx, fmt.Sprintf("Environemnt variables in %s:", userResourceName))
+	console.Message(ctx, fmt.Sprintf("Environment variables in %s:", userResourceName))
 	console.Message(ctx, fmt.Sprintf("%s_BASE_URL=xxx", strings.ToUpper(usedResourceName)))
-	console.Message(ctx, fmt.Sprintf("Environemnt variables in %s:", usedResourceName))
+	console.Message(ctx, fmt.Sprintf("Environment variables in %s:", usedResourceName))
 	console.Message(ctx, fmt.Sprintf("%s_BASE_URL=xxx", strings.ToUpper(userResourceName)))
 }
 

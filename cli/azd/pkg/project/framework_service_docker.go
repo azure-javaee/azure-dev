@@ -420,7 +420,7 @@ func (p *dockerProject) packBuild(
 	}
 	builder := DefaultBuilderImage
 
-	buildDir := svc.Path()
+	buildContext := svc.Path()
 	environ := []string{}
 	userDefinedImage := false
 	if os.Getenv("AZD_BUILDER_IMAGE") != "" {
@@ -435,9 +435,9 @@ func (p *dockerProject) packBuild(
 		if svc.Language == ServiceLanguageJava {
 			environ = append(environ, "ORYX_RUNTIME_PORT=8080")
 			// Consider it as multi-module project if service path is not same as its project path
-			// For multi-module project, specify parent directory and module for pack build
+			// For multi-module project, specify parent directory and submodule for pack build
 			if svc.Path() != svc.Project.Path {
-				buildDir = svc.Project.Path
+				buildContext = svc.Project.Path
 				svcRelPath, err := filepath.Rel(svc.Project.Path, svc.Path())
 				if err != nil {
 					return nil, err
@@ -502,7 +502,7 @@ func (p *dockerProject) packBuild(
 
 	err = packCli.Build(
 		ctx,
-		buildDir,
+		buildContext,
 		builder,
 		imageName,
 		environ,
