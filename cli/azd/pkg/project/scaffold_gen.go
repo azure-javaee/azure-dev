@@ -574,11 +574,13 @@ func printHintsAboutUseHostContainerApp(userResourceName string, usedResourceNam
 
 func serviceConfigEnv(svcConfig *ServiceConfig) []scaffold.Env {
 	var envs []scaffold.Env
-	for key, val := range svcConfig.Env {
-		envs = append(envs, scaffold.Env{
-			Name:  key,
-			Value: val,
-		})
+	if svcConfig != nil {
+		for key, val := range svcConfig.Env {
+			envs = append(envs, scaffold.Env{
+				Name:  key,
+				Value: val,
+			})
+		}
 	}
 	return envs
 }

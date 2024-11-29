@@ -952,10 +952,12 @@ func appendJavaEurekaClientEnv(svc project.ServiceConfig, javaEurekaServerServic
 	svc.Env["eureka.client.register-with-eureka"] = "true"
 	svc.Env["eureka.client.fetch-registry"] = "true"
 	svc.Env["eureka.instance.prefer-ip-address"] = "true"
-	// Here use '\${}' to escape parsing ${} placeholder variable in Bicep, just treat it as an Env of application
-	svc.Env["eureka.client.serviceUrl.defaultZone"] = fmt.Sprintf("\\${%s_BASE_URL}/eureka", strings.ToUpper(javaEurekaServerService.Name))
+	// Use '\${}' to escape parsing ${} placeholder in Bicep, just treat it as an Env of application
+	svc.Env["eureka.client.serviceUrl.defaultZone"] = fmt.Sprintf(
+		"\\${%s_BASE_URL}/eureka", strings.ToUpper(javaEurekaServerService.Name))
 }
 
 func appendJavaConfigClientEnv(svc project.ServiceConfig, javaConfigServerService project.ServiceConfig) {
-	svc.Env["spring.config.import"] = fmt.Sprintf("optional:configserver:\\${%s_BASE_URL}", strings.ToUpper(javaConfigServerService.Name))
+	svc.Env["spring.config.import"] = fmt.Sprintf(
+		"optional:configserver:\\${%s_BASE_URL}", strings.ToUpper(javaConfigServerService.Name))
 }
