@@ -824,7 +824,6 @@ func ServiceFromDetect(
 	prj appdetect.Project) (project.ServiceConfig, error) {
 	svc := project.ServiceConfig{
 		Name: svcName,
-		Env:  map[string]string{},
 	}
 	rel, err := filepath.Rel(root, prj.Path)
 	if err != nil {
@@ -949,6 +948,9 @@ func promptSpringBootVersion(console input.Console, ctx context.Context) (string
 }
 
 func appendJavaEurekaClientEnv(svc project.ServiceConfig, javaEurekaServerService project.ServiceConfig) {
+	if svc.Env == nil {
+		svc.Env = map[string]string{}
+	}
 	svc.Env["eureka.client.register-with-eureka"] = "true"
 	svc.Env["eureka.client.fetch-registry"] = "true"
 	svc.Env["eureka.instance.prefer-ip-address"] = "true"
@@ -958,6 +960,9 @@ func appendJavaEurekaClientEnv(svc project.ServiceConfig, javaEurekaServerServic
 }
 
 func appendJavaConfigClientEnv(svc project.ServiceConfig, javaConfigServerService project.ServiceConfig) {
+	if svc.Env == nil {
+		svc.Env = map[string]string{}
+	}
 	svc.Env["spring.config.import"] = fmt.Sprintf(
 		"optional:configserver:\\${%s_BASE_URL}", strings.ToUpper(javaConfigServerService.Name))
 }
