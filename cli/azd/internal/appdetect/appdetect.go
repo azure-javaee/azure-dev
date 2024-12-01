@@ -59,13 +59,16 @@ const (
 	PyFlask   Dependency = "flask"
 	PyDjango  Dependency = "django"
 	PyFastApi Dependency = "fastapi"
+
+	SpringFrontend Dependency = "springFrontend"
 )
 
 var WebUIFrameworks = map[Dependency]struct{}{
-	JsReact:   {},
-	JsAngular: {},
-	JsJQuery:  {},
-	JsVite:    {},
+	JsReact:        {},
+	JsAngular:      {},
+	JsJQuery:       {},
+	JsVite:         {},
+	SpringFrontend: {},
 }
 
 func (f Dependency) Language() Language {

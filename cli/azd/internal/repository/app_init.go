@@ -900,6 +900,9 @@ func ServiceFromDetect(
 				// angular uses dist/<project name>
 				svc.OutputPath = "dist/" + filepath.Base(rel)
 				break loop
+			case appdetect.SpringFrontend:
+				svc.OutputPath = ""
+				break loop
 			}
 		}
 	}

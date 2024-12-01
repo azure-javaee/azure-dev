@@ -98,6 +98,14 @@ func detectAzureDependenciesByAnalyzingSpringBootProject(
 	detectEventHubs(azdProject, &springBootProject)
 	detectStorageAccount(azdProject, &springBootProject)
 	detectSpringCloudAzure(azdProject, &springBootProject)
+
+	for _, p := range mavenProject.Build.Plugins {
+		if p.GroupId == "com.github.eirslett" && p.ArtifactId == "frontend-maven-plugin" {
+			azdProject.Dependencies = append(azdProject.Dependencies, SpringFrontend)
+			break
+		}
+	}
+
 }
 
 func detectDatabases(azdProject *Project, springBootProject *SpringBootProject) {
