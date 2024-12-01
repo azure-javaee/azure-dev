@@ -192,6 +192,8 @@ type Project struct {
 	// The path to the project directory.
 	Path string
 
+	Options map[string]interface{}
+
 	// A short description of the detection rule applied.
 	DetectionRule string
 

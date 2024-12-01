@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/azure/azure-dev/cli/azd/pkg/ext"
 	"maps"
 	"os"
 	"path/filepath"
@@ -537,6 +538,7 @@ func (i *Initializer) prjConfigFromDetect(
 
 		config.Services[svc.Name] = &svc
 		svcMapping[prj.Path] = svc.Name
+
 	}
 
 	if addResources {
@@ -738,9 +740,61 @@ func (i *Initializer) prjConfigFromDetect(
 				frontend.Uses = append(frontend.Uses, backend.Name)
 			}
 		}
+
+		err := i.addMavenBuildHook(detect, &config)
+		if err != nil {
+			return config, err
+		}
 	}
 
 	return config, nil
+}
+
+func (i *Initializer) addMavenBuildHook(
+	detect detectConfirm,
+	config *project.ProjectConfig) error {
+	wrapperPathMap := map[string][]string{}
+
+	for _, prj := range detect.Services {
+		if prj.Language == appdetect.Java && prj.Options["parentPath"] != nil {
+			parentPath := prj.Options["parentPath"].(string)
+			posixMavenWrapperPath := prj.Options["posixMavenWrapperPath"].(string)
+			winMavenWrapperPath := prj.Options["winMavenWrapperPath"].(string)
+			wrapperPathMap[parentPath] = []string{posixMavenWrapperPath, winMavenWrapperPath}
+		}
+	}
+
+	for _, wrapperPaths := range wrapperPathMap {
+		// Add hooks to build the Java project
+		if config.Hooks == nil {
+			config.Hooks = project.HooksConfig{}
+		}
+
+		config.Hooks["prepackage"] = append(config.Hooks["prepackage"], &ext.HookConfig{
+			Posix: &ext.HookConfig{
+				Shell: ext.ShellTypeBash,
+				Run:   getMavenExecutable(detect.root, wrapperPaths[0]) + " clean package -DskipTests",
+			},
+			Windows: &ext.HookConfig{
+				Shell: ext.ShellTypePowershell,
+				Run:   getMavenExecutable(detect.root, wrapperPaths[1]) + " clean package -DskipTests",
+			},
+		})
+	}
+	return nil
+}
+
+func getMavenExecutable(projectPath string, wrapperPath string) string {
+	if wrapperPath == "" {
+		return "mvn"
+	}
+
+	rel, err := filepath.Rel(projectPath, wrapperPath)
+	if err != nil {
+		return "mvn"
+	}
+
+	return "./" + rel
 }
 
 func (i *Initializer) getDatabaseNameByPrompt(ctx context.Context, database appdetect.DatabaseDep) (string, error) {

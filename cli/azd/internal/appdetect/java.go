@@ -15,7 +15,8 @@ import (
 )
 
 type javaDetector struct {
-	rootProjects []mavenProject
+	rootProjects      []mavenProject
+	mavenWrapperPaths [][]string
 }
 
 func (jd *javaDetector) Language() Language {
@@ -38,14 +39,20 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 				// This is a multi-module project, we will capture the analysis, but return nil
 				// to continue recursing
 				jd.rootProjects = append(jd.rootProjects, *project)
+				jd.mavenWrapperPaths = append(jd.mavenWrapperPaths, []string{
+					detectMavenWrapper(path, "mvnw"),
+					detectMavenWrapper(path, "mvnw.cmd"),
+				})
 				return nil, nil
 			}
 
 			var currentRoot *mavenProject
-			for _, rootProject := range jd.rootProjects {
+			var currentWrapperPath []string
+			for i, rootProject := range jd.rootProjects {
 				// we can say that the project is in the root project if the path is under the project
 				if inRoot := strings.HasPrefix(pomFile, rootProject.path); inRoot {
 					currentRoot = &rootProject
+					currentWrapperPath = jd.mavenWrapperPaths[i]
 				}
 			}
 
@@ -54,6 +61,11 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 				Language:      Java,
 				Path:          path,
 				DetectionRule: "Inferred by presence of: pom.xml",
+				Options: map[string]interface{}{
+					"parentPath":            currentRoot.path,
+					"posixMavenWrapperPath": currentWrapperPath[0],
+					"winMavenWrapperPath":   currentWrapperPath[1],
+				},
 			})
 			if err != nil {
 				log.Printf("Please edit azure.yaml manually to satisfy your requirement. azd can not help you "+
@@ -171,4 +183,13 @@ func parseProperties(properties Properties) map[string]string {
 func detectDependencies(currentRoot *mavenProject, mavenProject *mavenProject, project *Project) (*Project, error) {
 	detectAzureDependenciesByAnalyzingSpringBootProject(currentRoot, mavenProject, project)
 	return project, nil
+}
+
+func detectMavenWrapper(path string, executable string) string {
+	wrapperPath := filepath.Join(path, executable)
+	if _, err := os.Stat(wrapperPath); err == nil {
+		return wrapperPath
+	}
+
+	return ""
 }
