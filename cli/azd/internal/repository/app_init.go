@@ -558,12 +558,20 @@ func (i *Initializer) prjConfigFromDetect(
 		for _, dep := range prj.Dependencies {
 			switch dep {
 			case appdetect.JavaEurekaClient:
-				err := appendJavaEurekaClientEnv(&svc, javaEurekaServerService, spec)
+				err := appendJavaEurekaOrConfigClientEnv(
+					&svc,
+					javaEurekaServerService,
+					project.ResourceTypeJavaEurekaServer,
+					spec)
 				if err != nil {
 					return config, err
 				}
 			case appdetect.JavaConfigClient:
-				err := appendJavaConfigClientEnv(&svc, javaConfigServerService, spec)
+				err := appendJavaEurekaOrConfigClientEnv(
+					&svc,
+					javaConfigServerService,
+					project.ResourceTypeJavaConfigServer,
+					spec)
 				if err != nil {
 					return config, err
 				}
@@ -953,42 +961,23 @@ func promptSpringBootVersion(console input.Console, ctx context.Context) (string
 	}
 }
 
-func appendJavaEurekaClientEnv(svc *project.ServiceConfig,
-	javaEurekaServerService project.ServiceConfig,
-	infraSpec *scaffold.InfraSpec) error {
-	if svc.Env == nil {
-		svc.Env = map[string]string{}
-	}
-	eurekaClientEnvs, err := project.GetResourceConnectionEnvs(&project.ResourceConfig{
-		Name: javaEurekaServerService.Name,
-		Type: project.ResourceTypeJavaEurekaServer,
-	}, infraSpec)
-	if err != nil {
-		return err
-	}
-
-	for _, env := range eurekaClientEnvs {
-		svc.Env[env.Name] = env.Value
-	}
-	return nil
-}
-
-func appendJavaConfigClientEnv(svc *project.ServiceConfig,
-	javaConfigServerService project.ServiceConfig,
+func appendJavaEurekaOrConfigClientEnv(svc *project.ServiceConfig,
+	javaEurekaOrConfigServerService project.ServiceConfig,
+	resourceType project.ResourceType,
 	infraSpec *scaffold.InfraSpec) error {
 	if svc.Env == nil {
 		svc.Env = map[string]string{}
 	}
 
-	configClientEnvs, err := project.GetResourceConnectionEnvs(&project.ResourceConfig{
-		Name: javaConfigServerService.Name,
-		Type: project.ResourceTypeJavaConfigServer,
+	clientEnvs, err := project.GetResourceConnectionEnvs(&project.ResourceConfig{
+		Name: javaEurekaOrConfigServerService.Name,
+		Type: resourceType,
 	}, infraSpec)
 	if err != nil {
 		return err
 	}
 
-	for _, env := range configClientEnvs {
+	for _, env := range clientEnvs {
 		svc.Env[env.Name] = env.Value
 	}
 	return nil
