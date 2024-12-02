@@ -558,12 +558,12 @@ func (i *Initializer) prjConfigFromDetect(
 		for _, dep := range prj.Dependencies {
 			switch dep {
 			case appdetect.JavaEurekaClient:
-				err := appendJavaEurekaClientEnv(svc, javaEurekaServerService, spec)
+				err := appendJavaEurekaClientEnv(&svc, javaEurekaServerService, spec)
 				if err != nil {
 					return config, err
 				}
 			case appdetect.JavaConfigClient:
-				err := appendJavaConfigClientEnv(svc, javaConfigServerService, spec)
+				err := appendJavaConfigClientEnv(&svc, javaConfigServerService, spec)
 				if err != nil {
 					return config, err
 				}
@@ -953,7 +953,7 @@ func promptSpringBootVersion(console input.Console, ctx context.Context) (string
 	}
 }
 
-func appendJavaEurekaClientEnv(svc project.ServiceConfig,
+func appendJavaEurekaClientEnv(svc *project.ServiceConfig,
 	javaEurekaServerService project.ServiceConfig,
 	infraSpec *scaffold.InfraSpec) error {
 	if svc.Env == nil {
@@ -973,7 +973,7 @@ func appendJavaEurekaClientEnv(svc project.ServiceConfig,
 	return nil
 }
 
-func appendJavaConfigClientEnv(svc project.ServiceConfig,
+func appendJavaConfigClientEnv(svc *project.ServiceConfig,
 	javaConfigServerService project.ServiceConfig,
 	infraSpec *scaffold.InfraSpec) error {
 	if svc.Env == nil {
@@ -982,7 +982,7 @@ func appendJavaConfigClientEnv(svc project.ServiceConfig,
 
 	configClientEnvs, err := project.GetResourceConnectionEnvs(&project.ResourceConfig{
 		Name: javaConfigServerService.Name,
-		Type: project.ResourceTypeJavaEurekaServer,
+		Type: project.ResourceTypeJavaConfigServer,
 	}, infraSpec)
 	if err != nil {
 		return err
