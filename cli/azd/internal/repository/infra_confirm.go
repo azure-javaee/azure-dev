@@ -59,7 +59,8 @@ func (i *Initializer) infraSpecFromDetect(
 				if err != nil {
 					return scaffold.InfraSpec{}, err
 				}
-				continueProvision, err := checkPasswordlessConfigurationAndContinueProvision(database, authType, detect, i.console, ctx)
+				continueProvision, err := checkPasswordlessConfigurationAndContinueProvision(database,
+					authType, detect, i.console, ctx)
 				if err != nil {
 					return scaffold.InfraSpec{}, err
 				}
@@ -87,7 +88,8 @@ func (i *Initializer) infraSpecFromDetect(
 				if err != nil {
 					return scaffold.InfraSpec{}, err
 				}
-				continueProvision, err := checkPasswordlessConfigurationAndContinueProvision(database, authType, detect, i.console, ctx)
+				continueProvision, err := checkPasswordlessConfigurationAndContinueProvision(database,
+					authType, detect, i.console, ctx)
 				if err != nil {
 					return scaffold.InfraSpec{}, err
 				}
