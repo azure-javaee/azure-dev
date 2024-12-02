@@ -75,12 +75,14 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 				Language:      Java,
 				Path:          path,
 				DetectionRule: "Inferred by presence of: pom.xml",
-				Options: map[string]interface{}{
+			})
+			if currentRoot != nil {
+				result.Options = map[string]interface{}{
 					JavaProjectOptionMavenParentPath:       currentRoot.path,
 					JavaProjectOptionPosixMavenWrapperPath: currentWrapper.posixPath,
 					JavaProjectOptionWinMavenWrapperPath:   currentWrapper.winPath,
-				},
-			})
+				}
+			}
 			if err != nil {
 				log.Printf("Please edit azure.yaml manually to satisfy your requirement. azd can not help you "+
 					"to that by detect your java project because error happened when detecting dependencies: %s", err)
