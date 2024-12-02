@@ -826,7 +826,7 @@ func checkPasswordlessConfigurationAndContinueProvision(database appdetect.Datab
 					"But this property is found in your project: %s.", message, prj.Path)
 			}
 			continueOption, err := console.Select(ctx, input.ConsoleOptions{
-				Message: fmt.Sprintf("%s Slect an option:", message),
+				Message: fmt.Sprintf("%s Select an option:", message),
 				Options: []string{
 					"Exit azd and fix problem manually",
 					"Continue azd and provision " + database.Display(),
