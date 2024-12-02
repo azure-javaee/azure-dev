@@ -580,9 +580,8 @@ func serviceConfigEnv(svcConfig *ServiceConfig) []scaffold.Env {
 	if svcConfig != nil {
 		for key, val := range svcConfig.Env {
 			envs = append(envs, scaffold.Env{
-				Name: key,
-				// Use '\${}' to escape parsing ${} placeholder in Bicep, just treat it as an application Env
-				Value: strings.ReplaceAll(val, "${", "\\${"),
+				Name:  key,
+				Value: val,
 			})
 		}
 	}

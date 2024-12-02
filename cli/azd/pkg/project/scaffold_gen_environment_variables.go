@@ -572,14 +572,14 @@ func GetResourceConnectionEnvs(usedResource *ResourceConfig,
 			},
 			{
 				Name:  "eureka.client.serviceUrl.defaultZone",
-				Value: fmt.Sprintf("${%s_BASE_URL}/eureka", strings.ToUpper(usedResource.Name)),
+				Value: fmt.Sprintf("%s/eureka", scaffold.GetContainerAppHost(usedResource.Name)),
 			},
 		}, nil
 	case ResourceTypeJavaConfigServer:
 		return []scaffold.Env{
 			{
 				Name:  "spring.config.import",
-				Value: fmt.Sprintf("optional:configserver:${%s_BASE_URL}", strings.ToUpper(usedResource.Name)),
+				Value: fmt.Sprintf("optional:configserver:%s", scaffold.GetContainerAppHost(usedResource.Name)),
 			},
 		}, nil
 	default:
