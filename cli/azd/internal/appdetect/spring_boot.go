@@ -98,14 +98,14 @@ func detectAzureDependenciesByAnalyzingSpringBootProject(
 	detectEventHubs(azdProject, &springBootProject)
 	detectStorageAccount(azdProject, &springBootProject)
 	detectSpringCloudAzure(azdProject, &springBootProject)
-
-	for _, p := range mavenProject.Build.Plugins {
-		if p.GroupId == "com.github.eirslett" && p.ArtifactId == "frontend-maven-plugin" {
-			azdProject.Dependencies = append(azdProject.Dependencies, SpringFrontend)
-			break
-		}
-	}
-
+	detectSpringCloudEureka(azdProject, &springBootProject)
+	detectSpringCloudConfig(azdProject, &springBootProject)
+  for _, p := range mavenProject.Build.Plugins {
+    if p.GroupId == "com.github.eirslett" && p.ArtifactId == "frontend-maven-plugin" {
+      azdProject.Dependencies = append(azdProject.Dependencies, SpringFrontend)
+      break
+    }
+  }
 }
 
 func detectDatabases(azdProject *Project, springBootProject *SpringBootProject) {
@@ -251,9 +251,40 @@ func detectSpringCloudAzure(azdProject *Project, springBootProject *SpringBootPr
 	var targetGroupId = "com.azure.spring"
 	var targetArtifactId = "spring-cloud-azure-starter"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
-		newDep := SpringCloudAzureDep{}
-		azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
-		logServiceAddedAccordingToMavenDependency(newDep.ResourceDisplay(), targetGroupId, targetArtifactId)
+		azdProject.MetaData.ContainsDependencySpringCloudAzureStarter = true
+		logMetadataUpdated("ContainsDependencySpringCloudAzureStarter = true")
+	}
+}
+
+func detectSpringCloudEureka(azdProject *Project, springBootProject *SpringBootProject) {
+	var targetGroupId = "org.springframework.cloud"
+	var targetArtifactId = "spring-cloud-starter-netflix-eureka-server"
+	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
+		azdProject.Dependencies = append(azdProject.Dependencies, JavaEurekaServer)
+		logServiceAddedAccordingToMavenDependency(JavaEurekaServer.Display(), targetGroupId, targetArtifactId)
+	}
+
+	targetGroupId = "org.springframework.cloud"
+	targetArtifactId = "spring-cloud-starter-netflix-eureka-client"
+	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
+		azdProject.Dependencies = append(azdProject.Dependencies, JavaEurekaClient)
+		logServiceAddedAccordingToMavenDependency(JavaEurekaClient.Display(), targetGroupId, targetArtifactId)
+	}
+}
+
+func detectSpringCloudConfig(azdProject *Project, springBootProject *SpringBootProject) {
+	var targetGroupId = "org.springframework.cloud"
+	var targetArtifactId = "spring-cloud-config-server"
+	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
+		azdProject.Dependencies = append(azdProject.Dependencies, JavaConfigServer)
+		logServiceAddedAccordingToMavenDependency(JavaConfigServer.Display(), targetGroupId, targetArtifactId)
+	}
+
+	targetGroupId = "org.springframework.cloud"
+	targetArtifactId = "spring-cloud-starter-config"
+	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
+		azdProject.Dependencies = append(azdProject.Dependencies, JavaConfigClient)
+		logServiceAddedAccordingToMavenDependency(JavaConfigClient.Display(), targetGroupId, targetArtifactId)
 	}
 }
 
@@ -272,11 +303,19 @@ func logServiceAddedAccordingToMavenDependencyAndExtraCondition(
 		resourceName, groupId, artifactId, insertedString)
 }
 
+func logMetadataUpdated(info string) {
+	log.Printf("Metadata updated. %s.", info)
+}
+
 func detectSpringBootVersion(currentRoot *mavenProject, mavenProject *mavenProject) string {
 	// mavenProject prioritize than rootProject
 	if mavenProject != nil {
-		return detectSpringBootVersionFromProject(mavenProject)
-	} else if currentRoot != nil {
+		if version := detectSpringBootVersionFromProject(mavenProject); version != UnknownSpringBootVersion {
+			return version
+		}
+	}
+	// fallback to detect root project
+	if currentRoot != nil {
 		return detectSpringBootVersionFromProject(currentRoot)
 	}
 	return UnknownSpringBootVersion

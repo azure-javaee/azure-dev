@@ -137,7 +137,6 @@ func (i *Initializer) InitFromApp(
 
 		if prj.Language == appdetect.Java {
 			var hasKafkaDep bool
-			var hasSpringCloudAzureDep bool
 			for depIndex, dep := range prj.AzureDeps {
 				if eventHubs, ok := dep.(appdetect.AzureDepEventHubs); ok && eventHubs.UseKafka {
 					hasKafkaDep = true
@@ -153,12 +152,9 @@ func (i *Initializer) InitFromApp(
 						prj.AzureDeps[depIndex] = eventHubs
 					}
 				}
-				if _, ok := dep.(appdetect.SpringCloudAzureDep); ok {
-					hasSpringCloudAzureDep = true
-				}
 			}
 
-			if hasKafkaDep && !hasSpringCloudAzureDep {
+			if hasKafkaDep && !prj.MetaData.ContainsDependencySpringCloudAzureStarter {
 				err := processSpringCloudAzureDepByPrompt(i.console, ctx, &projects[index])
 				if err != nil {
 					return err
@@ -437,6 +433,26 @@ func (i *Initializer) prjConfigFromDetect(
 		Resources: map[string]*project.ResourceConfig{},
 	}
 
+	var javaEurekaServerService project.ServiceConfig
+	var javaConfigServerService project.ServiceConfig
+	var err error
+	for _, svc := range detect.Services {
+		for _, dep := range svc.Dependencies {
+			switch dep {
+			case appdetect.JavaEurekaServer:
+				javaEurekaServerService, err = ServiceFromDetect(root, "", svc)
+				if err != nil {
+					return config, err
+				}
+			case appdetect.JavaConfigServer:
+				javaConfigServerService, err = ServiceFromDetect(root, "", svc)
+				if err != nil {
+					return config, err
+				}
+			}
+		}
+	}
+
 	svcMapping := map[string]string{}
 	for _, prj := range detect.Services {
 		svc, err := ServiceFromDetect(root, "", prj)
@@ -532,6 +548,29 @@ func (i *Initializer) prjConfigFromDetect(
 						},
 					}
 
+				}
+			}
+		}
+
+		for _, dep := range prj.Dependencies {
+			switch dep {
+			case appdetect.JavaEurekaClient:
+				err := appendJavaEurekaOrConfigClientEnv(
+					&svc,
+					javaEurekaServerService,
+					project.ResourceTypeJavaEurekaServer,
+					spec)
+				if err != nil {
+					return config, err
+				}
+			case appdetect.JavaConfigClient:
+				err := appendJavaEurekaOrConfigClientEnv(
+					&svc,
+					javaConfigServerService,
+					project.ResourceTypeJavaConfigServer,
+					spec)
+				if err != nil {
+					return config, err
 				}
 			}
 		}
@@ -698,6 +737,15 @@ func (i *Initializer) prjConfigFromDetect(
 				return config, err
 			}
 			props.Port = port
+
+			for _, dep := range svc.Dependencies {
+				switch dep {
+				case appdetect.JavaEurekaClient:
+					resSpec.Uses = append(resSpec.Uses, javaEurekaServerService.Name)
+				case appdetect.JavaConfigClient:
+					resSpec.Uses = append(resSpec.Uses, javaConfigServerService.Name)
+				}
+			}
 
 			for _, db := range svc.DatabaseDeps {
 				// filter out databases that were removed
@@ -964,4 +1012,26 @@ func promptSpringBootVersion(console input.Console, ctx context.Context) (string
 	default:
 		return appdetect.UnknownSpringBootVersion, nil
 	}
+}
+
+func appendJavaEurekaOrConfigClientEnv(svc *project.ServiceConfig,
+	javaEurekaOrConfigServerService project.ServiceConfig,
+	resourceType project.ResourceType,
+	infraSpec *scaffold.InfraSpec) error {
+	if svc.Env == nil {
+		svc.Env = map[string]string{}
+	}
+
+	clientEnvs, err := project.GetResourceConnectionEnvs(&project.ResourceConfig{
+		Name: javaEurekaOrConfigServerService.Name,
+		Type: resourceType,
+	}, infraSpec)
+	if err != nil {
+		return err
+	}
+
+	for _, env := range clientEnvs {
+		svc.Env[env.Name] = env.Value
+	}
+	return nil
 }

@@ -61,6 +61,10 @@ const (
 	PyFastApi Dependency = "fastapi"
 
 	SpringFrontend Dependency = "springFrontend"
+	JavaEurekaServer Dependency = "eureka-server"
+	JavaEurekaClient Dependency = "eureka-client"
+	JavaConfigServer Dependency = "config-server"
+	JavaConfigClient Dependency = "config-client"
 )
 
 var WebUIFrameworks = map[Dependency]struct{}{
@@ -92,6 +96,14 @@ func (f Dependency) Display() string {
 		return "Vite"
 	case JsNext:
 		return "Next.js"
+	case JavaEurekaServer:
+		return "JavaEurekaServer"
+	case JavaEurekaClient:
+		return "JavaEurekaClient"
+	case JavaConfigServer:
+		return "JavaConfigServer"
+	case JavaConfigClient:
+		return "JavaConfigClient"
 	}
 
 	return ""
@@ -170,11 +182,8 @@ func (a AzureDepStorageAccount) ResourceDisplay() string {
 	return "Azure Storage Account"
 }
 
-type SpringCloudAzureDep struct {
-}
-
-func (a SpringCloudAzureDep) ResourceDisplay() string {
-	return "Spring Cloud Azure Starter"
+type MetaData struct {
+	ContainsDependencySpringCloudAzureStarter bool
 }
 
 const UnknownSpringBootVersion string = "unknownSpringBootVersion"
@@ -191,6 +200,9 @@ type Project struct {
 
 	// Experimental: Azure dependencies inferred through heuristics while scanning dependencies in the project.
 	AzureDeps []AzureDep
+
+	// Experimental: Metadata inferred through heuristics while scanning the project.
+	MetaData MetaData
 
 	// The path to the project directory.
 	Path string
@@ -317,7 +329,7 @@ func detectAny(ctx context.Context, detectors []projectDetector, path string, en
 		if project != nil {
 			log.Printf("Found project %s at %s", project.Language, path)
 
-			// docker is an optional property of a project, and thus is different than other detectors
+			// docker is an optional property of a project, and thus is different from other detectors
 			docker, err := detectDockerInDirectory(path, entries)
 			if err != nil {
 				return nil, fmt.Errorf("detecting docker project: %w", err)
