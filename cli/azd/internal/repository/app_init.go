@@ -805,9 +805,9 @@ func (i *Initializer) addMavenBuildHook(
 
 	for _, prj := range detect.Services {
 		if prj.Language == appdetect.Java && prj.Options["parentPath"] != nil {
-			parentPath := prj.Options["parentPath"].(string)
-			posixMavenWrapperPath := prj.Options["posixMavenWrapperPath"].(string)
-			winMavenWrapperPath := prj.Options["winMavenWrapperPath"].(string)
+			parentPath := prj.Options[appdetect.JavaProjectOptionMavenParentPath].(string)
+			posixMavenWrapperPath := prj.Options[appdetect.JavaProjectOptionPosixMavenWrapperPath].(string)
+			winMavenWrapperPath := prj.Options[appdetect.JavaProjectOptionWinMavenWrapperPath].(string)
 			wrapperPathMap[parentPath] = []string{posixMavenWrapperPath, winMavenWrapperPath}
 		}
 	}
@@ -842,7 +842,7 @@ func getMavenExecutable(projectPath string, wrapperPath string) string {
 		return "mvn"
 	}
 
-	return "./" + rel
+	return filepath.Join(".", rel)
 }
 
 func (i *Initializer) getDatabaseNameByPrompt(ctx context.Context, database appdetect.DatabaseDep) (string, error) {

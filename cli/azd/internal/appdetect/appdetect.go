@@ -60,7 +60,7 @@ const (
 	PyDjango  Dependency = "django"
 	PyFastApi Dependency = "fastapi"
 
-	SpringFrontend Dependency = "springFrontend"
+	SpringFrontend   Dependency = "springFrontend"
 	JavaEurekaServer Dependency = "eureka-server"
 	JavaEurekaClient Dependency = "eureka-client"
 	JavaConfigServer Dependency = "config-server"
