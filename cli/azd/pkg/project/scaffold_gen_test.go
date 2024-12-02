@@ -4,6 +4,7 @@
 package project
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/azure/azure-dev/cli/azd/internal/scaffold"
@@ -70,6 +71,38 @@ func Test_genBicepParamsFromEnvSubst(t *testing.T) {
 				if !found {
 					t.Errorf("evalEnvValue() parameter = %v not found", spec.Parameters[i].Name)
 				}
+			}
+		})
+	}
+}
+
+func TestServiceConfigEnvToScaffoldEnv(t *testing.T) {
+	tests := []struct {
+		name            string
+		serviceConfig   *ServiceConfig
+		wantScaffoldEnv []scaffold.Env
+	}{
+		{
+			name: "eureka-and-config-server",
+			serviceConfig: &ServiceConfig{
+				Env: map[string]string{
+					"eureka.client.serviceUrl.defaultZone": "${DISCOVERY-SERVER_BASE_URL}/eureka",
+					"eureka.instance.prefer-ip-address":    "true",
+					"spring.config.import":                 "optional:configserver:${CONFIG-SERVER_BASE_URL}",
+				},
+			},
+			wantScaffoldEnv: []scaffold.Env{
+				{Name: "eureka.client.serviceUrl.defaultZone", Value: "\\${DISCOVERY-SERVER_BASE_URL}/eureka"},
+				{Name: "eureka.instance.prefer-ip-address", Value: "true"},
+				{Name: "spring.config.import", Value: "optional:configserver:\\${CONFIG-SERVER_BASE_URL}"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := serviceConfigEnv(tt.serviceConfig)
+			if !reflect.DeepEqual(actual, tt.wantScaffoldEnv) {
+				t.Errorf("serviceConfigEnv() got = %v, want %v", actual, tt.wantScaffoldEnv)
 			}
 		})
 	}
