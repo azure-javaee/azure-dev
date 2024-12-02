@@ -821,18 +821,18 @@ func (i *Initializer) addMavenBuildHook(
 		config.Hooks["prepackage"] = append(config.Hooks["prepackage"], &ext.HookConfig{
 			Posix: &ext.HookConfig{
 				Shell: ext.ShellTypeBash,
-				Run:   getMavenExecutable(detect.root, wrapperPaths[0]) + " clean package -DskipTests",
+				Run:   getMavenExecutable(detect.root, wrapperPaths[0], true) + " clean package -DskipTests",
 			},
 			Windows: &ext.HookConfig{
 				Shell: ext.ShellTypePowershell,
-				Run:   getMavenExecutable(detect.root, wrapperPaths[1]) + " clean package -DskipTests",
+				Run:   getMavenExecutable(detect.root, wrapperPaths[1], false) + " clean package -DskipTests",
 			},
 		})
 	}
 	return nil
 }
 
-func getMavenExecutable(projectPath string, wrapperPath string) string {
+func getMavenExecutable(projectPath string, wrapperPath string, isPosix bool) string {
 	if wrapperPath == "" {
 		return "mvn"
 	}
@@ -842,7 +842,11 @@ func getMavenExecutable(projectPath string, wrapperPath string) string {
 		return "mvn"
 	}
 
-	return filepath.Join(".", rel)
+	if isPosix {
+		return "./" + rel
+	} else {
+		return ".\\" + rel
+	}
 }
 
 func (i *Initializer) getDatabaseNameByPrompt(ctx context.Context, database appdetect.DatabaseDep) (string, error) {
