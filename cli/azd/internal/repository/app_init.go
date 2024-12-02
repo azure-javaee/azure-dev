@@ -953,7 +953,9 @@ func promptSpringBootVersion(console input.Console, ctx context.Context) (string
 	}
 }
 
-func appendJavaEurekaClientEnv(svc project.ServiceConfig, javaEurekaServerService project.ServiceConfig, infraSpec *scaffold.InfraSpec) error {
+func appendJavaEurekaClientEnv(svc project.ServiceConfig,
+	javaEurekaServerService project.ServiceConfig,
+	infraSpec *scaffold.InfraSpec) error {
 	if svc.Env == nil {
 		svc.Env = map[string]string{}
 	}
@@ -971,7 +973,9 @@ func appendJavaEurekaClientEnv(svc project.ServiceConfig, javaEurekaServerServic
 	return nil
 }
 
-func appendJavaConfigClientEnv(svc project.ServiceConfig, javaConfigServerService project.ServiceConfig, infraSpec *scaffold.InfraSpec) error {
+func appendJavaConfigClientEnv(svc project.ServiceConfig,
+	javaConfigServerService project.ServiceConfig,
+	infraSpec *scaffold.InfraSpec) error {
 	if svc.Env == nil {
 		svc.Env = map[string]string{}
 	}
