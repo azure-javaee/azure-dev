@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func getResourceConnectionEnvs(usedResource *ResourceConfig,
+func GetResourceConnectionEnvs(usedResource *ResourceConfig,
 	infraSpec *scaffold.InfraSpec) ([]scaffold.Env, error) {
 	resourceType := usedResource.Type
 	authType, err := getAuthType(infraSpec, usedResource.Type)
@@ -556,6 +556,34 @@ func getResourceConnectionEnvs(usedResource *ResourceConfig,
 		default:
 			return []scaffold.Env{}, unsupportedAuthTypeError(resourceType, authType)
 		}
+	case ResourceTypeJavaEurekaServer:
+		return []scaffold.Env{
+			{
+				Name:  "eureka.client.register-with-eureka",
+				Value: "true",
+			},
+			{
+				Name:  "eureka.client.fetch-registry",
+				Value: "true",
+			},
+			{
+				Name:  "eureka.instance.prefer-ip-address",
+				Value: "true",
+			},
+			{
+				// Use '\${}' to escape parsing ${} placeholder in Bicep, just treat it as an Env of application
+				Name:  "eureka.client.serviceUrl.defaultZone",
+				Value: fmt.Sprintf("\\${%s_BASE_URL}/eureka", strings.ToUpper(usedResource.Name)),
+			},
+		}, nil
+	case ResourceTypeJavaConfigServer:
+		return []scaffold.Env{
+			{
+				// Use '\${}' to escape parsing ${} placeholder in Bicep, just treat it as an Env of application
+				Name:  "spring.config.import",
+				Value: fmt.Sprintf("optional:configserver:\\${%s_BASE_URL}", strings.ToUpper(usedResource.Name)),
+			},
+		}, nil
 	default:
 		return []scaffold.Env{}, unsupportedResourceTypeError(resourceType)
 	}

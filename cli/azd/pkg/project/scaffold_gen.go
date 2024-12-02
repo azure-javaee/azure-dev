@@ -348,13 +348,16 @@ func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (inte
 		return infraSpec.AzureEventHubs.AuthType, nil
 	case ResourceTypeStorage:
 		return infraSpec.AzureStorageAccount.AuthType, nil
+	case ResourceTypeJavaEurekaServer,
+		ResourceTypeJavaConfigServer:
+		return internal.AuthTypeUnspecified, nil
 	default:
 		return internal.AuthTypeUnspecified, fmt.Errorf("can not get authType, resource type: %s", resourceType)
 	}
 }
 
 func addUsageByEnv(infraSpec *scaffold.InfraSpec, userSpec *scaffold.ServiceSpec, usedResource *ResourceConfig) error {
-	envs, err := getResourceConnectionEnvs(usedResource, infraSpec)
+	envs, err := GetResourceConnectionEnvs(usedResource, infraSpec)
 	if err != nil {
 		return err
 	}
@@ -397,7 +400,7 @@ func printEnvListAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *Project
 				ResourceTypeMessagingEventHubs,
 				ResourceTypeMessagingKafka,
 				ResourceTypeStorage:
-				variables, err := getResourceConnectionEnvs(usedResource, infraSpec)
+				variables, err := GetResourceConnectionEnvs(usedResource, infraSpec)
 				if err != nil {
 					return err
 				}

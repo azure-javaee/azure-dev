@@ -558,9 +558,15 @@ func (i *Initializer) prjConfigFromDetect(
 		for _, dep := range prj.Dependencies {
 			switch dep {
 			case appdetect.JavaEurekaClient:
-				appendJavaEurekaClientEnv(svc, javaEurekaServerService)
+				err := appendJavaEurekaClientEnv(svc, javaEurekaServerService, spec)
+				if err != nil {
+					return config, err
+				}
 			case appdetect.JavaConfigClient:
-				appendJavaConfigClientEnv(svc, javaConfigServerService)
+				err := appendJavaConfigClientEnv(svc, javaConfigServerService, spec)
+				if err != nil {
+					return config, err
+				}
 			}
 		}
 
@@ -947,22 +953,39 @@ func promptSpringBootVersion(console input.Console, ctx context.Context) (string
 	}
 }
 
-func appendJavaEurekaClientEnv(svc project.ServiceConfig, javaEurekaServerService project.ServiceConfig) {
+func appendJavaEurekaClientEnv(svc project.ServiceConfig, javaEurekaServerService project.ServiceConfig, infraSpec *scaffold.InfraSpec) error {
 	if svc.Env == nil {
 		svc.Env = map[string]string{}
 	}
-	svc.Env["eureka.client.register-with-eureka"] = "true"
-	svc.Env["eureka.client.fetch-registry"] = "true"
-	svc.Env["eureka.instance.prefer-ip-address"] = "true"
-	// Use '\${}' to escape parsing ${} placeholder in Bicep, just treat it as an Env of application
-	svc.Env["eureka.client.serviceUrl.defaultZone"] = fmt.Sprintf(
-		"\\${%s_BASE_URL}/eureka", strings.ToUpper(javaEurekaServerService.Name))
+	eurekaClientEnvs, err := project.GetResourceConnectionEnvs(&project.ResourceConfig{
+		Name: javaEurekaServerService.Name,
+		Type: project.ResourceTypeJavaEurekaServer,
+	}, infraSpec)
+	if err != nil {
+		return err
+	}
+
+	for _, env := range eurekaClientEnvs {
+		svc.Env[env.Name] = env.Value
+	}
+	return nil
 }
 
-func appendJavaConfigClientEnv(svc project.ServiceConfig, javaConfigServerService project.ServiceConfig) {
+func appendJavaConfigClientEnv(svc project.ServiceConfig, javaConfigServerService project.ServiceConfig, infraSpec *scaffold.InfraSpec) error {
 	if svc.Env == nil {
 		svc.Env = map[string]string{}
 	}
-	svc.Env["spring.config.import"] = fmt.Sprintf(
-		"optional:configserver:\\${%s_BASE_URL}", strings.ToUpper(javaConfigServerService.Name))
+
+	configClientEnvs, err := project.GetResourceConnectionEnvs(&project.ResourceConfig{
+		Name: javaConfigServerService.Name,
+		Type: project.ResourceTypeJavaEurekaServer,
+	}, infraSpec)
+	if err != nil {
+		return err
+	}
+
+	for _, env := range configClientEnvs {
+		svc.Env[env.Name] = env.Value
+	}
+	return nil
 }
