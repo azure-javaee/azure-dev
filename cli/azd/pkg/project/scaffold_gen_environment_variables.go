@@ -571,17 +571,15 @@ func GetResourceConnectionEnvs(usedResource *ResourceConfig,
 				Value: "true",
 			},
 			{
-				// Use '\${}' to escape parsing ${} placeholder in Bicep, just treat it as an Env of application
 				Name:  "eureka.client.serviceUrl.defaultZone",
-				Value: fmt.Sprintf("\\${%s_BASE_URL}/eureka", strings.ToUpper(usedResource.Name)),
+				Value: fmt.Sprintf("${%s_BASE_URL}/eureka", strings.ToUpper(usedResource.Name)),
 			},
 		}, nil
 	case ResourceTypeJavaConfigServer:
 		return []scaffold.Env{
 			{
-				// Use '\${}' to escape parsing ${} placeholder in Bicep, just treat it as an Env of application
 				Name:  "spring.config.import",
-				Value: fmt.Sprintf("optional:configserver:\\${%s_BASE_URL}", strings.ToUpper(usedResource.Name)),
+				Value: fmt.Sprintf("optional:configserver:${%s_BASE_URL}", strings.ToUpper(usedResource.Name)),
 			},
 		}, nil
 	default:
