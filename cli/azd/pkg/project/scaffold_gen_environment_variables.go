@@ -579,7 +579,7 @@ func GetResourceConnectionEnvs(usedResource *ResourceConfig,
 		return []scaffold.Env{
 			{
 				Name:  "spring.config.import",
-				Value: fmt.Sprintf("optional:configserver:%s", scaffold.GetContainerAppHost(usedResource.Name)),
+				Value: fmt.Sprintf("optional:configserver:%s?fail-fast=true", scaffold.GetContainerAppHost(usedResource.Name)),
 			},
 		}, nil
 	default:
