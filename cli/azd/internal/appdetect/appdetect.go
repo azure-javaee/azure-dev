@@ -181,7 +181,7 @@ func (a AzureDepStorageAccount) ResourceDisplay() string {
 }
 
 type MetaData struct {
-	Name                                      string
+	ApplicationName                           string
 	ContainsDependencySpringCloudAzureStarter bool
 }
 
