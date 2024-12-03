@@ -183,7 +183,7 @@ func (a AzureDepStorageAccount) ResourceDisplay() string {
 }
 
 type Metadata struct {
-  Name                                                    string
+	Name                                                    string
 	ContainsDependencySpringCloudAzureStarter               bool
 	ContainsDependencySpringCloudAzureStarterJdbcPostgresql bool
 	ContainsDependencySpringCloudAzureStarterJdbcMysql      bool
