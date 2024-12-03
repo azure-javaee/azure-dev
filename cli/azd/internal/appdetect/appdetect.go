@@ -182,8 +182,12 @@ func (a AzureDepStorageAccount) ResourceDisplay() string {
 	return "Azure Storage Account"
 }
 
-type MetaData struct {
-	ContainsDependencySpringCloudAzureStarter bool
+type Metadata struct {
+  Name                                                    string
+	ContainsDependencySpringCloudAzureStarter               bool
+	ContainsDependencySpringCloudAzureStarterJdbcPostgresql bool
+	ContainsDependencySpringCloudAzureStarterJdbcMysql      bool
+	ContainsPropertySpringDatasourcePassword                bool
 }
 
 const UnknownSpringBootVersion string = "unknownSpringBootVersion"
@@ -202,7 +206,7 @@ type Project struct {
 	AzureDeps []AzureDep
 
 	// Experimental: Metadata inferred through heuristics while scanning the project.
-	MetaData MetaData
+	Metadata Metadata
 
 	// The path to the project directory.
 	Path string

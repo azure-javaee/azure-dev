@@ -175,7 +175,7 @@ func TestInitializer_infraSpecFromDetect(t *testing.T) {
 			want: scaffold.InfraSpec{
 				DbPostgres: &scaffold.DatabasePostgres{
 					DatabaseName: "myappdb",
-					AuthType:     "USER_ASSIGNED_MANAGED_IDENTITY",
+					AuthType:     "UserAssignedManagedIdentity",
 				},
 				Services: []scaffold.ServiceSpec{
 					{
@@ -190,7 +190,7 @@ func TestInitializer_infraSpecFromDetect(t *testing.T) {
 						},
 						DbPostgres: &scaffold.DatabasePostgres{
 							DatabaseName: "myappdb",
-							AuthType:     "USER_ASSIGNED_MANAGED_IDENTITY",
+							AuthType:     "UserAssignedManagedIdentity",
 						},
 					},
 					{
@@ -224,7 +224,7 @@ func TestInitializer_infraSpecFromDetect(t *testing.T) {
 					nil),
 			}
 
-			spec, err := i.infraSpecFromDetect(context.Background(), tt.detect)
+			spec, err := i.infraSpecFromDetect(context.Background(), &tt.detect)
 
 			// Print extra newline to avoid mangling `go test -v` final test result output while waiting for final stdin,
 			// which may result in incorrect `gotestsum` reporting

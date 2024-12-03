@@ -154,7 +154,7 @@ func (i *Initializer) InitFromApp(
 				}
 			}
 
-			if hasKafkaDep && !prj.MetaData.ContainsDependencySpringCloudAzureStarter {
+			if hasKafkaDep && !prj.Metadata.ContainsDependencySpringCloudAzureStarter {
 				err := processSpringCloudAzureDepByPrompt(i.console, ctx, &projects[index])
 				if err != nil {
 					return err
@@ -288,7 +288,7 @@ func (i *Initializer) InitFromApp(
 	var infraSpec *scaffold.InfraSpec
 	composeEnabled := i.features.IsEnabled(featureCompose)
 	if !composeEnabled { // backwards compatibility
-		spec, err := i.infraSpecFromDetect(ctx, detect)
+		spec, err := i.infraSpecFromDetect(ctx, &detect)
 		if err != nil {
 			return err
 		}
@@ -305,7 +305,7 @@ func (i *Initializer) InitFromApp(
 
 	title = "Generating " + output.WithHighLightFormat("./"+azdcontext.ProjectFileName)
 	i.console.ShowSpinner(ctx, title, input.Step)
-	err = i.genProjectFile(ctx, azdCtx, detect, infraSpec, composeEnabled)
+	err = i.genProjectFile(ctx, azdCtx, &detect, infraSpec, composeEnabled)
 	if err != nil {
 		i.console.StopSpinner(ctx, title, input.GetStepResultFormat(err))
 		return err
@@ -398,7 +398,7 @@ func (i *Initializer) genFromInfra(
 func (i *Initializer) genProjectFile(
 	ctx context.Context,
 	azdCtx *azdcontext.AzdContext,
-	detect detectConfirm,
+	detect *detectConfirm,
 	spec *scaffold.InfraSpec,
 	addResources bool) error {
 	config, err := i.prjConfigFromDetect(ctx, azdCtx.ProjectDirectory(), detect, spec, addResources)
@@ -421,7 +421,7 @@ const InitGenTemplateId = "azd-init"
 func (i *Initializer) prjConfigFromDetect(
 	ctx context.Context,
 	root string,
-	detect detectConfirm,
+	detect *detectConfirm,
 	spec *scaffold.InfraSpec,
 	addResources bool) (project.ProjectConfig, error) {
 	config := project.ProjectConfig{
@@ -440,12 +440,12 @@ func (i *Initializer) prjConfigFromDetect(
 		for _, dep := range svc.Dependencies {
 			switch dep {
 			case appdetect.JavaEurekaServer:
-				javaEurekaServerService, err = ServiceFromDetect(root, "", svc)
+				javaEurekaServerService, err = ServiceFromDetect(root, svc.Metadata.Name, svc)
 				if err != nil {
 					return config, err
 				}
 			case appdetect.JavaConfigServer:
-				javaConfigServerService, err = ServiceFromDetect(root, "", svc)
+				javaConfigServerService, err = ServiceFromDetect(root, svc.Metadata.Name, svc)
 				if err != nil {
 					return config, err
 				}
@@ -455,7 +455,7 @@ func (i *Initializer) prjConfigFromDetect(
 
 	svcMapping := map[string]string{}
 	for _, prj := range detect.Services {
-		svc, err := ServiceFromDetect(root, "", prj)
+		svc, err := ServiceFromDetect(root, prj.Metadata.Name, prj)
 		if err != nil {
 			return config, err
 		}
@@ -611,6 +611,14 @@ func (i *Initializer) prjConfigFromDetect(
 					i.console)
 				if err != nil {
 					return config, err
+				}
+				continueProvision, err := checkPasswordlessConfigurationAndContinueProvision(database, authType, detect,
+					i.console, ctx)
+				if err != nil {
+					return config, err
+				}
+				if !continueProvision {
+					continue
 				}
 			}
 			switch database {
@@ -789,13 +797,75 @@ func (i *Initializer) prjConfigFromDetect(
 			}
 		}
 
-		err := i.addMavenBuildHook(detect, &config)
+		err := i.addMavenBuildHook(*detect, &config)
 		if err != nil {
 			return config, err
 		}
 	}
 
 	return config, nil
+}
+
+func checkPasswordlessConfigurationAndContinueProvision(database appdetect.DatabaseDep, authType internal.AuthType,
+	detect *detectConfirm, console input.Console, ctx context.Context) (bool, error) {
+	if authType != internal.AuthTypeUserAssignedManagedIdentity {
+		return true, nil
+	}
+	for i, prj := range detect.Services {
+		if prj.Language == appdetect.Java &&
+			(!prj.Metadata.ContainsDependencySpringCloudAzureStarter ||
+				prj.Metadata.ContainsPropertySpringDatasourcePassword) {
+			message := fmt.Sprintf("You selected %s as auth type for %s.",
+				internal.AuthTypeUserAssignedManagedIdentity, database)
+			if database == appdetect.DbPostgres && !prj.Metadata.ContainsDependencySpringCloudAzureStarterJdbcPostgresql {
+				message = fmt.Sprintf("%s This dependency is required: "+
+					"'com.azure.spring:spring-cloud-azure-starter-jdbc-postgresql'. "+
+					"But this dependency is not found in your project: %s.", message, prj.Path)
+			}
+			if database == appdetect.DbMySql && !prj.Metadata.ContainsDependencySpringCloudAzureStarterJdbcMysql {
+				message = fmt.Sprintf("%s This dependency is required: "+
+					"'com.azure.spring:spring-cloud-azure-starter-jdbc-mysql'. "+
+					"But this dependency is not found in your project: %s.", message, prj.Path)
+			}
+			if prj.Metadata.ContainsPropertySpringDatasourcePassword {
+				message = fmt.Sprintf("%s This property should be deleted: "+
+					"'spring.datasource.password'. "+
+					"But this property is found in your project: %s.", message, prj.Path)
+			}
+			continueOption, err := console.Select(ctx, input.ConsoleOptions{
+				Message: fmt.Sprintf("%s Select an option:", message),
+				Options: []string{
+					"Exit azd and fix problem manually",
+					"Continue azd and provision " + database.Display(),
+					"Continue azd but not provision " + database.Display(),
+				},
+			})
+			if err != nil {
+				return false, err
+			}
+
+			switch continueOption {
+			case 0:
+				os.Exit(0)
+			case 1:
+				return true, nil
+			case 2:
+				// remove related database usage
+				var result []appdetect.DatabaseDep
+				for _, db := range prj.DatabaseDeps {
+					if db != database {
+						result = append(result, db)
+					}
+				}
+				prj.DatabaseDeps = result
+				detect.Services[i] = prj
+				// delete database
+				delete(detect.Databases, database)
+				return false, nil
+			}
+		}
+	}
+	return true, nil
 }
 
 func (i *Initializer) addMavenBuildHook(
