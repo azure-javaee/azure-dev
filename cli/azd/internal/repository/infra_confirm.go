@@ -3,15 +3,16 @@ package repository
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strconv"
+
 	"github.com/azure/azure-dev/cli/azd/internal"
 	"github.com/azure/azure-dev/cli/azd/internal/appdetect"
 	"github.com/azure/azure-dev/cli/azd/internal/names"
 	"github.com/azure/azure-dev/cli/azd/internal/scaffold"
 	"github.com/azure/azure-dev/cli/azd/pkg/input"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strconv"
 )
 
 // infraSpecFromDetect creates an InfraSpec from the results of app detection confirmation,
