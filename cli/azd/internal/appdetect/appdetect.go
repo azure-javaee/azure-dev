@@ -187,7 +187,6 @@ type Metadata struct {
 	ContainsDependencySpringCloudAzureStarter               bool
 	ContainsDependencySpringCloudAzureStarterJdbcPostgresql bool
 	ContainsDependencySpringCloudAzureStarterJdbcMysql      bool
-	ContainsPropertySpringDatasourcePassword                bool
 }
 
 const UnknownSpringBootVersion string = "unknownSpringBootVersion"

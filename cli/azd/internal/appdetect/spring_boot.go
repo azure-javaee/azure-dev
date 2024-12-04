@@ -259,7 +259,6 @@ func detectMetadata(azdProject *Project, springBootProject *SpringBootProject) {
 	detectDependencySpringCloudAzureStarter(azdProject, springBootProject)
 	detectDependencySpringCloudAzureStarterJdbcPostgresql(azdProject, springBootProject)
 	detectDependencySpringCloudAzureStarterJdbcMysql(azdProject, springBootProject)
-	detectPropertySpringDatasourcePassword(azdProject, springBootProject)
 }
 
 func detectDependencySpringCloudAzureStarter(azdProject *Project, springBootProject *SpringBootProject) {
@@ -286,14 +285,6 @@ func detectDependencySpringCloudAzureStarterJdbcMysql(azdProject *Project, sprin
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
 		azdProject.Metadata.ContainsDependencySpringCloudAzureStarterJdbcMysql = true
 		logMetadataUpdated("ContainsDependencySpringCloudAzureStarterJdbcMysql = true")
-	}
-}
-
-func detectPropertySpringDatasourcePassword(azdProject *Project, springBootProject *SpringBootProject) {
-	var targetProperty = "spring.datasource.password"
-	if _, ok := springBootProject.applicationProperties[targetProperty]; ok {
-		azdProject.Metadata.ContainsPropertySpringDatasourcePassword = true
-		logMetadataUpdated("ContainsPropertySpringDatasourcePassword = true")
 	}
 }
 
