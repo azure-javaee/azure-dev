@@ -254,9 +254,9 @@ func detectMetadata(azdProject *Project, springBootProject *SpringBootProject) {
 	detectDependencySpringCloudAzureStarterJdbcPostgresql(azdProject, springBootProject)
 	detectDependencySpringCloudAzureStarterJdbcMysql(azdProject, springBootProject)
 	detectPropertySpringDatasourcePassword(azdProject, springBootProject)
-	detectSpringApplicationName(azdProject, springBootProject)
-	detectSpringCloudEureka(azdProject, springBootProject)
-	detectSpringCloudConfig(azdProject, springBootProject)
+	detectPropertySpringApplicationName(azdProject, springBootProject)
+	detectDependencySpringCloudEureka(azdProject, springBootProject)
+	detectDependencySpringCloudConfig(azdProject, springBootProject)
 }
 
 func detectDependencySpringCloudAzureStarter(azdProject *Project, springBootProject *SpringBootProject) {
@@ -294,14 +294,14 @@ func detectPropertySpringDatasourcePassword(azdProject *Project, springBootProje
 	}
 }
 
-func detectSpringApplicationName(azdProject *Project, springBootProject *SpringBootProject) {
+func detectPropertySpringApplicationName(azdProject *Project, springBootProject *SpringBootProject) {
 	var targetSpringAppName = "spring.application.name"
 	if appName, ok := springBootProject.applicationProperties[targetSpringAppName]; ok {
 		azdProject.Metadata.ApplicationName = appName
 	}
 }
 
-func detectSpringCloudEureka(azdProject *Project, springBootProject *SpringBootProject) {
+func detectDependencySpringCloudEureka(azdProject *Project, springBootProject *SpringBootProject) {
 	var targetGroupId = "org.springframework.cloud"
 	var targetArtifactId = "spring-cloud-starter-netflix-eureka-server"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
@@ -317,7 +317,7 @@ func detectSpringCloudEureka(azdProject *Project, springBootProject *SpringBootP
 	}
 }
 
-func detectSpringCloudConfig(azdProject *Project, springBootProject *SpringBootProject) {
+func detectDependencySpringCloudConfig(azdProject *Project, springBootProject *SpringBootProject) {
 	var targetGroupId = "org.springframework.cloud"
 	var targetArtifactId = "spring-cloud-config-server"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
