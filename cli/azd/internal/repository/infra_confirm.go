@@ -225,7 +225,7 @@ func getDatabaseName(database appdetect.DatabaseDep, detect *detectConfirm,
 func getDatabaseNameFromProjectMetadata(detect *detectConfirm, database appdetect.DatabaseDep) string {
 	result := ""
 	for _, service := range detect.Services {
-		name, _ := service.Metadata.DatabaseNameInPropertySpringDatasourceUrl[database]
+		name := service.Metadata.DatabaseNameInPropertySpringDatasourceUrl[database]
 		if name != result {
 			if result == "" {
 				result = name
