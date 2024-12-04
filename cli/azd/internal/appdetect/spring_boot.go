@@ -98,7 +98,11 @@ func detectAzureDependenciesByAnalyzingSpringBootProject(
 	detectEventHubs(azdProject, &springBootProject)
 	detectStorageAccount(azdProject, &springBootProject)
 	detectMetadata(azdProject, &springBootProject)
-	for _, p := range mavenProject.Build.Plugins {
+	detectSpringFrontend(azdProject, &springBootProject)
+}
+
+func detectSpringFrontend(azdProject *Project, springBootProject *SpringBootProject) {
+	for _, p := range springBootProject.mavenProject.Build.Plugins {
 		if p.GroupId == "com.github.eirslett" && p.ArtifactId == "frontend-maven-plugin" {
 			azdProject.Dependencies = append(azdProject.Dependencies, SpringFrontend)
 			break
