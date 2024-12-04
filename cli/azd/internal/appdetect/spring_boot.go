@@ -253,10 +253,10 @@ func detectMetadata(azdProject *Project, springBootProject *SpringBootProject) {
 	detectDependencySpringCloudAzureStarter(azdProject, springBootProject)
 	detectDependencySpringCloudAzureStarterJdbcPostgresql(azdProject, springBootProject)
 	detectDependencySpringCloudAzureStarterJdbcMysql(azdProject, springBootProject)
-	detectPropertySpringDatasourcePassword(azdProject, springBootProject)
-	detectPropertySpringApplicationName(azdProject, springBootProject)
 	detectDependencySpringCloudEureka(azdProject, springBootProject)
 	detectDependencySpringCloudConfig(azdProject, springBootProject)
+	detectPropertySpringDatasourcePassword(azdProject, springBootProject)
+	detectPropertySpringApplicationName(azdProject, springBootProject)
 }
 
 func detectDependencySpringCloudAzureStarter(azdProject *Project, springBootProject *SpringBootProject) {
