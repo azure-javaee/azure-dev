@@ -438,18 +438,16 @@ func (i *Initializer) prjConfigFromDetect(
 	var javaConfigServerService project.ServiceConfig
 	var err error
 	for _, svc := range detect.Services {
-		for _, dep := range svc.Dependencies {
-			switch dep {
-			case appdetect.JavaEurekaServer:
-				javaEurekaServerService, err = ServiceFromDetect(root, svc.Metadata.ApplicationName, svc)
-				if err != nil {
-					return config, err
-				}
-			case appdetect.JavaConfigServer:
-				javaConfigServerService, err = ServiceFromDetect(root, svc.Metadata.ApplicationName, svc)
-				if err != nil {
-					return config, err
-				}
+		if svc.Metadata.ContainsDependencySpringCloudEurekaServer {
+			javaEurekaServerService, err = ServiceFromDetect(root, svc.Metadata.ApplicationName, svc)
+			if err != nil {
+				return config, err
+			}
+		}
+		if svc.Metadata.ContainsDependencySpringCloudConfigServer {
+			javaConfigServerService, err = ServiceFromDetect(root, svc.Metadata.ApplicationName, svc)
+			if err != nil {
+				return config, err
 			}
 		}
 	}
@@ -553,26 +551,24 @@ func (i *Initializer) prjConfigFromDetect(
 			}
 		}
 
-		for _, dep := range prj.Dependencies {
-			switch dep {
-			case appdetect.JavaEurekaClient:
-				err := appendJavaEurekaOrConfigClientEnv(
-					&svc,
-					javaEurekaServerService,
-					project.ResourceTypeJavaEurekaServer,
-					spec)
-				if err != nil {
-					return config, err
-				}
-			case appdetect.JavaConfigClient:
-				err := appendJavaEurekaOrConfigClientEnv(
-					&svc,
-					javaConfigServerService,
-					project.ResourceTypeJavaConfigServer,
-					spec)
-				if err != nil {
-					return config, err
-				}
+		if prj.Metadata.ContainsDependencySpringCloudEurekaClient {
+			err := appendJavaEurekaOrConfigClientEnv(
+				&svc,
+				javaEurekaServerService,
+				project.ResourceTypeJavaEurekaServer,
+				spec)
+			if err != nil {
+				return config, err
+			}
+		}
+		if prj.Metadata.ContainsDependencySpringCloudConfigClient {
+			err := appendJavaEurekaOrConfigClientEnv(
+				&svc,
+				javaConfigServerService,
+				project.ResourceTypeJavaConfigServer,
+				spec)
+			if err != nil {
+				return config, err
 			}
 		}
 
@@ -747,13 +743,11 @@ func (i *Initializer) prjConfigFromDetect(
 			}
 			props.Port = port
 
-			for _, dep := range svc.Dependencies {
-				switch dep {
-				case appdetect.JavaEurekaClient:
-					resSpec.Uses = append(resSpec.Uses, javaEurekaServerService.Name)
-				case appdetect.JavaConfigClient:
-					resSpec.Uses = append(resSpec.Uses, javaConfigServerService.Name)
-				}
+			if svc.Metadata.ContainsDependencySpringCloudEurekaClient {
+				resSpec.Uses = append(resSpec.Uses, javaEurekaServerService.Name)
+			}
+			if svc.Metadata.ContainsDependencySpringCloudConfigClient {
+				resSpec.Uses = append(resSpec.Uses, javaConfigServerService.Name)
 			}
 
 			for _, db := range svc.DatabaseDeps {
