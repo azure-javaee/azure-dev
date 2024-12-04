@@ -93,33 +93,16 @@ func detectAzureDependenciesByAnalyzingSpringBootProject(
 		parentProject:         parentProject,
 		mavenProject:          mavenProject,
 	}
-	detectMetadata(azdProject, &springBootProject)
 	detectDatabases(azdProject, &springBootProject)
 	detectServiceBus(azdProject, &springBootProject)
 	detectEventHubs(azdProject, &springBootProject)
 	detectStorageAccount(azdProject, &springBootProject)
+	detectMetadata(azdProject, &springBootProject)
 	for _, p := range mavenProject.Build.Plugins {
 		if p.GroupId == "com.github.eirslett" && p.ArtifactId == "frontend-maven-plugin" {
 			azdProject.Dependencies = append(azdProject.Dependencies, SpringFrontend)
 			break
 		}
-	}
-}
-
-func detectMetadata(azdProject *Project, springBootProject *SpringBootProject) {
-	detectDependencySpringCloudAzureStarter(azdProject, springBootProject)
-	detectDependencySpringCloudAzureStarterJdbcPostgresql(azdProject, springBootProject)
-	detectDependencySpringCloudAzureStarterJdbcMysql(azdProject, springBootProject)
-	detectPropertySpringDatasourcePassword(azdProject, springBootProject)
-	detectSpringApplicationName(azdProject, springBootProject)
-	detectSpringCloudEureka(azdProject, springBootProject)
-	detectSpringCloudConfig(azdProject, springBootProject)
-}
-
-func detectSpringApplicationName(azdProject *Project, springBootProject *SpringBootProject) {
-	var targetSpringAppName = "spring.application.name"
-	if appName, ok := springBootProject.applicationProperties[targetSpringAppName]; ok {
-		azdProject.Metadata.ApplicationName = appName
 	}
 }
 
@@ -262,6 +245,16 @@ func detectStorageAccountAccordingToSpringCloudStreamBinderMavenDependencyAndPro
 	}
 }
 
+func detectMetadata(azdProject *Project, springBootProject *SpringBootProject) {
+	detectDependencySpringCloudAzureStarter(azdProject, springBootProject)
+	detectDependencySpringCloudAzureStarterJdbcPostgresql(azdProject, springBootProject)
+	detectDependencySpringCloudAzureStarterJdbcMysql(azdProject, springBootProject)
+	detectPropertySpringDatasourcePassword(azdProject, springBootProject)
+	detectSpringApplicationName(azdProject, springBootProject)
+	detectSpringCloudEureka(azdProject, springBootProject)
+	detectSpringCloudConfig(azdProject, springBootProject)
+}
+
 func detectDependencySpringCloudAzureStarter(azdProject *Project, springBootProject *SpringBootProject) {
 	var targetGroupId = "com.azure.spring"
 	var targetArtifactId = "spring-cloud-azure-starter"
@@ -294,6 +287,13 @@ func detectPropertySpringDatasourcePassword(azdProject *Project, springBootProje
 	if _, ok := springBootProject.applicationProperties[targetProperty]; ok {
 		azdProject.Metadata.ContainsPropertySpringDatasourcePassword = true
 		logMetadataUpdated("ContainsPropertySpringDatasourcePassword = true")
+	}
+}
+
+func detectSpringApplicationName(azdProject *Project, springBootProject *SpringBootProject) {
+	var targetSpringAppName = "spring.application.name"
+	if appName, ok := springBootProject.applicationProperties[targetSpringAppName]; ok {
+		azdProject.Metadata.ApplicationName = appName
 	}
 }
 
