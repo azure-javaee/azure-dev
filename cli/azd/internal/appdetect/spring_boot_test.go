@@ -238,15 +238,15 @@ func TestGetDatabaseName(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"jdbc:postgresql://localhost:5432/your_database_name", "your_database_name"},
-		{"jdbc:postgresql://remote_host:5432/your_database_name", "your_database_name"},
-		{"jdbc:postgresql://your_postgresql_server:5432/your_database_name?sslmode=require", "your_database_name"},
-		{"jdbc:postgresql://your_postgresql_server.postgres.database.azure.com:5432/your_database_name?sslmode=require",
-			"your_database_name"},
-		{"jdbc:postgresql://your_postgresql_server:5432/your_database_name?user=your_username&password=your_password",
-			"your_database_name"},
-		{"jdbc:postgresql://your_postgresql_server.postgres.database.azure.com:5432/your_database_name" +
-			"?sslmode=require&spring.datasource.azure.passwordless-enabled=true", "your_database_name"},
+		{"jdbc:postgresql://localhost:5432/your-database-name", "your-database-name"},
+		{"jdbc:postgresql://remote_host:5432/your-database-name", "your-database-name"},
+		{"jdbc:postgresql://your_postgresql_server:5432/your-database-name?sslmode=require", "your-database-name"},
+		{"jdbc:postgresql://your_postgresql_server.postgres.database.azure.com:5432/your-database-name?sslmode=require",
+			"your-database-name"},
+		{"jdbc:postgresql://your_postgresql_server:5432/your-database-name?user=your_username&password=your_password",
+			"your-database-name"},
+		{"jdbc:postgresql://your_postgresql_server.postgres.database.azure.com:5432/your-database-name" +
+			"?sslmode=require&spring.datasource.azure.passwordless-enabled=true", "your-database-name"},
 	}
 	for _, test := range tests {
 		result := getDatabaseName(test.input)
