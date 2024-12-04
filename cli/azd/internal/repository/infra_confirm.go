@@ -24,7 +24,7 @@ var wellFormedDbNameRegex = regexp.MustCompile(`^[a-zA-Z\-_0-9]*$`)
 // prompting for additional inputs if necessary.
 func (i *Initializer) infraSpecFromDetect(
 	ctx context.Context,
-	detect detectConfirm) (scaffold.InfraSpec, error) {
+	detect *detectConfirm) (scaffold.InfraSpec, error) {
 	spec := scaffold.InfraSpec{}
 	for database := range detect.Databases {
 		if database == appdetect.DbRedis {
@@ -59,6 +59,14 @@ func (i *Initializer) infraSpecFromDetect(
 				if err != nil {
 					return scaffold.InfraSpec{}, err
 				}
+				continueProvision, err := checkPasswordlessConfigurationAndContinueProvision(database,
+					authType, detect, i.console, ctx)
+				if err != nil {
+					return scaffold.InfraSpec{}, err
+				}
+				if !continueProvision {
+					continue
+				}
 				spec.DbPostgres = &scaffold.DatabasePostgres{
 					DatabaseName: dbName,
 					AuthType:     authType,
@@ -76,6 +84,17 @@ func (i *Initializer) infraSpecFromDetect(
 					i.console)
 				if err != nil {
 					return scaffold.InfraSpec{}, err
+				}
+				if err != nil {
+					return scaffold.InfraSpec{}, err
+				}
+				continueProvision, err := checkPasswordlessConfigurationAndContinueProvision(database,
+					authType, detect, i.console, ctx)
+				if err != nil {
+					return scaffold.InfraSpec{}, err
+				}
+				if !continueProvision {
+					continue
 				}
 				spec.DbMySql = &scaffold.DatabaseMySql{
 					DatabaseName: dbName,
@@ -273,7 +292,7 @@ func PromptPort(
 	name string,
 	svc appdetect.Project) (int, error) {
 	if svc.Docker == nil || svc.Docker.Path == "" { // using default builder from azd
-		if svc.Language == appdetect.Java {
+		if svc.Language == appdetect.Java || svc.Language == appdetect.DotNet {
 			for _, dep := range svc.Dependencies {
 				switch dep {
 				case appdetect.JavaEurekaServer:

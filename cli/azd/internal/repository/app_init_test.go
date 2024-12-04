@@ -47,7 +47,7 @@ func TestInitializer_prjConfigFromDetect(t *testing.T) {
 						Type: project.ResourceTypeHostContainerApp,
 						Name: "dotnet",
 						Props: project.ContainerAppProps{
-							Port: 80,
+							Port: 8080,
 						},
 					},
 				},
@@ -316,7 +316,7 @@ func TestInitializer_prjConfigFromDetect(t *testing.T) {
 			spec, err := i.prjConfigFromDetect(
 				context.Background(),
 				dir,
-				tt.detect,
+				&tt.detect,
 				&scaffold.InfraSpec{},
 				true)
 

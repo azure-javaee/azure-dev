@@ -60,6 +60,7 @@ const (
 	PyDjango  Dependency = "django"
 	PyFastApi Dependency = "fastapi"
 
+	SpringFrontend   Dependency = "springFrontend"
 	JavaEurekaServer Dependency = "eureka-server"
 	JavaEurekaClient Dependency = "eureka-client"
 	JavaConfigServer Dependency = "config-server"
@@ -67,10 +68,11 @@ const (
 )
 
 var WebUIFrameworks = map[Dependency]struct{}{
-	JsReact:   {},
-	JsAngular: {},
-	JsJQuery:  {},
-	JsVite:    {},
+	JsReact:        {},
+	JsAngular:      {},
+	JsJQuery:       {},
+	JsVite:         {},
+	SpringFrontend: {},
 }
 
 func (f Dependency) Language() Language {
@@ -180,9 +182,12 @@ func (a AzureDepStorageAccount) ResourceDisplay() string {
 	return "Azure Storage Account"
 }
 
-type MetaData struct {
-	ApplicationName                           string
-	ContainsDependencySpringCloudAzureStarter bool
+type Metadata struct {
+	ApplicationName                                         string
+	ContainsDependencySpringCloudAzureStarter               bool
+	ContainsDependencySpringCloudAzureStarterJdbcPostgresql bool
+	ContainsDependencySpringCloudAzureStarterJdbcMysql      bool
+	ContainsPropertySpringDatasourcePassword                bool
 }
 
 const UnknownSpringBootVersion string = "unknownSpringBootVersion"
@@ -201,10 +206,12 @@ type Project struct {
 	AzureDeps []AzureDep
 
 	// Experimental: Metadata inferred through heuristics while scanning the project.
-	MetaData MetaData
+	Metadata Metadata
 
 	// The path to the project directory.
 	Path string
+
+	Options map[string]interface{}
 
 	// A short description of the detection rule applied.
 	DetectionRule string

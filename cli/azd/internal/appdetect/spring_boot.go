@@ -98,11 +98,20 @@ func detectAzureDependenciesByAnalyzingSpringBootProject(
 	detectServiceBus(azdProject, &springBootProject)
 	detectEventHubs(azdProject, &springBootProject)
 	detectStorageAccount(azdProject, &springBootProject)
+	for _, p := range mavenProject.Build.Plugins {
+		if p.GroupId == "com.github.eirslett" && p.ArtifactId == "frontend-maven-plugin" {
+			azdProject.Dependencies = append(azdProject.Dependencies, SpringFrontend)
+			break
+		}
+	}
 }
 
 func detectMetadata(azdProject *Project, springBootProject *SpringBootProject) {
+	detectDependencySpringCloudAzureStarter(azdProject, springBootProject)
+	detectDependencySpringCloudAzureStarterJdbcPostgresql(azdProject, springBootProject)
+	detectDependencySpringCloudAzureStarterJdbcMysql(azdProject, springBootProject)
+	detectPropertySpringDatasourcePassword(azdProject, springBootProject)
 	detectSpringApplicationName(azdProject, springBootProject)
-	detectSpringCloudAzure(azdProject, springBootProject)
 	detectSpringCloudEureka(azdProject, springBootProject)
 	detectSpringCloudConfig(azdProject, springBootProject)
 }
@@ -110,7 +119,7 @@ func detectMetadata(azdProject *Project, springBootProject *SpringBootProject) {
 func detectSpringApplicationName(azdProject *Project, springBootProject *SpringBootProject) {
 	var targetSpringAppName = "spring.application.name"
 	if appName, ok := springBootProject.applicationProperties[targetSpringAppName]; ok {
-		azdProject.MetaData.ApplicationName = appName
+		azdProject.Metadata.ApplicationName = appName
 	}
 }
 
@@ -253,12 +262,38 @@ func detectStorageAccountAccordingToSpringCloudStreamBinderMavenDependencyAndPro
 	}
 }
 
-func detectSpringCloudAzure(azdProject *Project, springBootProject *SpringBootProject) {
+func detectDependencySpringCloudAzureStarter(azdProject *Project, springBootProject *SpringBootProject) {
 	var targetGroupId = "com.azure.spring"
 	var targetArtifactId = "spring-cloud-azure-starter"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
-		azdProject.MetaData.ContainsDependencySpringCloudAzureStarter = true
+		azdProject.Metadata.ContainsDependencySpringCloudAzureStarter = true
 		logMetadataUpdated("ContainsDependencySpringCloudAzureStarter = true")
+	}
+}
+
+func detectDependencySpringCloudAzureStarterJdbcPostgresql(azdProject *Project, springBootProject *SpringBootProject) {
+	var targetGroupId = "com.azure.spring"
+	var targetArtifactId = "spring-cloud-azure-starter-jdbc-postgresql"
+	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
+		azdProject.Metadata.ContainsDependencySpringCloudAzureStarterJdbcPostgresql = true
+		logMetadataUpdated("ContainsDependencySpringCloudAzureStarterJdbcPostgresql = true")
+	}
+}
+
+func detectDependencySpringCloudAzureStarterJdbcMysql(azdProject *Project, springBootProject *SpringBootProject) {
+	var targetGroupId = "com.azure.spring"
+	var targetArtifactId = "spring-cloud-azure-starter-jdbc-mysql"
+	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
+		azdProject.Metadata.ContainsDependencySpringCloudAzureStarterJdbcMysql = true
+		logMetadataUpdated("ContainsDependencySpringCloudAzureStarterJdbcMysql = true")
+	}
+}
+
+func detectPropertySpringDatasourcePassword(azdProject *Project, springBootProject *SpringBootProject) {
+	var targetProperty = "spring.datasource.password"
+	if _, ok := springBootProject.applicationProperties[targetProperty]; ok {
+		azdProject.Metadata.ContainsPropertySpringDatasourcePassword = true
+		logMetadataUpdated("ContainsPropertySpringDatasourcePassword = true")
 	}
 }
 
