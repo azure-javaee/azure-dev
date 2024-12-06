@@ -253,6 +253,7 @@ func detectStorageAccountAccordingToSpringCloudStreamBinderMavenDependencyAndPro
 func detectMetadata(azdProject *Project, springBootProject *SpringBootProject) {
 	detectPropertySpringApplicationName(azdProject, springBootProject)
 	detectPropertySpringDatasourceUrl(azdProject, springBootProject)
+	detectPropertySpringDataMongodbUri(azdProject, springBootProject)
 	detectDependencySpringCloudAzureStarter(azdProject, springBootProject)
 	detectDependencySpringCloudAzureStarterJdbcPostgresql(azdProject, springBootProject)
 	detectDependencySpringCloudAzureStarterJdbcMysql(azdProject, springBootProject)
@@ -264,12 +265,12 @@ func detectPropertySpringDatasourceUrl(azdProject *Project, springBootProject *S
 	var targetPropertyName = "spring.datasource.url"
 	propertyValue, ok := springBootProject.applicationProperties[targetPropertyName]
 	if !ok {
-		log.Printf("spring.datasource.url property not exist in project. Path = %s", azdProject.Path)
+		log.Printf("%s property not exist in project. Path = %s", targetPropertyName, azdProject.Path)
 		return
 	}
 	databaseName := getDatabaseName(propertyValue)
 	if databaseName == "" {
-		log.Printf("can not get database name from property: spring.datasource.url")
+		log.Printf("can not get database name from property: %s", targetPropertyName)
 		return
 	}
 	if azdProject.Metadata.DatabaseNameInPropertySpringDatasourceUrl == nil {
@@ -280,6 +281,24 @@ func detectPropertySpringDatasourceUrl(azdProject *Project, springBootProject *S
 	} else if strings.HasPrefix(propertyValue, "jdbc:mysql") {
 		azdProject.Metadata.DatabaseNameInPropertySpringDatasourceUrl[DbMySql] = databaseName
 	}
+}
+
+func detectPropertySpringDataMongodbUri(azdProject *Project, springBootProject *SpringBootProject) {
+	var targetPropertyName = "spring.data.mongodb.uri"
+	propertyValue, ok := springBootProject.applicationProperties[targetPropertyName]
+	if !ok {
+		log.Printf("%s property not exist in project. Path = %s", targetPropertyName, azdProject.Path)
+		return
+	}
+	databaseName := getDatabaseName(propertyValue)
+	if databaseName == "" {
+		log.Printf("can not get database name from property: %s", targetPropertyName)
+		return
+	}
+	if azdProject.Metadata.DatabaseNameInPropertySpringDatasourceUrl == nil {
+		azdProject.Metadata.DatabaseNameInPropertySpringDatasourceUrl = map[DatabaseDep]string{}
+	}
+	azdProject.Metadata.DatabaseNameInPropertySpringDatasourceUrl[DbMongo] = databaseName
 }
 
 func getDatabaseName(datasourceURL string) string {
