@@ -75,6 +75,12 @@ func TestGetEnvironmentVariablePlaceholderHandledValue(t *testing.T) {
 			map[string]string{},
 			"jdbc:mysql://localhost:3306/pet-clinic",
 		},
+		{
+			"Value set to null",
+			"#{null}",
+			map[string]string{},
+			"",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

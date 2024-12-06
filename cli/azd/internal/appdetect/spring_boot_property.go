@@ -3,13 +3,14 @@ package appdetect
 import (
 	"bufio"
 	"fmt"
-	"github.com/azure/azure-dev/cli/azd/pkg/osutil"
-	"github.com/braydonk/yaml"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/azure/azure-dev/cli/azd/pkg/osutil"
+	"github.com/braydonk/yaml"
 )
 
 func readProperties(projectPath string) map[string]string {
@@ -133,6 +134,9 @@ func getEnvironmentVariablePlaceholderHandledValue(rawValue string) string {
 		}
 		placeholder := match[0]
 		result = strings.Replace(result, placeholder, value, -1)
+	}
+	if result == "#{null}" {
+		result = ""
 	}
 	return result
 }
