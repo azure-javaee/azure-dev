@@ -142,19 +142,6 @@ func BindToServiceBus(serviceSpec *ServiceSpec, serviceBus *AzureDepServiceBus) 
 	return nil
 }
 
-func BindToEventHubsKafka(serviceSpec *ServiceSpec, eventHubs *AzureDepEventHubs) error {
-	serviceSpec.AzureEventHubs = eventHubs
-	envs, err := GetServiceBindingEnvsForEventHubsKafka(*eventHubs)
-	if err != nil {
-		return err
-	}
-	serviceSpec.Envs, err = mergeEnvWithDuplicationCheck(serviceSpec.Envs, envs)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func BindToEventHubs(serviceSpec *ServiceSpec, eventHubs *AzureDepEventHubs) error {
 	serviceSpec.AzureEventHubs = eventHubs
 	envs, err := GetServiceBindingEnvsForEventHubs(*eventHubs)
@@ -562,6 +549,9 @@ func GetServiceBindingEnvsForEventHubsKafka(eventHubs AzureDepEventHubs) ([]Env,
 }
 
 func GetServiceBindingEnvsForEventHubs(eventHubs AzureDepEventHubs) ([]Env, error) {
+	if eventHubs.UseKafka {
+		return GetServiceBindingEnvsForEventHubsKafka(eventHubs)
+	}
 	switch eventHubs.AuthType {
 	case internal.AuthTypeUserAssignedManagedIdentity:
 		return []Env{

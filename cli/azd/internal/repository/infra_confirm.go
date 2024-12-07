@@ -175,16 +175,9 @@ func (i *Initializer) infraSpecFromDetect(
 					return scaffold.InfraSpec{}, err
 				}
 			case appdetect.AzureDepEventHubs:
-				if spec.AzureEventHubs.UseKafka {
-					err := scaffold.BindToEventHubsKafka(&serviceSpec, spec.AzureEventHubs)
-					if err != nil {
-						return scaffold.InfraSpec{}, err
-					}
-				} else {
-					err := scaffold.BindToEventHubs(&serviceSpec, spec.AzureEventHubs)
-					if err != nil {
-						return scaffold.InfraSpec{}, err
-					}
+				err := scaffold.BindToEventHubs(&serviceSpec, spec.AzureEventHubs)
+				if err != nil {
+					return scaffold.InfraSpec{}, err
 				}
 			case appdetect.AzureDepStorageAccount:
 				serviceSpec.AzureStorageAccount = spec.AzureStorageAccount
