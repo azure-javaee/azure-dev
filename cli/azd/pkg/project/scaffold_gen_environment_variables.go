@@ -2,9 +2,10 @@ package project
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/azure/azure-dev/cli/azd/internal"
 	"github.com/azure/azure-dev/cli/azd/internal/scaffold"
-	"strings"
 )
 
 func GetResourceConnectionEnvs(usedResource *ResourceConfig,
@@ -235,7 +236,7 @@ func GetResourceConnectionEnvs(usedResource *ResourceConfig,
 		}
 	case ResourceTypeDbMongo:
 		switch authType {
-		case internal.AuthTypeUserAssignedManagedIdentity:
+		case internal.AuthTypeConnectionString:
 			return []scaffold.Env{
 				{
 					Name: "MONGODB_URL",
@@ -551,7 +552,7 @@ func GetResourceConnectionEnvs(usedResource *ResourceConfig,
 		}
 	case ResourceTypeHostContainerApp: // todo improve this and delete Frontend and Backend in scaffold.ServiceSpec
 		switch authType {
-		case internal.AuthTypeUserAssignedManagedIdentity:
+		case internal.AuthTypeUnspecified:
 			return []scaffold.Env{}, nil
 		default:
 			return []scaffold.Env{}, unsupportedAuthTypeError(resourceType, authType)

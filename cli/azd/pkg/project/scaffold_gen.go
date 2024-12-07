@@ -337,10 +337,10 @@ func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (inte
 		return infraSpec.DbMySql.AuthType, nil
 	case ResourceTypeDbRedis:
 		return internal.AuthTypePassword, nil
-	case ResourceTypeDbMongo,
-		ResourceTypeDbCosmos,
-		ResourceTypeOpenAiModel,
-		ResourceTypeHostContainerApp:
+	case ResourceTypeDbMongo:
+		return internal.AuthTypeConnectionString, nil
+	case ResourceTypeDbCosmos,
+		ResourceTypeOpenAiModel:
 		return internal.AuthTypeUserAssignedManagedIdentity, nil
 	case ResourceTypeMessagingServiceBus:
 		return infraSpec.AzureServiceBus.AuthType, nil
@@ -349,7 +349,8 @@ func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (inte
 	case ResourceTypeStorage:
 		return infraSpec.AzureStorageAccount.AuthType, nil
 	case ResourceTypeJavaEurekaServer,
-		ResourceTypeJavaConfigServer:
+		ResourceTypeJavaConfigServer,
+		ResourceTypeHostContainerApp:
 		return internal.AuthTypeUnspecified, nil
 	default:
 		return internal.AuthTypeUnspecified, fmt.Errorf("can not get authType, resource type: %s", resourceType)
