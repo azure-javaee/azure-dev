@@ -109,6 +109,19 @@ func BindToMongoDb(serviceSpec *ServiceSpec, mongo *DatabaseCosmosMongo) error {
 	return nil
 }
 
+func BindToCosmosDb(serviceSpec *ServiceSpec, cosmos *DatabaseCosmosAccount) error {
+	serviceSpec.DbCosmos = cosmos
+	envs, err := GetServiceBindingEnvsForCosmos()
+	if err != nil {
+		return err
+	}
+	serviceSpec.Envs, err = mergeEnvWithDuplicationCheck(serviceSpec.Envs, envs)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func GetServiceBindingEnvsForPostgres(postgres DatabasePostgres) ([]Env, error) {
 	switch postgres.AuthType {
 	case internal.AuthTypePassword:
@@ -276,6 +289,21 @@ func GetServiceBindingEnvsForMongo() ([]Env, error) {
 		{
 			Name:  "spring.data.mongodb.database",
 			Value: ToServiceBindingEnvValue(ServiceTypeDbMongo, ServiceBindingInfoTypeDatabaseName),
+		},
+	}, nil
+}
+
+func GetServiceBindingEnvsForCosmos() ([]Env, error) {
+	return []Env{
+		{
+			Name: "spring.cloud.azure.cosmos.endpoint",
+			Value: ToServiceBindingEnvValue(
+				ServiceTypeDbCosmos, ServiceBindingInfoTypeEndpoint),
+		},
+		{
+			Name: "spring.cloud.azure.cosmos.database",
+			Value: ToServiceBindingEnvValue(
+				ServiceTypeDbCosmos, ServiceBindingInfoTypeDatabaseName),
 		},
 	}, nil
 }

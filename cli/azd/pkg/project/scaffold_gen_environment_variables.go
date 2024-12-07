@@ -54,24 +54,6 @@ func GetResourceConnectionEnvs(usedResource *ResourceConfig,
 		default:
 			return []scaffold.Env{}, unsupportedAuthTypeError(resourceType, authType)
 		}
-	case ResourceTypeDbCosmos:
-		switch authType {
-		case internal.AuthTypeUserAssignedManagedIdentity:
-			return []scaffold.Env{
-				{
-					Name: "spring.cloud.azure.cosmos.endpoint",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeDbCosmos, scaffold.ServiceBindingInfoTypeEndpoint),
-				},
-				{
-					Name: "spring.cloud.azure.cosmos.database",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeDbCosmos, scaffold.ServiceBindingInfoTypeDatabaseName),
-				},
-			}, nil
-		default:
-			return []scaffold.Env{}, unsupportedAuthTypeError(resourceType, authType)
-		}
 	case ResourceTypeMessagingServiceBus:
 		if infraSpec.AzureServiceBus.IsJms {
 			switch authType {

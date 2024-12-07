@@ -155,7 +155,10 @@ func (i *Initializer) infraSpecFromDetect(
 					return scaffold.InfraSpec{}, err
 				}
 			case appdetect.DbCosmos:
-				serviceSpec.DbCosmos = spec.DbCosmos
+				err := scaffold.BindToCosmosDb(&serviceSpec, spec.DbCosmos)
+				if err != nil {
+					return scaffold.InfraSpec{}, err
+				}
 			case appdetect.DbRedis:
 				serviceSpec.DbRedis = spec.DbRedis
 			}
