@@ -262,64 +262,37 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 				return fmt.Errorf("in azure.yaml, (%s) uses (%s), but (%s) doesn't",
 					userResourceName, usedResourceName, usedResourceName)
 			}
+			var err error
 			switch usedResource.Type {
 			case ResourceTypeDbPostgres:
-				err := scaffold.BindToPostgres(userSpec, infraSpec.DbPostgres)
-				if err != nil {
-					return err
-				}
+				err = scaffold.BindToPostgres(userSpec, infraSpec.DbPostgres)
 			case ResourceTypeDbMySQL:
-				err := scaffold.BindToMySql(userSpec, infraSpec.DbMySql)
-				if err != nil {
-					return err
-				}
+				err = scaffold.BindToMySql(userSpec, infraSpec.DbMySql)
 			case ResourceTypeDbMongo:
-				err := scaffold.BindToMongoDb(userSpec, infraSpec.DbCosmosMongo)
-				if err != nil {
-					return err
-				}
+				err = scaffold.BindToMongoDb(userSpec, infraSpec.DbCosmosMongo)
 			case ResourceTypeDbCosmos:
-				err := scaffold.BindToCosmosDb(userSpec, infraSpec.DbCosmos)
-				if err != nil {
-					return err
-				}
+				err = scaffold.BindToCosmosDb(userSpec, infraSpec.DbCosmos)
 			case ResourceTypeDbRedis:
-				err := scaffold.BindToRedis(userSpec, infraSpec.DbRedis)
-				if err != nil {
-					return err
-				}
+				err = scaffold.BindToRedis(userSpec, infraSpec.DbRedis)
 			case ResourceTypeMessagingServiceBus:
-				userSpec.AzureServiceBus = infraSpec.AzureServiceBus
-				err := addUsageByEnv(infraSpec, userSpec, usedResource)
-				if err != nil {
-					return err
-				}
+				err = scaffold.BindToServiceBus(userSpec, infraSpec.AzureServiceBus)
 			case ResourceTypeMessagingEventHubs, ResourceTypeMessagingKafka:
 				userSpec.AzureEventHubs = infraSpec.AzureEventHubs
-				err := addUsageByEnv(infraSpec, userSpec, usedResource)
-				if err != nil {
-					return err
-				}
+				err = addUsageByEnv(infraSpec, userSpec, usedResource)
 			case ResourceTypeStorage:
 				userSpec.AzureStorageAccount = infraSpec.AzureStorageAccount
-				err := addUsageByEnv(infraSpec, userSpec, usedResource)
-				if err != nil {
-					return err
-				}
+				err = addUsageByEnv(infraSpec, userSpec, usedResource)
 			case ResourceTypeOpenAiModel:
 				userSpec.AIModels = append(userSpec.AIModels, scaffold.AIModelReference{Name: usedResource.Name})
-				err := addUsageByEnv(infraSpec, userSpec, usedResource)
-				if err != nil {
-					return err
-				}
+				err = addUsageByEnv(infraSpec, userSpec, usedResource)
 			case ResourceTypeHostContainerApp:
-				err := fulfillFrontendBackend(userSpec, usedResource, infraSpec)
-				if err != nil {
-					return err
-				}
+				err = fulfillFrontendBackend(userSpec, usedResource, infraSpec)
 			default:
 				return fmt.Errorf("resource (%s) uses (%s), but the type of (%s) is (%s), which is unsupported",
 					userResource.Name, usedResource.Name, usedResource.Name, usedResource.Type)
+			}
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -401,8 +374,9 @@ func printEnvListAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *Project
 				variables = scaffold.GetServiceBindingEnvsForCosmos()
 			case ResourceTypeDbRedis:
 				variables = scaffold.GetServiceBindingEnvsForRedis()
-			case ResourceTypeMessagingServiceBus,
-				ResourceTypeMessagingEventHubs,
+			case ResourceTypeMessagingServiceBus:
+				variables, err = scaffold.GetServiceBindingEnvsForServiceBus(*infraSpec.AzureServiceBus)
+			case ResourceTypeMessagingEventHubs,
 				ResourceTypeMessagingKafka,
 				ResourceTypeStorage:
 				variables, err = GetResourceConnectionEnvs(usedResource, infraSpec)

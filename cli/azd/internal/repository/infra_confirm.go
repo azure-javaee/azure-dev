@@ -170,7 +170,10 @@ func (i *Initializer) infraSpecFromDetect(
 		for _, azureDep := range svc.AzureDeps {
 			switch azureDep.(type) {
 			case appdetect.AzureDepServiceBus:
-				serviceSpec.AzureServiceBus = spec.AzureServiceBus
+				err := scaffold.BindToServiceBus(&serviceSpec, spec.AzureServiceBus)
+				if err != nil {
+					return scaffold.InfraSpec{}, err
+				}
 			case appdetect.AzureDepEventHubs:
 				serviceSpec.AzureEventHubs = spec.AzureEventHubs
 			case appdetect.AzureDepStorageAccount:

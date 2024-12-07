@@ -129,6 +129,19 @@ func BindToRedis(serviceSpec *ServiceSpec, redis *DatabaseRedis) error {
 	return nil
 }
 
+func BindToServiceBus(serviceSpec *ServiceSpec, serviceBus *AzureDepServiceBus) error {
+	serviceSpec.AzureServiceBus = serviceBus
+	envs, err := GetServiceBindingEnvsForServiceBus(*serviceBus)
+	if err != nil {
+		return err
+	}
+	serviceSpec.Envs, err = mergeEnvWithDuplicationCheck(serviceSpec.Envs, envs)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func GetServiceBindingEnvsForPostgres(postgres DatabasePostgres) ([]Env, error) {
 	switch postgres.AuthType {
 	case internal.AuthTypePassword:
@@ -347,6 +360,116 @@ func GetServiceBindingEnvsForRedis() []Env {
 			Value: ToServiceBindingEnvValue(
 				ServiceTypeDbRedis, ServiceBindingInfoTypeUrl),
 		},
+	}
+}
+
+func GetServiceBindingEnvsForServiceBus(serviceBus AzureDepServiceBus) ([]Env, error) {
+	if serviceBus.IsJms {
+		switch serviceBus.AuthType {
+		case internal.AuthTypeUserAssignedManagedIdentity:
+			return []Env{
+				{
+					Name:  "spring.jms.servicebus.pricing-tier",
+					Value: "premium",
+				},
+				{
+					Name:  "spring.jms.servicebus.passwordless-enabled",
+					Value: "true",
+				},
+				{
+					Name:  "spring.jms.servicebus.credential.managed-identity-enabled",
+					Value: "true",
+				},
+				{
+					Name:  "spring.jms.servicebus.credential.client-id",
+					Value: PlaceHolderForServiceIdentityClientId(),
+				},
+				{
+					Name: "spring.jms.servicebus.namespace",
+					Value: ToServiceBindingEnvValue(
+						ServiceTypeMessagingServiceBus, ServiceBindingInfoTypeNamespace),
+				},
+				{
+					Name:  "spring.jms.servicebus.connection-string",
+					Value: "",
+				},
+			}, nil
+		case internal.AuthTypeConnectionString:
+			return []Env{
+				{
+					Name:  "spring.jms.servicebus.pricing-tier",
+					Value: "premium",
+				},
+				{
+					Name: "spring.jms.servicebus.connection-string",
+					Value: ToServiceBindingEnvValue(
+						ServiceTypeMessagingServiceBus, ServiceBindingInfoTypeConnectionString),
+				},
+				{
+					Name:  "spring.jms.servicebus.passwordless-enabled",
+					Value: "false",
+				},
+				{
+					Name:  "spring.jms.servicebus.credential.managed-identity-enabled",
+					Value: "false",
+				},
+				{
+					Name:  "spring.jms.servicebus.credential.client-id",
+					Value: "",
+				},
+				{
+					Name:  "spring.jms.servicebus.namespace",
+					Value: "",
+				},
+			}, nil
+		default:
+			return []Env{}, unsupportedAuthTypeError(ServiceTypeMessagingServiceBus, serviceBus.AuthType)
+		}
+	} else {
+		// service bus, not jms
+		switch serviceBus.AuthType {
+		case internal.AuthTypeUserAssignedManagedIdentity:
+			return []Env{
+				// Not add this: spring.cloud.azure.servicebus.connection-string = ""
+				// because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
+				{
+					Name:  "spring.cloud.azure.servicebus.credential.managed-identity-enabled",
+					Value: "true",
+				},
+				{
+					Name:  "spring.cloud.azure.servicebus.credential.client-id",
+					Value: PlaceHolderForServiceIdentityClientId(),
+				},
+				{
+					Name: "spring.cloud.azure.servicebus.namespace",
+					Value: ToServiceBindingEnvValue(
+						ServiceTypeMessagingServiceBus, ServiceBindingInfoTypeNamespace),
+				},
+			}, nil
+		case internal.AuthTypeConnectionString:
+			return []Env{
+				{
+					Name: "spring.cloud.azure.servicebus.namespace",
+					Value: ToServiceBindingEnvValue(
+						ServiceTypeMessagingServiceBus, ServiceBindingInfoTypeNamespace),
+				},
+				{
+					Name: "spring.cloud.azure.servicebus.connection-string",
+					Value: ToServiceBindingEnvValue(
+						ServiceTypeMessagingServiceBus, ServiceBindingInfoTypeConnectionString),
+				},
+				{
+					Name:  "spring.cloud.azure.servicebus.credential.managed-identity-enabled",
+					Value: "false",
+				},
+				{
+					Name:  "spring.cloud.azure.servicebus.credential.client-id",
+					Value: "",
+				},
+			}, nil
+		default:
+			return []Env{}, unsupportedAuthTypeError(ServiceTypeMessagingServiceBus, serviceBus.AuthType)
+		}
 	}
 }
 
