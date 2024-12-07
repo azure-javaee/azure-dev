@@ -139,8 +139,6 @@ func (i *Initializer) infraSpecFromDetect(
 			}
 
 			switch db {
-			case appdetect.DbMongo:
-				serviceSpec.DbCosmosMongo = spec.DbCosmosMongo
 			case appdetect.DbPostgres:
 				err := scaffold.BindToPostgres(&serviceSpec, spec.DbPostgres)
 				if err != nil {
@@ -151,7 +149,11 @@ func (i *Initializer) infraSpecFromDetect(
 				if err != nil {
 					return scaffold.InfraSpec{}, err
 				}
-				serviceSpec.DbMySql = spec.DbMySql
+			case appdetect.DbMongo:
+				err := scaffold.BindToMongoDb(&serviceSpec, spec.DbCosmosMongo)
+				if err != nil {
+					return scaffold.InfraSpec{}, err
+				}
 			case appdetect.DbCosmos:
 				serviceSpec.DbCosmos = spec.DbCosmos
 			case appdetect.DbRedis:

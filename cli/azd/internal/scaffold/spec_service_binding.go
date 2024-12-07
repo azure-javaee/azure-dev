@@ -96,6 +96,19 @@ func BindToMySql(serviceSpec *ServiceSpec, mysql *DatabaseMySql) error {
 	return nil
 }
 
+func BindToMongoDb(serviceSpec *ServiceSpec, mongo *DatabaseCosmosMongo) error {
+	serviceSpec.DbCosmosMongo = mongo
+	envs, err := GetServiceBindingEnvsForMongo()
+	if err != nil {
+		return err
+	}
+	serviceSpec.Envs, err = mergeEnvWithDuplicationCheck(serviceSpec.Envs, envs)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func GetServiceBindingEnvsForPostgres(postgres DatabasePostgres) ([]Env, error) {
 	switch postgres.AuthType {
 	case internal.AuthTypePassword:
@@ -248,6 +261,23 @@ func GetServiceBindingEnvsForMysql(mysql DatabaseMySql) ([]Env, error) {
 	default:
 		return []Env{}, unsupportedAuthTypeError(ServiceTypeDbMySQL, mysql.AuthType)
 	}
+}
+
+func GetServiceBindingEnvsForMongo() ([]Env, error) {
+	return []Env{
+		{
+			Name:  "MONGODB_URL",
+			Value: ToServiceBindingEnvValue(ServiceTypeDbMongo, ServiceBindingInfoTypeUrl),
+		},
+		{
+			Name:  "spring.data.mongodb.uri",
+			Value: ToServiceBindingEnvValue(ServiceTypeDbMongo, ServiceBindingInfoTypeUrl),
+		},
+		{
+			Name:  "spring.data.mongodb.database",
+			Value: ToServiceBindingEnvValue(ServiceTypeDbMongo, ServiceBindingInfoTypeDatabaseName),
+		},
+	}, nil
 }
 
 func unsupportedAuthTypeError(serviceType ServiceType, authType internal.AuthType) error {

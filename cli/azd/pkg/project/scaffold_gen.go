@@ -273,14 +273,13 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 				if err != nil {
 					return err
 				}
-			case ResourceTypeDbRedis:
-				userSpec.DbRedis = infraSpec.DbRedis
-				err := addUsageByEnv(infraSpec, userSpec, usedResource)
+			case ResourceTypeDbMongo:
+				err := scaffold.BindToMongoDb(userSpec, infraSpec.DbCosmosMongo)
 				if err != nil {
 					return err
 				}
-			case ResourceTypeDbMongo:
-				userSpec.DbCosmosMongo = infraSpec.DbCosmosMongo
+			case ResourceTypeDbRedis:
+				userSpec.DbRedis = infraSpec.DbRedis
 				err := addUsageByEnv(infraSpec, userSpec, usedResource)
 				if err != nil {
 					return err
@@ -398,8 +397,9 @@ func printEnvListAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *Project
 				variables, err = scaffold.GetServiceBindingEnvsForPostgres(*infraSpec.DbPostgres)
 			case ResourceTypeDbMySQL:
 				variables, err = scaffold.GetServiceBindingEnvsForMysql(*infraSpec.DbMySql)
+			case ResourceTypeDbMongo:
+				variables, err = scaffold.GetServiceBindingEnvsForMongo()
 			case ResourceTypeDbRedis,
-				ResourceTypeDbMongo,
 				ResourceTypeDbCosmos,
 				ResourceTypeMessagingServiceBus,
 				ResourceTypeMessagingEventHubs,

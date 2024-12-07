@@ -54,29 +54,6 @@ func GetResourceConnectionEnvs(usedResource *ResourceConfig,
 		default:
 			return []scaffold.Env{}, unsupportedAuthTypeError(resourceType, authType)
 		}
-	case ResourceTypeDbMongo:
-		switch authType {
-		case internal.AuthTypeConnectionString:
-			return []scaffold.Env{
-				{
-					Name: "MONGODB_URL",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeDbMongo, scaffold.ServiceBindingInfoTypeUrl),
-				},
-				{
-					Name: "spring.data.mongodb.uri",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeDbMongo, scaffold.ServiceBindingInfoTypeUrl),
-				},
-				{
-					Name: "spring.data.mongodb.database",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeDbMongo, scaffold.ServiceBindingInfoTypeDatabaseName),
-				},
-			}, nil
-		default:
-			return []scaffold.Env{}, unsupportedAuthTypeError(resourceType, authType)
-		}
 	case ResourceTypeDbCosmos:
 		switch authType {
 		case internal.AuthTypeUserAssignedManagedIdentity:
