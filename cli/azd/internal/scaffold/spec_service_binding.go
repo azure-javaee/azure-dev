@@ -180,7 +180,7 @@ func BindToAIModels(serviceSpec *ServiceSpec, model string) error {
 
 // BindToContainerApp a call b
 // todo:
-//  1. Add field in ServiceSpec to identifier app type like Eureka server and Config server.
+//  1. Add field in ServiceSpec to identify b's app type like Eureka server and Config server.
 //  2. Create GetServiceBindingEnvsForContainerApp
 //  3. Merge GetServiceBindingEnvsForEurekaServer and GetServiceBindingEnvsForConfigServer into
 //     GetServiceBindingEnvsForContainerApp.
