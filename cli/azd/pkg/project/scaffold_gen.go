@@ -116,7 +116,8 @@ func infraFsForProject(ctx context.Context, prjConfig *ProjectConfig,
 			return nil
 		}
 
-		err = generatedFS.MkdirAll(filepath.Join(infraPathPrefix, filepath.Dir(path)), osutil.PermissionDirectoryOwnerOnly)
+		err = generatedFS.MkdirAll(filepath.Join(infraPathPrefix, filepath.Dir(path)),
+			osutil.PermissionDirectoryOwnerOnly)
 		if err != nil {
 			return err
 		}
@@ -164,10 +165,11 @@ func infraSpec(projectConfig *ProjectConfig,
 			}
 			containers := resource.Props.(CosmosDBProps).Containers
 			for _, container := range containers {
-				infraSpec.DbCosmos.Containers = append(infraSpec.DbCosmos.Containers, scaffold.CosmosSqlDatabaseContainer{
-					ContainerName:     container.ContainerName,
-					PartitionKeyPaths: container.PartitionKeyPaths,
-				})
+				infraSpec.DbCosmos.Containers = append(infraSpec.DbCosmos.Containers,
+					scaffold.CosmosSqlDatabaseContainer{
+						ContainerName:     container.ContainerName,
+						PartitionKeyPaths: container.PartitionKeyPaths,
+					})
 			}
 		case ResourceTypeMessagingServiceBus:
 			props := resource.Props.(ServiceBusProps)
@@ -391,8 +393,12 @@ func printEnvListAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *Project
 				"Please make sure your application used the right environment variable. \n"+
 				"Here is the list of environment variables: ",
 				userResourceName, usedResourceName))
+			var variables []scaffold.Env
+			var err error
 			switch usedResource.Type {
-			case ResourceTypeDbPostgres, // do nothing. todo: add all other types
+			case ResourceTypeDbPostgres:
+				variables, err = scaffold.GetServiceBindingEnvs(infraSpec.DbPostgres)
+			case
 				ResourceTypeDbMySQL,
 				ResourceTypeDbRedis,
 				ResourceTypeDbMongo,
@@ -401,19 +407,19 @@ func printEnvListAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *Project
 				ResourceTypeMessagingEventHubs,
 				ResourceTypeMessagingKafka,
 				ResourceTypeStorage:
-				variables, err := GetResourceConnectionEnvs(usedResource, infraSpec)
-				if err != nil {
-					return err
-				}
-				for _, variable := range variables {
-					console.Message(ctx, fmt.Sprintf("  %s=xxx", variable.Name))
-				}
+				variables, err = GetResourceConnectionEnvs(usedResource, infraSpec)
 			case ResourceTypeHostContainerApp:
 				printHintsAboutUseHostContainerApp(userResourceName, usedResourceName, console, ctx)
 			default:
 				return fmt.Errorf("resource (%s) uses (%s), but the type of (%s) is (%s), "+
 					"which is doesn't add necessary environment variable",
 					userResource.Name, usedResource.Name, usedResource.Name, usedResource.Type)
+			}
+			if err != nil {
+				return err
+			}
+			for _, variable := range variables {
+				console.Message(ctx, fmt.Sprintf("  %s=xxx", variable.Name))
 			}
 			console.Message(ctx, "\n")
 		}
@@ -478,7 +484,8 @@ func setParameter(spec *scaffold.InfraSpec, name string, value string, isSecret 
 			if valStr, ok := parameters.Value.(string); !ok || ok && valStr != value {
 				// if you are a maintainer and run into this error, consider using a different, unique name
 				panic(fmt.Sprintf(
-					"parameter collision: parameter %s already set to %s, cannot set to %s", name, parameters.Value, value))
+					"parameter collision: parameter %s already set to %s, cannot set to %s", name, parameters.Value,
+					value))
 			}
 
 			return

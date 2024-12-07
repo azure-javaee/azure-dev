@@ -142,7 +142,10 @@ func (i *Initializer) infraSpecFromDetect(
 			case appdetect.DbMongo:
 				serviceSpec.DbCosmosMongo = spec.DbCosmosMongo
 			case appdetect.DbPostgres:
-				serviceSpec.DbPostgres = spec.DbPostgres
+				err := scaffold.BindToPostgres(&serviceSpec, spec.DbPostgres)
+				if err != nil {
+					return scaffold.InfraSpec{}, err
+				}
 			case appdetect.DbMySql:
 				serviceSpec.DbMySql = spec.DbMySql
 			case appdetect.DbCosmos:

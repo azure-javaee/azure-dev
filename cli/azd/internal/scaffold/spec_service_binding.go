@@ -3,6 +3,8 @@ package scaffold
 import (
 	"fmt"
 	"strings"
+
+	"github.com/azure/azure-dev/cli/azd/internal"
 )
 
 // todo merge ServiceType and project.ResourceType
@@ -59,11 +61,159 @@ func ToServiceBindingEnvValue(resourceType ServiceType, resourceInfoType Service
 	return fmt.Sprintf("%s:%s:%s", serviceBindingEnvValuePrefix, resourceType, resourceInfoType)
 }
 
-func toServiceTypeAndServiceBindingInfoType(resourceConnectionEnv string) (serviceType ServiceType,
-	infoType ServiceBindingInfoType) {
+func toServiceTypeAndServiceBindingInfoType(resourceConnectionEnv string) (
+	serviceType ServiceType, infoType ServiceBindingInfoType) {
 	if !isServiceBindingEnvValue(resourceConnectionEnv) {
 		return "", ""
 	}
 	a := strings.Split(resourceConnectionEnv, ":")
 	return ServiceType(a[1]), ServiceBindingInfoType(a[2])
+}
+
+func BindToPostgres(serviceSpec *ServiceSpec, postgres *DatabasePostgres) error {
+	serviceSpec.DbPostgres = postgres
+	envs, err := GetServiceBindingEnvs(postgres)
+	if err != nil {
+		return err
+	}
+	serviceSpec.Envs, err = mergeEnvWithDuplicationCheck(serviceSpec.Envs, envs)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetServiceBindingEnvs(postgres *DatabasePostgres) ([]Env, error) {
+	switch postgres.AuthType {
+	case internal.AuthTypePassword:
+		return []Env{
+			{
+				Name: "POSTGRES_USERNAME",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeDbPostgres, ServiceBindingInfoTypeUsername,
+				),
+			},
+			{
+				Name: "POSTGRES_PASSWORD",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeDbPostgres, ServiceBindingInfoTypePassword,
+				),
+			},
+			{
+				Name: "POSTGRES_HOST",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeDbPostgres, ServiceBindingInfoTypeHost,
+				),
+			},
+			{
+				Name: "POSTGRES_DATABASE",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeDbPostgres, ServiceBindingInfoTypeDatabaseName,
+				),
+			},
+			{
+				Name: "POSTGRES_PORT",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeDbPostgres, ServiceBindingInfoTypePort,
+				),
+			},
+			{
+				Name: "POSTGRES_URL",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeDbPostgres, ServiceBindingInfoTypeUrl,
+				),
+			},
+			{
+				Name: "spring.datasource.url",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeDbPostgres, ServiceBindingInfoTypeJdbcUrl,
+				),
+			},
+			{
+				Name: "spring.datasource.username",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeDbPostgres, ServiceBindingInfoTypeUsername,
+				),
+			},
+			{
+				Name: "spring.datasource.password",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeDbPostgres, ServiceBindingInfoTypePassword,
+				),
+			},
+		}, nil
+	case internal.AuthTypeUserAssignedManagedIdentity:
+		return []Env{
+			{
+				Name: "POSTGRES_USERNAME",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeDbPostgres, ServiceBindingInfoTypeUsername,
+				),
+			},
+			{
+				Name: "POSTGRES_HOST",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeDbPostgres, ServiceBindingInfoTypeHost,
+				),
+			},
+			{
+				Name: "POSTGRES_DATABASE",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeDbPostgres, ServiceBindingInfoTypeDatabaseName,
+				),
+			},
+			{
+				Name: "POSTGRES_PORT",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeDbPostgres, ServiceBindingInfoTypePort,
+				),
+			},
+			{
+				Name: "spring.datasource.url",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeDbPostgres, ServiceBindingInfoTypeJdbcUrl,
+				),
+			},
+			{
+				Name: "spring.datasource.username",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeDbPostgres, ServiceBindingInfoTypeUsername,
+				),
+			},
+			{
+				Name:  "spring.datasource.azure.passwordless-enabled",
+				Value: "true",
+			},
+		}, nil
+	default:
+		return []Env{}, unsupportedAuthTypeError(ServiceTypeDbPostgres, postgres.AuthType)
+	}
+}
+
+func unsupportedAuthTypeError(serviceType ServiceType, authType internal.AuthType) error {
+	return fmt.Errorf("unsupported auth type, serviceType = %s, authType = %s", serviceType, authType)
+}
+
+func mergeEnvWithDuplicationCheck(a []Env, b []Env) ([]Env, error) {
+	ab := append(a, b...)
+	var result []Env
+	seenName := make(map[string]Env)
+	for _, value := range ab {
+		if existingValue, exist := seenName[value.Name]; exist {
+			if value != existingValue {
+				return []Env{}, duplicatedEnvError(existingValue, value)
+			}
+		} else {
+			seenName[value.Name] = value
+			result = append(result, value)
+		}
+	}
+	return result, nil
+}
+
+func duplicatedEnvError(existingValue Env, newValue Env) error {
+	return fmt.Errorf(
+		"duplicated environment variable. existingValue = %s, newValue = %s",
+		existingValue, newValue,
+	)
 }
