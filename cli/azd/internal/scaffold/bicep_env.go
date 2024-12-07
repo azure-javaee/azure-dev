@@ -169,12 +169,7 @@ var bicepEnv = map[ServiceType]map[ServiceBindingInfoType]string{
 	},
 	ServiceTypeMessagingEventHubs: {
 		ServiceBindingInfoTypeNamespace: "eventHubNamespace.outputs.name",
-		ServiceBindingInfoTypeConnectionString: wrapToKeyVaultSecretValue(
-			"eventHubsConnectionString.outputs.keyVaultUrl",
-		),
-	},
-	ServiceTypeMessagingKafka: {
-		ServiceBindingInfoTypeEndpoint: "'${eventHubNamespace.outputs.name}.servicebus.windows.net:9093'",
+		ServiceBindingInfoTypeEndpoint:  "'${eventHubNamespace.outputs.name}.servicebus.windows.net:9093'",
 		ServiceBindingInfoTypeConnectionString: wrapToKeyVaultSecretValue(
 			"eventHubsConnectionString.outputs.keyVaultUrl",
 		),

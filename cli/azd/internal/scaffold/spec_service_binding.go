@@ -24,7 +24,6 @@ const (
 	ServiceTypeOpenAiModel         ServiceType = "ai.openai.model"
 	ServiceTypeMessagingServiceBus ServiceType = "messaging.servicebus"
 	ServiceTypeMessagingEventHubs  ServiceType = "messaging.eventhubs"
-	ServiceTypeMessagingKafka      ServiceType = "messaging.kafka"
 	ServiceTypeStorage             ServiceType = "storage"
 )
 
@@ -512,7 +511,7 @@ func GetServiceBindingEnvsForEventHubsKafka(eventHubs AzureDepEventHubs) ([]Env,
 			// because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
 			{
 				Name:  "spring.cloud.stream.kafka.binder.brokers",
-				Value: ToServiceBindingEnvValue(ServiceTypeMessagingKafka, ServiceBindingInfoTypeEndpoint),
+				Value: ToServiceBindingEnvValue(ServiceTypeMessagingEventHubs, ServiceBindingInfoTypeEndpoint),
 			},
 			{
 				Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
@@ -527,11 +526,11 @@ func GetServiceBindingEnvsForEventHubsKafka(eventHubs AzureDepEventHubs) ([]Env,
 		commonInformation = []Env{
 			{
 				Name:  "spring.cloud.stream.kafka.binder.brokers",
-				Value: ToServiceBindingEnvValue(ServiceTypeMessagingKafka, ServiceBindingInfoTypeEndpoint),
+				Value: ToServiceBindingEnvValue(ServiceTypeMessagingEventHubs, ServiceBindingInfoTypeEndpoint),
 			},
 			{
 				Name:  "spring.cloud.azure.eventhubs.connection-string",
-				Value: ToServiceBindingEnvValue(ServiceTypeMessagingKafka, ServiceBindingInfoTypeConnectionString),
+				Value: ToServiceBindingEnvValue(ServiceTypeMessagingEventHubs, ServiceBindingInfoTypeConnectionString),
 			},
 			{
 				Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
@@ -566,22 +565,19 @@ func GetServiceBindingEnvsForEventHubs(eventHubs AzureDepEventHubs) ([]Env, erro
 				Value: PlaceHolderForServiceIdentityClientId(),
 			},
 			{
-				Name: "spring.cloud.azure.eventhubs.namespace",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeMessagingEventHubs, ServiceBindingInfoTypeNamespace),
+				Name:  "spring.cloud.azure.eventhubs.namespace",
+				Value: ToServiceBindingEnvValue(ServiceTypeMessagingEventHubs, ServiceBindingInfoTypeNamespace),
 			},
 		}, nil
 	case internal.AuthTypeConnectionString:
 		return []Env{
 			{
-				Name: "spring.cloud.azure.eventhubs.namespace",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeMessagingEventHubs, ServiceBindingInfoTypeNamespace),
+				Name:  "spring.cloud.azure.eventhubs.namespace",
+				Value: ToServiceBindingEnvValue(ServiceTypeMessagingEventHubs, ServiceBindingInfoTypeNamespace),
 			},
 			{
-				Name: "spring.cloud.azure.eventhubs.connection-string",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeMessagingEventHubs, ServiceBindingInfoTypeConnectionString),
+				Name:  "spring.cloud.azure.eventhubs.connection-string",
+				Value: ToServiceBindingEnvValue(ServiceTypeMessagingEventHubs, ServiceBindingInfoTypeConnectionString),
 			},
 			{
 				Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
