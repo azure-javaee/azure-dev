@@ -160,7 +160,10 @@ func (i *Initializer) infraSpecFromDetect(
 					return scaffold.InfraSpec{}, err
 				}
 			case appdetect.DbRedis:
-				serviceSpec.DbRedis = spec.DbRedis
+				err := scaffold.BindToRedis(&serviceSpec, spec.DbRedis)
+				if err != nil {
+					return scaffold.InfraSpec{}, err
+				}
 			}
 		}
 

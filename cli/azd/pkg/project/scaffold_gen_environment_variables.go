@@ -16,44 +16,6 @@ func GetResourceConnectionEnvs(usedResource *ResourceConfig,
 		return []scaffold.Env{}, err
 	}
 	switch resourceType {
-	case ResourceTypeDbRedis:
-		switch authType {
-		case internal.AuthTypePassword:
-			return []scaffold.Env{
-				{
-					Name: "REDIS_HOST",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeDbRedis, scaffold.ServiceBindingInfoTypeHost),
-				},
-				{
-					Name: "REDIS_PORT",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeDbRedis, scaffold.ServiceBindingInfoTypePort),
-				},
-				{
-					Name: "REDIS_ENDPOINT",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeDbRedis, scaffold.ServiceBindingInfoTypeEndpoint),
-				},
-				{
-					Name: "REDIS_URL",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeDbRedis, scaffold.ServiceBindingInfoTypeUrl),
-				},
-				{
-					Name: "REDIS_PASSWORD",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeDbRedis, scaffold.ServiceBindingInfoTypePassword),
-				},
-				{
-					Name: "spring.data.redis.url",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeDbRedis, scaffold.ServiceBindingInfoTypeUrl),
-				},
-			}, nil
-		default:
-			return []scaffold.Env{}, unsupportedAuthTypeError(resourceType, authType)
-		}
 	case ResourceTypeMessagingServiceBus:
 		if infraSpec.AzureServiceBus.IsJms {
 			switch authType {

@@ -98,10 +98,8 @@ func BindToMySql(serviceSpec *ServiceSpec, mysql *DatabaseMySql) error {
 
 func BindToMongoDb(serviceSpec *ServiceSpec, mongo *DatabaseCosmosMongo) error {
 	serviceSpec.DbCosmosMongo = mongo
-	envs, err := GetServiceBindingEnvsForMongo()
-	if err != nil {
-		return err
-	}
+	envs := GetServiceBindingEnvsForMongo()
+	var err error
 	serviceSpec.Envs, err = mergeEnvWithDuplicationCheck(serviceSpec.Envs, envs)
 	if err != nil {
 		return err
@@ -111,10 +109,19 @@ func BindToMongoDb(serviceSpec *ServiceSpec, mongo *DatabaseCosmosMongo) error {
 
 func BindToCosmosDb(serviceSpec *ServiceSpec, cosmos *DatabaseCosmosAccount) error {
 	serviceSpec.DbCosmos = cosmos
-	envs, err := GetServiceBindingEnvsForCosmos()
+	envs := GetServiceBindingEnvsForCosmos()
+	var err error
+	serviceSpec.Envs, err = mergeEnvWithDuplicationCheck(serviceSpec.Envs, envs)
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func BindToRedis(serviceSpec *ServiceSpec, redis *DatabaseRedis) error {
+	serviceSpec.DbRedis = redis
+	envs := GetServiceBindingEnvsForRedis()
+	var err error
 	serviceSpec.Envs, err = mergeEnvWithDuplicationCheck(serviceSpec.Envs, envs)
 	if err != nil {
 		return err
@@ -276,7 +283,7 @@ func GetServiceBindingEnvsForMysql(mysql DatabaseMySql) ([]Env, error) {
 	}
 }
 
-func GetServiceBindingEnvsForMongo() ([]Env, error) {
+func GetServiceBindingEnvsForMongo() []Env {
 	return []Env{
 		{
 			Name:  "MONGODB_URL",
@@ -290,10 +297,10 @@ func GetServiceBindingEnvsForMongo() ([]Env, error) {
 			Name:  "spring.data.mongodb.database",
 			Value: ToServiceBindingEnvValue(ServiceTypeDbMongo, ServiceBindingInfoTypeDatabaseName),
 		},
-	}, nil
+	}
 }
 
-func GetServiceBindingEnvsForCosmos() ([]Env, error) {
+func GetServiceBindingEnvsForCosmos() []Env {
 	return []Env{
 		{
 			Name: "spring.cloud.azure.cosmos.endpoint",
@@ -305,7 +312,42 @@ func GetServiceBindingEnvsForCosmos() ([]Env, error) {
 			Value: ToServiceBindingEnvValue(
 				ServiceTypeDbCosmos, ServiceBindingInfoTypeDatabaseName),
 		},
-	}, nil
+	}
+}
+
+func GetServiceBindingEnvsForRedis() []Env {
+	return []Env{
+		{
+			Name: "REDIS_HOST",
+			Value: ToServiceBindingEnvValue(
+				ServiceTypeDbRedis, ServiceBindingInfoTypeHost),
+		},
+		{
+			Name: "REDIS_PORT",
+			Value: ToServiceBindingEnvValue(
+				ServiceTypeDbRedis, ServiceBindingInfoTypePort),
+		},
+		{
+			Name: "REDIS_ENDPOINT",
+			Value: ToServiceBindingEnvValue(
+				ServiceTypeDbRedis, ServiceBindingInfoTypeEndpoint),
+		},
+		{
+			Name: "REDIS_URL",
+			Value: ToServiceBindingEnvValue(
+				ServiceTypeDbRedis, ServiceBindingInfoTypeUrl),
+		},
+		{
+			Name: "REDIS_PASSWORD",
+			Value: ToServiceBindingEnvValue(
+				ServiceTypeDbRedis, ServiceBindingInfoTypePassword),
+		},
+		{
+			Name: "spring.data.redis.url",
+			Value: ToServiceBindingEnvValue(
+				ServiceTypeDbRedis, ServiceBindingInfoTypeUrl),
+		},
+	}
 }
 
 func unsupportedAuthTypeError(serviceType ServiceType, authType internal.AuthType) error {
