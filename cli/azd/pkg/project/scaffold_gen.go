@@ -279,8 +279,7 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 			case ResourceTypeMessagingKafka, ResourceTypeMessagingEventHubs:
 				err = scaffold.BindToEventHubs(userSpec, infraSpec.AzureEventHubs)
 			case ResourceTypeStorage:
-				userSpec.AzureStorageAccount = infraSpec.AzureStorageAccount
-				err = addUsageByEnv(infraSpec, userSpec, usedResource)
+				err = scaffold.BindToStorageAccount(userSpec, infraSpec.AzureStorageAccount)
 			case ResourceTypeOpenAiModel:
 				userSpec.AIModels = append(userSpec.AIModels, scaffold.AIModelReference{Name: usedResource.Name})
 				err = addUsageByEnv(infraSpec, userSpec, usedResource)
@@ -378,7 +377,7 @@ func printEnvListAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *Project
 			case ResourceTypeMessagingKafka, ResourceTypeMessagingEventHubs:
 				variables, err = scaffold.GetServiceBindingEnvsForEventHubs(*infraSpec.AzureEventHubs)
 			case ResourceTypeStorage:
-				variables, err = GetResourceConnectionEnvs(usedResource, infraSpec)
+				variables, err = scaffold.GetServiceBindingEnvsForStorageAccount(*infraSpec.AzureStorageAccount)
 			case ResourceTypeHostContainerApp:
 				printHintsAboutUseHostContainerApp(userResourceName, usedResourceName, console, ctx)
 			default:

@@ -154,6 +154,19 @@ func BindToEventHubs(serviceSpec *ServiceSpec, eventHubs *AzureDepEventHubs) err
 	return nil
 }
 
+func BindToStorageAccount(serviceSpec *ServiceSpec, account *AzureDepStorageAccount) error {
+	serviceSpec.AzureStorageAccount = account
+	envs, err := GetServiceBindingEnvsForStorageAccount(*account)
+	if err != nil {
+		return err
+	}
+	serviceSpec.Envs, err = mergeEnvWithDuplicationCheck(serviceSpec.Envs, envs)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func GetServiceBindingEnvsForPostgres(postgres DatabasePostgres) ([]Env, error) {
 	switch postgres.AuthType {
 	case internal.AuthTypePassword:
@@ -542,7 +555,7 @@ func GetServiceBindingEnvsForEventHubsKafka(eventHubs AzureDepEventHubs) ([]Env,
 			},
 		}
 	default:
-		return []Env{}, unsupportedAuthTypeError(ServiceTypeMessagingServiceBus, eventHubs.AuthType)
+		return []Env{}, unsupportedAuthTypeError(ServiceTypeMessagingEventHubs, eventHubs.AuthType)
 	}
 	return mergeEnvWithDuplicationCheck(springBootVersionDecidedInformation, commonInformation)
 }
@@ -589,7 +602,55 @@ func GetServiceBindingEnvsForEventHubs(eventHubs AzureDepEventHubs) ([]Env, erro
 			},
 		}, nil
 	default:
-		return []Env{}, unsupportedAuthTypeError(ServiceTypeMessagingServiceBus, eventHubs.AuthType)
+		return []Env{}, unsupportedAuthTypeError(ServiceTypeMessagingEventHubs, eventHubs.AuthType)
+	}
+}
+
+func GetServiceBindingEnvsForStorageAccount(account AzureDepStorageAccount) ([]Env, error) {
+	switch account.AuthType {
+	case internal.AuthTypeUserAssignedManagedIdentity:
+		return []Env{
+			{
+				Name: "spring.cloud.azure.eventhubs.processor.checkpoint-store.account-name",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeStorage, ServiceBindingInfoTypeAccountName),
+			},
+			{
+				Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.managed-identity-enabled",
+				Value: "true",
+			},
+			{
+				Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.client-id",
+				Value: PlaceHolderForServiceIdentityClientId(),
+			},
+			{
+				Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.connection-string",
+				Value: "",
+			},
+		}, nil
+	case internal.AuthTypeConnectionString:
+		return []Env{
+			{
+				Name: "spring.cloud.azure.eventhubs.processor.checkpoint-store.account-name",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeStorage, ServiceBindingInfoTypeAccountName),
+			},
+			{
+				Name: "spring.cloud.azure.eventhubs.processor.checkpoint-store.connection-string",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeStorage, ServiceBindingInfoTypeConnectionString),
+			},
+			{
+				Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.managed-identity-enabled",
+				Value: "false",
+			},
+			{
+				Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.client-id",
+				Value: "",
+			},
+		}, nil
+	default:
+		return []Env{}, unsupportedAuthTypeError(ServiceTypeStorage, account.AuthType)
 	}
 }
 

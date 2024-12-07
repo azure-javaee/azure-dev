@@ -15,52 +15,6 @@ func GetResourceConnectionEnvs(usedResource *ResourceConfig,
 		return []scaffold.Env{}, err
 	}
 	switch resourceType {
-	case ResourceTypeStorage:
-		switch authType {
-		case internal.AuthTypeUserAssignedManagedIdentity:
-			return []scaffold.Env{
-				{
-					Name: "spring.cloud.azure.eventhubs.processor.checkpoint-store.account-name",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeStorage, scaffold.ServiceBindingInfoTypeAccountName),
-				},
-				{
-					Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.managed-identity-enabled",
-					Value: "true",
-				},
-				{
-					Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.client-id",
-					Value: scaffold.PlaceHolderForServiceIdentityClientId(),
-				},
-				{
-					Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.connection-string",
-					Value: "",
-				},
-			}, nil
-		case internal.AuthTypeConnectionString:
-			return []scaffold.Env{
-				{
-					Name: "spring.cloud.azure.eventhubs.processor.checkpoint-store.account-name",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeStorage, scaffold.ServiceBindingInfoTypeAccountName),
-				},
-				{
-					Name: "spring.cloud.azure.eventhubs.processor.checkpoint-store.connection-string",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeStorage, scaffold.ServiceBindingInfoTypeConnectionString),
-				},
-				{
-					Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.managed-identity-enabled",
-					Value: "false",
-				},
-				{
-					Name:  "spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.client-id",
-					Value: "",
-				},
-			}, nil
-		default:
-			return []scaffold.Env{}, unsupportedResourceTypeError(resourceType)
-		}
 	case ResourceTypeOpenAiModel:
 		switch authType {
 		case internal.AuthTypeUserAssignedManagedIdentity:

@@ -137,51 +137,35 @@ func (i *Initializer) infraSpecFromDetect(
 			if _, ok := detect.Databases[db]; !ok {
 				continue
 			}
-
 			switch db {
 			case appdetect.DbPostgres:
-				err := scaffold.BindToPostgres(&serviceSpec, spec.DbPostgres)
-				if err != nil {
-					return scaffold.InfraSpec{}, err
-				}
+				err = scaffold.BindToPostgres(&serviceSpec, spec.DbPostgres)
 			case appdetect.DbMySql:
-				err := scaffold.BindToMySql(&serviceSpec, spec.DbMySql)
-				if err != nil {
-					return scaffold.InfraSpec{}, err
-				}
+				err = scaffold.BindToMySql(&serviceSpec, spec.DbMySql)
 			case appdetect.DbMongo:
-				err := scaffold.BindToMongoDb(&serviceSpec, spec.DbCosmosMongo)
-				if err != nil {
-					return scaffold.InfraSpec{}, err
-				}
+				err = scaffold.BindToMongoDb(&serviceSpec, spec.DbCosmosMongo)
 			case appdetect.DbCosmos:
-				err := scaffold.BindToCosmosDb(&serviceSpec, spec.DbCosmos)
-				if err != nil {
-					return scaffold.InfraSpec{}, err
-				}
+				err = scaffold.BindToCosmosDb(&serviceSpec, spec.DbCosmos)
 			case appdetect.DbRedis:
-				err := scaffold.BindToRedis(&serviceSpec, spec.DbRedis)
-				if err != nil {
-					return scaffold.InfraSpec{}, err
-				}
+				err = scaffold.BindToRedis(&serviceSpec, spec.DbRedis)
+			}
+			if err != nil {
+				return scaffold.InfraSpec{}, err
 			}
 		}
 
 		for _, azureDep := range svc.AzureDeps {
 			switch azureDep.(type) {
 			case appdetect.AzureDepServiceBus:
-				err := scaffold.BindToServiceBus(&serviceSpec, spec.AzureServiceBus)
-				if err != nil {
-					return scaffold.InfraSpec{}, err
-				}
+				err = scaffold.BindToServiceBus(&serviceSpec, spec.AzureServiceBus)
 			case appdetect.AzureDepEventHubs:
-				err := scaffold.BindToEventHubs(&serviceSpec, spec.AzureEventHubs)
-				if err != nil {
-					return scaffold.InfraSpec{}, err
-				}
+				err = scaffold.BindToEventHubs(&serviceSpec, spec.AzureEventHubs)
 			case appdetect.AzureDepStorageAccount:
-				serviceSpec.AzureStorageAccount = spec.AzureStorageAccount
+				err = scaffold.BindToStorageAccount(&serviceSpec, spec.AzureStorageAccount)
 			}
+		}
+		if err != nil {
+			return scaffold.InfraSpec{}, err
 		}
 		spec.Services = append(spec.Services, serviceSpec)
 	}
