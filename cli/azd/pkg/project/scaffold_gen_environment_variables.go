@@ -3,25 +3,12 @@ package project
 import (
 	"fmt"
 
-	"github.com/azure/azure-dev/cli/azd/internal"
 	"github.com/azure/azure-dev/cli/azd/internal/scaffold"
 )
 
-func GetResourceConnectionEnvs(usedResource *ResourceConfig,
-	infraSpec *scaffold.InfraSpec) ([]scaffold.Env, error) {
+func GetResourceConnectionEnvs(usedResource *ResourceConfig) ([]scaffold.Env, error) {
 	resourceType := usedResource.Type
-	authType, err := getAuthType(infraSpec, usedResource.Type)
-	if err != nil {
-		return []scaffold.Env{}, err
-	}
 	switch resourceType {
-	case ResourceTypeHostContainerApp: // todo improve this and delete Frontend and Backend in scaffold.ServiceSpec
-		switch authType {
-		case internal.AuthTypeUnspecified:
-			return []scaffold.Env{}, nil
-		default:
-			return []scaffold.Env{}, unsupportedAuthTypeError(resourceType, authType)
-		}
 	case ResourceTypeJavaEurekaServer:
 		return []scaffold.Env{
 			{
@@ -56,10 +43,6 @@ func GetResourceConnectionEnvs(usedResource *ResourceConfig,
 
 func unsupportedResourceTypeError(resourceType ResourceType) error {
 	return fmt.Errorf("unsupported resource type, resourceType = %s", resourceType)
-}
-
-func unsupportedAuthTypeError(resourceType ResourceType, authType internal.AuthType) error {
-	return fmt.Errorf("unsupported auth type, resourceType = %s, authType = %s", resourceType, authType)
 }
 
 func mergeEnvWithDuplicationCheck(a []scaffold.Env,

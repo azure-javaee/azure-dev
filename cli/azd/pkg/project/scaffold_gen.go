@@ -12,7 +12,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/azure/azure-dev/cli/azd/internal"
 	"github.com/azure/azure-dev/cli/azd/pkg/input"
 
 	"github.com/azure/azure-dev/cli/azd/internal/scaffold"
@@ -283,7 +282,12 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 			case ResourceTypeOpenAiModel:
 				err = scaffold.BindToAIModels(userSpec, usedResource.Name)
 			case ResourceTypeHostContainerApp:
-				err = fulfillFrontendBackend(userSpec, usedResource, infraSpec)
+				usedSpec := getServiceSpecByName(infraSpec, usedResource.Name)
+				if usedSpec == nil {
+					return fmt.Errorf("'%s' uses '%s', but %s doesn't exist", userSpec.Name, usedResource.Name,
+						usedResource.Name)
+				}
+				scaffold.BindToContainerApp(userSpec, usedSpec)
 			default:
 				return fmt.Errorf("resource (%s) uses (%s), but the type of (%s) is (%s), which is unsupported",
 					userResource.Name, usedResource.Name, usedResource.Name, usedResource.Type)
@@ -294,34 +298,6 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 		}
 	}
 	return nil
-}
-
-func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (internal.AuthType, error) {
-	switch resourceType {
-	case ResourceTypeDbPostgres:
-		return infraSpec.DbPostgres.AuthType, nil
-	case ResourceTypeDbMySQL:
-		return infraSpec.DbMySql.AuthType, nil
-	case ResourceTypeDbRedis:
-		return internal.AuthTypePassword, nil
-	case ResourceTypeDbMongo:
-		return internal.AuthTypeConnectionString, nil
-	case ResourceTypeDbCosmos,
-		ResourceTypeOpenAiModel:
-		return internal.AuthTypeUserAssignedManagedIdentity, nil
-	case ResourceTypeMessagingServiceBus:
-		return infraSpec.AzureServiceBus.AuthType, nil
-	case ResourceTypeMessagingEventHubs, ResourceTypeMessagingKafka:
-		return infraSpec.AzureEventHubs.AuthType, nil
-	case ResourceTypeStorage:
-		return infraSpec.AzureStorageAccount.AuthType, nil
-	case ResourceTypeJavaEurekaServer,
-		ResourceTypeJavaConfigServer,
-		ResourceTypeHostContainerApp:
-		return internal.AuthTypeUnspecified, nil
-	default:
-		return internal.AuthTypeUnspecified, fmt.Errorf("can not get authType, resource type: %s", resourceType)
-	}
 }
 
 func printEnvListAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig,
@@ -500,26 +476,6 @@ func genBicepParamsFromEnvSubst(
 	return result
 }
 
-func fulfillFrontendBackend(
-	userSpec *scaffold.ServiceSpec, usedResource *ResourceConfig, infraSpec *scaffold.InfraSpec) error {
-	if userSpec.Frontend == nil {
-		userSpec.Frontend = &scaffold.Frontend{}
-	}
-	userSpec.Frontend.Backends =
-		append(userSpec.Frontend.Backends, scaffold.ServiceReference{Name: usedResource.Name})
-
-	usedSpec := getServiceSpecByName(infraSpec, usedResource.Name)
-	if usedSpec == nil {
-		return fmt.Errorf("'%s' uses '%s', but %s doesn't exist", userSpec.Name, usedResource.Name, usedResource.Name)
-	}
-	if usedSpec.Backend == nil {
-		usedSpec.Backend = &scaffold.Backend{}
-	}
-	usedSpec.Backend.Frontends =
-		append(usedSpec.Backend.Frontends, scaffold.ServiceReference{Name: userSpec.Name})
-	return nil
-}
-
 func getServiceSpecByName(infraSpec *scaffold.InfraSpec, name string) *scaffold.ServiceSpec {
 	for i := range infraSpec.Services {
 		if infraSpec.Services[i].Name == name {
@@ -529,6 +485,7 @@ func getServiceSpecByName(infraSpec *scaffold.InfraSpec, name string) *scaffold.
 	return nil
 }
 
+// todo: merge it into scaffold.BindToContainerApp
 func printHintsAboutUseHostContainerApp(userResourceName string, usedResourceName string,
 	console input.Console, ctx context.Context) {
 	if console == nil {

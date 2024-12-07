@@ -82,7 +82,8 @@ func (i *Initializer) InitFromApp(
 		prj, err := appdetect.Detect(ctx, wd, appdetect.WithExcludePatterns([]string{
 			"**/eng",
 			"**/tool",
-			"**/tools"},
+			"**/tools",
+		},
 			false))
 		if err != nil {
 			i.console.StopSpinner(ctx, title, input.GetStepResultFormat(err))
@@ -555,8 +556,7 @@ func (i *Initializer) prjConfigFromDetect(
 			err := appendJavaEurekaOrConfigClientEnv(
 				&svc,
 				javaEurekaServerService,
-				project.ResourceTypeJavaEurekaServer,
-				spec)
+				project.ResourceTypeJavaEurekaServer)
 			if err != nil {
 				return config, err
 			}
@@ -565,8 +565,7 @@ func (i *Initializer) prjConfigFromDetect(
 			err := appendJavaEurekaOrConfigClientEnv(
 				&svc,
 				javaConfigServerService,
-				project.ResourceTypeJavaConfigServer,
-				spec)
+				project.ResourceTypeJavaConfigServer)
 			if err != nil {
 				return config, err
 			}
@@ -1092,8 +1091,7 @@ func promptSpringBootVersion(console input.Console, ctx context.Context) (string
 
 func appendJavaEurekaOrConfigClientEnv(svc *project.ServiceConfig,
 	javaEurekaOrConfigServerService project.ServiceConfig,
-	resourceType project.ResourceType,
-	infraSpec *scaffold.InfraSpec) error {
+	resourceType project.ResourceType) error {
 	if svc.Env == nil {
 		svc.Env = map[string]string{}
 	}
@@ -1101,7 +1099,7 @@ func appendJavaEurekaOrConfigClientEnv(svc *project.ServiceConfig,
 	clientEnvs, err := project.GetResourceConnectionEnvs(&project.ResourceConfig{
 		Name: javaEurekaOrConfigServerService.Name,
 		Type: resourceType,
-	}, infraSpec)
+	})
 	if err != nil {
 		return err
 	}

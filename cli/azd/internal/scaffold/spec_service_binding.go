@@ -178,6 +178,18 @@ func BindToAIModels(serviceSpec *ServiceSpec, model string) error {
 	return nil
 }
 
+// BindToContainerApp a call b
+func BindToContainerApp(a *ServiceSpec, b *ServiceSpec) {
+	if a.Frontend == nil {
+		a.Frontend = &Frontend{}
+	}
+	a.Frontend.Backends = append(a.Frontend.Backends, ServiceReference{Name: b.Name})
+	if b.Backend == nil {
+		b.Backend = &Backend{}
+	}
+	b.Backend.Frontends = append(b.Backend.Frontends, ServiceReference{Name: b.Name})
+}
+
 func GetServiceBindingEnvsForPostgres(postgres DatabasePostgres) ([]Env, error) {
 	switch postgres.AuthType {
 	case internal.AuthTypePassword:
