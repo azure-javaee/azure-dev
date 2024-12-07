@@ -2,7 +2,6 @@ package project
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/azure/azure-dev/cli/azd/internal"
 	"github.com/azure/azure-dev/cli/azd/internal/scaffold"
@@ -16,70 +15,6 @@ func GetResourceConnectionEnvs(usedResource *ResourceConfig,
 		return []scaffold.Env{}, err
 	}
 	switch resourceType {
-	case ResourceTypeMessagingKafka:
-		// event hubs for kafka
-		var springBootVersionDecidedInformation []scaffold.Env
-		if strings.HasPrefix(infraSpec.AzureEventHubs.SpringBootVersion, "2.") {
-			springBootVersionDecidedInformation = []scaffold.Env{
-				{
-					Name:  "spring.cloud.stream.binders.kafka.environment.spring.main.sources",
-					Value: "com.azure.spring.cloud.autoconfigure.eventhubs.kafka.AzureEventHubsKafkaAutoConfiguration",
-				},
-			}
-		} else {
-			springBootVersionDecidedInformation = []scaffold.Env{
-				{
-					Name: "spring.cloud.stream.binders.kafka.environment.spring.main.sources",
-					Value: "com.azure.spring.cloud.autoconfigure.implementation.eventhubs.kafka" +
-						".AzureEventHubsKafkaAutoConfiguration",
-				},
-			}
-		}
-		var commonInformation []scaffold.Env
-		switch authType {
-		case internal.AuthTypeUserAssignedManagedIdentity:
-			commonInformation = []scaffold.Env{
-				// Not add this: spring.cloud.azure.eventhubs.connection-string = ""
-				// because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
-				{
-					Name: "spring.cloud.stream.kafka.binder.brokers",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeMessagingKafka, scaffold.ServiceBindingInfoTypeEndpoint),
-				},
-				{
-					Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
-					Value: "true",
-				},
-				{
-					Name:  "spring.cloud.azure.eventhubs.credential.client-id",
-					Value: scaffold.PlaceHolderForServiceIdentityClientId(),
-				},
-			}
-		case internal.AuthTypeConnectionString:
-			commonInformation = []scaffold.Env{
-				{
-					Name: "spring.cloud.stream.kafka.binder.brokers",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeMessagingKafka, scaffold.ServiceBindingInfoTypeEndpoint),
-				},
-				{
-					Name: "spring.cloud.azure.eventhubs.connection-string",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeMessagingKafka, scaffold.ServiceBindingInfoTypeConnectionString),
-				},
-				{
-					Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
-					Value: "false",
-				},
-				{
-					Name:  "spring.cloud.azure.eventhubs.credential.client-id",
-					Value: "",
-				},
-			}
-		default:
-			return []scaffold.Env{}, unsupportedAuthTypeError(resourceType, authType)
-		}
-		return mergeEnvWithDuplicationCheck(springBootVersionDecidedInformation, commonInformation)
 	case ResourceTypeMessagingEventHubs:
 		switch authType {
 		case internal.AuthTypeUserAssignedManagedIdentity:

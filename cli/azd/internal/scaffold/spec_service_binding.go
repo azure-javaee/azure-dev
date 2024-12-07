@@ -142,6 +142,19 @@ func BindToServiceBus(serviceSpec *ServiceSpec, serviceBus *AzureDepServiceBus) 
 	return nil
 }
 
+func BindToEventHubsKafka(serviceSpec *ServiceSpec, eventHubs *AzureDepEventHubs) error {
+	serviceSpec.AzureEventHubs = eventHubs
+	envs, err := GetServiceBindingEnvsForEventHubsKafka(*eventHubs)
+	if err != nil {
+		return err
+	}
+	serviceSpec.Envs, err = mergeEnvWithDuplicationCheck(serviceSpec.Envs, envs)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func GetServiceBindingEnvsForPostgres(postgres DatabasePostgres) ([]Env, error) {
 	switch postgres.AuthType {
 	case internal.AuthTypePassword:
@@ -471,6 +484,68 @@ func GetServiceBindingEnvsForServiceBus(serviceBus AzureDepServiceBus) ([]Env, e
 			return []Env{}, unsupportedAuthTypeError(ServiceTypeMessagingServiceBus, serviceBus.AuthType)
 		}
 	}
+}
+
+func GetServiceBindingEnvsForEventHubsKafka(eventHubs AzureDepEventHubs) ([]Env, error) {
+	var springBootVersionDecidedInformation []Env
+	if strings.HasPrefix(eventHubs.SpringBootVersion, "2.") {
+		springBootVersionDecidedInformation = []Env{
+			{
+				Name:  "spring.cloud.stream.binders.kafka.environment.spring.main.sources",
+				Value: "com.azure.spring.cloud.autoconfigure.eventhubs.kafka.AzureEventHubsKafkaAutoConfiguration",
+			},
+		}
+	} else {
+		springBootVersionDecidedInformation = []Env{
+			{
+				Name: "spring.cloud.stream.binders.kafka.environment.spring.main.sources",
+				Value: "com.azure.spring.cloud.autoconfigure.implementation.eventhubs.kafka" +
+					".AzureEventHubsKafkaAutoConfiguration",
+			},
+		}
+	}
+	var commonInformation []Env
+	switch eventHubs.AuthType {
+	case internal.AuthTypeUserAssignedManagedIdentity:
+		commonInformation = []Env{
+			// Not add this: spring.cloud.azure.eventhubs.connection-string = ""
+			// because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
+			{
+				Name:  "spring.cloud.stream.kafka.binder.brokers",
+				Value: ToServiceBindingEnvValue(ServiceTypeMessagingKafka, ServiceBindingInfoTypeEndpoint),
+			},
+			{
+				Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
+				Value: "true",
+			},
+			{
+				Name:  "spring.cloud.azure.eventhubs.credential.client-id",
+				Value: PlaceHolderForServiceIdentityClientId(),
+			},
+		}
+	case internal.AuthTypeConnectionString:
+		commonInformation = []Env{
+			{
+				Name:  "spring.cloud.stream.kafka.binder.brokers",
+				Value: ToServiceBindingEnvValue(ServiceTypeMessagingKafka, ServiceBindingInfoTypeEndpoint),
+			},
+			{
+				Name:  "spring.cloud.azure.eventhubs.connection-string",
+				Value: ToServiceBindingEnvValue(ServiceTypeMessagingKafka, ServiceBindingInfoTypeConnectionString),
+			},
+			{
+				Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
+				Value: "false",
+			},
+			{
+				Name:  "spring.cloud.azure.eventhubs.credential.client-id",
+				Value: "",
+			},
+		}
+	default:
+		return []Env{}, unsupportedAuthTypeError(ServiceTypeMessagingServiceBus, eventHubs.AuthType)
+	}
+	return mergeEnvWithDuplicationCheck(springBootVersionDecidedInformation, commonInformation)
 }
 
 func unsupportedAuthTypeError(serviceType ServiceType, authType internal.AuthType) error {

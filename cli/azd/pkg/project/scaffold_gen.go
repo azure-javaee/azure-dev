@@ -276,9 +276,10 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 				err = scaffold.BindToRedis(userSpec, infraSpec.DbRedis)
 			case ResourceTypeMessagingServiceBus:
 				err = scaffold.BindToServiceBus(userSpec, infraSpec.AzureServiceBus)
-			case ResourceTypeMessagingEventHubs, ResourceTypeMessagingKafka:
-				userSpec.AzureEventHubs = infraSpec.AzureEventHubs
-				err = addUsageByEnv(infraSpec, userSpec, usedResource)
+			case ResourceTypeMessagingKafka:
+				err = scaffold.BindToEventHubsKafka(userSpec, infraSpec.AzureEventHubs)
+			case ResourceTypeMessagingEventHubs:
+				err = scaffold.BindToEventHubsKafka(userSpec, infraSpec.AzureEventHubs)
 			case ResourceTypeStorage:
 				userSpec.AzureStorageAccount = infraSpec.AzureStorageAccount
 				err = addUsageByEnv(infraSpec, userSpec, usedResource)
@@ -376,8 +377,9 @@ func printEnvListAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *Project
 				variables = scaffold.GetServiceBindingEnvsForRedis()
 			case ResourceTypeMessagingServiceBus:
 				variables, err = scaffold.GetServiceBindingEnvsForServiceBus(*infraSpec.AzureServiceBus)
+			case ResourceTypeMessagingKafka:
+				variables, err = scaffold.GetServiceBindingEnvsForEventHubsKafka(*infraSpec.AzureEventHubs)
 			case ResourceTypeMessagingEventHubs,
-				ResourceTypeMessagingKafka,
 				ResourceTypeStorage:
 				variables, err = GetResourceConnectionEnvs(usedResource, infraSpec)
 			case ResourceTypeHostContainerApp:
