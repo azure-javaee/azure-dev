@@ -155,6 +155,19 @@ func BindToEventHubsKafka(serviceSpec *ServiceSpec, eventHubs *AzureDepEventHubs
 	return nil
 }
 
+func BindToEventHubs(serviceSpec *ServiceSpec, eventHubs *AzureDepEventHubs) error {
+	serviceSpec.AzureEventHubs = eventHubs
+	envs, err := GetServiceBindingEnvsForEventHubs(*eventHubs)
+	if err != nil {
+		return err
+	}
+	serviceSpec.Envs, err = mergeEnvWithDuplicationCheck(serviceSpec.Envs, envs)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func GetServiceBindingEnvsForPostgres(postgres DatabasePostgres) ([]Env, error) {
 	switch postgres.AuthType {
 	case internal.AuthTypePassword:
@@ -546,6 +559,52 @@ func GetServiceBindingEnvsForEventHubsKafka(eventHubs AzureDepEventHubs) ([]Env,
 		return []Env{}, unsupportedAuthTypeError(ServiceTypeMessagingServiceBus, eventHubs.AuthType)
 	}
 	return mergeEnvWithDuplicationCheck(springBootVersionDecidedInformation, commonInformation)
+}
+
+func GetServiceBindingEnvsForEventHubs(eventHubs AzureDepEventHubs) ([]Env, error) {
+	switch eventHubs.AuthType {
+	case internal.AuthTypeUserAssignedManagedIdentity:
+		return []Env{
+			// Not add this: spring.cloud.azure.eventhubs.connection-string = ""
+			// because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
+			{
+				Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
+				Value: "true",
+			},
+			{
+				Name:  "spring.cloud.azure.eventhubs.credential.client-id",
+				Value: PlaceHolderForServiceIdentityClientId(),
+			},
+			{
+				Name: "spring.cloud.azure.eventhubs.namespace",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeMessagingEventHubs, ServiceBindingInfoTypeNamespace),
+			},
+		}, nil
+	case internal.AuthTypeConnectionString:
+		return []Env{
+			{
+				Name: "spring.cloud.azure.eventhubs.namespace",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeMessagingEventHubs, ServiceBindingInfoTypeNamespace),
+			},
+			{
+				Name: "spring.cloud.azure.eventhubs.connection-string",
+				Value: ToServiceBindingEnvValue(
+					ServiceTypeMessagingEventHubs, ServiceBindingInfoTypeConnectionString),
+			},
+			{
+				Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
+				Value: "false",
+			},
+			{
+				Name:  "spring.cloud.azure.eventhubs.credential.client-id",
+				Value: "",
+			},
+		}, nil
+	default:
+		return []Env{}, unsupportedAuthTypeError(ServiceTypeMessagingServiceBus, eventHubs.AuthType)
+	}
 }
 
 func unsupportedAuthTypeError(serviceType ServiceType, authType internal.AuthType) error {

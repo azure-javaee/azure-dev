@@ -15,50 +15,6 @@ func GetResourceConnectionEnvs(usedResource *ResourceConfig,
 		return []scaffold.Env{}, err
 	}
 	switch resourceType {
-	case ResourceTypeMessagingEventHubs:
-		switch authType {
-		case internal.AuthTypeUserAssignedManagedIdentity:
-			return []scaffold.Env{
-				// Not add this: spring.cloud.azure.eventhubs.connection-string = ""
-				// because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
-				{
-					Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
-					Value: "true",
-				},
-				{
-					Name:  "spring.cloud.azure.eventhubs.credential.client-id",
-					Value: scaffold.PlaceHolderForServiceIdentityClientId(),
-				},
-				{
-					Name: "spring.cloud.azure.eventhubs.namespace",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeMessagingEventHubs, scaffold.ServiceBindingInfoTypeNamespace),
-				},
-			}, nil
-		case internal.AuthTypeConnectionString:
-			return []scaffold.Env{
-				{
-					Name: "spring.cloud.azure.eventhubs.namespace",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeMessagingEventHubs, scaffold.ServiceBindingInfoTypeNamespace),
-				},
-				{
-					Name: "spring.cloud.azure.eventhubs.connection-string",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeMessagingEventHubs, scaffold.ServiceBindingInfoTypeConnectionString),
-				},
-				{
-					Name:  "spring.cloud.azure.eventhubs.credential.managed-identity-enabled",
-					Value: "false",
-				},
-				{
-					Name:  "spring.cloud.azure.eventhubs.credential.client-id",
-					Value: "",
-				},
-			}, nil
-		default:
-			return []scaffold.Env{}, unsupportedResourceTypeError(resourceType)
-		}
 	case ResourceTypeStorage:
 		switch authType {
 		case internal.AuthTypeUserAssignedManagedIdentity:

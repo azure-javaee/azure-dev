@@ -180,6 +180,11 @@ func (i *Initializer) infraSpecFromDetect(
 					if err != nil {
 						return scaffold.InfraSpec{}, err
 					}
+				} else {
+					err := scaffold.BindToEventHubs(&serviceSpec, spec.AzureEventHubs)
+					if err != nil {
+						return scaffold.InfraSpec{}, err
+					}
 				}
 			case appdetect.AzureDepStorageAccount:
 				serviceSpec.AzureStorageAccount = spec.AzureStorageAccount
