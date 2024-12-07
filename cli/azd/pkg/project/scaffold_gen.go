@@ -281,8 +281,7 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 			case ResourceTypeStorage:
 				err = scaffold.BindToStorageAccount(userSpec, infraSpec.AzureStorageAccount)
 			case ResourceTypeOpenAiModel:
-				userSpec.AIModels = append(userSpec.AIModels, scaffold.AIModelReference{Name: usedResource.Name})
-				err = addUsageByEnv(infraSpec, userSpec, usedResource)
+				err = scaffold.BindToAIModels(userSpec, usedResource.Name)
 			case ResourceTypeHostContainerApp:
 				err = fulfillFrontendBackend(userSpec, usedResource, infraSpec)
 			default:
@@ -323,18 +322,6 @@ func getAuthType(infraSpec *scaffold.InfraSpec, resourceType ResourceType) (inte
 	default:
 		return internal.AuthTypeUnspecified, fmt.Errorf("can not get authType, resource type: %s", resourceType)
 	}
-}
-
-func addUsageByEnv(infraSpec *scaffold.InfraSpec, userSpec *scaffold.ServiceSpec, usedResource *ResourceConfig) error {
-	envs, err := GetResourceConnectionEnvs(usedResource, infraSpec)
-	if err != nil {
-		return err
-	}
-	userSpec.Envs, err = mergeEnvWithDuplicationCheck(userSpec.Envs, envs)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func printEnvListAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig,

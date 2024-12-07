@@ -15,19 +15,6 @@ func GetResourceConnectionEnvs(usedResource *ResourceConfig,
 		return []scaffold.Env{}, err
 	}
 	switch resourceType {
-	case ResourceTypeOpenAiModel:
-		switch authType {
-		case internal.AuthTypeUserAssignedManagedIdentity:
-			return []scaffold.Env{
-				{
-					Name: "AZURE_OPENAI_ENDPOINT",
-					Value: scaffold.ToServiceBindingEnvValue(
-						scaffold.ServiceTypeOpenAiModel, scaffold.ServiceBindingInfoTypeEndpoint),
-				},
-			}, nil
-		default:
-			return []scaffold.Env{}, unsupportedResourceTypeError(resourceType)
-		}
 	case ResourceTypeHostContainerApp: // todo improve this and delete Frontend and Backend in scaffold.ServiceSpec
 		switch authType {
 		case internal.AuthTypeUnspecified:

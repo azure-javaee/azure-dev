@@ -167,6 +167,17 @@ func BindToStorageAccount(serviceSpec *ServiceSpec, account *AzureDepStorageAcco
 	return nil
 }
 
+func BindToAIModels(serviceSpec *ServiceSpec, model string) error {
+	serviceSpec.AIModels = append(serviceSpec.AIModels, AIModelReference{Name: model})
+	envs := GetServiceBindingEnvsForAIModel()
+	var err error
+	serviceSpec.Envs, err = mergeEnvWithDuplicationCheck(serviceSpec.Envs, envs)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func GetServiceBindingEnvsForPostgres(postgres DatabasePostgres) ([]Env, error) {
 	switch postgres.AuthType {
 	case internal.AuthTypePassword:
@@ -651,6 +662,15 @@ func GetServiceBindingEnvsForStorageAccount(account AzureDepStorageAccount) ([]E
 		}, nil
 	default:
 		return []Env{}, unsupportedAuthTypeError(ServiceTypeStorage, account.AuthType)
+	}
+}
+
+func GetServiceBindingEnvsForAIModel() []Env {
+	return []Env{
+		{
+			Name:  "AZURE_OPENAI_ENDPOINT",
+			Value: ToServiceBindingEnvValue(ServiceTypeOpenAiModel, ServiceBindingInfoTypeEndpoint),
+		},
 	}
 }
 
