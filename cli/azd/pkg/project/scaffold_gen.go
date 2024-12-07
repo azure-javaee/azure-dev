@@ -390,7 +390,7 @@ func handleContainerAppProps(
 		// Here, DB_HOST is not a secret, but DB_SECRET is. And yet, DB_HOST will be marked as a secret.
 		// This is a limitation of the current implementation, but it's safer to mark both as secrets above.
 		evaluatedValue := genBicepParamsFromEnvSubst(value, isSecret, infraSpec)
-		err := addNewEnvironmentVariable(serviceSpec, envVar.Name, evaluatedValue)
+		err := scaffold.AddNewEnvironmentVariable(serviceSpec, envVar.Name, evaluatedValue)
 		if err != nil {
 			return err
 		}

@@ -179,6 +179,12 @@ func BindToAIModels(serviceSpec *ServiceSpec, model string) error {
 }
 
 // BindToContainerApp a call b
+// todo:
+//  1. Add field in ServiceSpec to identifier app type like Eureka server and Config server.
+//  2. Create GetServiceBindingEnvsForContainerApp
+//  3. Merge GetServiceBindingEnvsForEurekaServer and GetServiceBindingEnvsForConfigServer into
+//     GetServiceBindingEnvsForContainerApp.
+//  4. Delete printHintsAboutUseHostContainerApp use GetServiceBindingEnvsForContainerApp instead
 func BindToContainerApp(a *ServiceSpec, b *ServiceSpec) {
 	if a.Frontend == nil {
 		a.Frontend = &Frontend{}
@@ -682,6 +688,37 @@ func GetServiceBindingEnvsForAIModel() []Env {
 		{
 			Name:  "AZURE_OPENAI_ENDPOINT",
 			Value: ToServiceBindingEnvValue(ServiceTypeOpenAiModel, ServiceBindingInfoTypeEndpoint),
+		},
+	}
+}
+
+func GetServiceBindingEnvsForEurekaServer(eurekaServerName string) []Env {
+	return []Env{
+		{
+			Name:  "eureka.client.register-with-eureka",
+			Value: "true",
+		},
+		{
+			Name:  "eureka.client.fetch-registry",
+			Value: "true",
+		},
+		{
+			Name:  "eureka.instance.prefer-ip-address",
+			Value: "true",
+		},
+		{
+			Name:  "eureka.client.serviceUrl.defaultZone",
+			Value: fmt.Sprintf("%s/eureka", GetContainerAppHost(eurekaServerName)),
+		},
+	}
+}
+
+func GetServiceBindingEnvsForConfigServer(configServerName string) []Env {
+	return []Env{
+		{
+			Name: "spring.config.import",
+			Value: fmt.Sprintf("optional:configserver:%s?fail-fast=true",
+				GetContainerAppHost(configServerName)),
 		},
 	}
 }

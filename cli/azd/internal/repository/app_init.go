@@ -553,27 +553,19 @@ func (i *Initializer) prjConfigFromDetect(
 		}
 
 		if prj.Metadata.ContainsDependencySpringCloudEurekaClient {
-			err := appendJavaEurekaOrConfigClientEnv(
-				&svc,
-				javaEurekaServerService,
-				project.ResourceTypeJavaEurekaServer)
+			err := appendJavaEurekaServerEnv(&svc, javaEurekaServerService.Name)
 			if err != nil {
 				return config, err
 			}
 		}
 		if prj.Metadata.ContainsDependencySpringCloudConfigClient {
-			err := appendJavaEurekaOrConfigClientEnv(
-				&svc,
-				javaConfigServerService,
-				project.ResourceTypeJavaConfigServer)
+			err := appendJavaConfigServerEnv(&svc, javaConfigServerService.Name)
 			if err != nil {
 				return config, err
 			}
 		}
-
 		config.Services[svc.Name] = &svc
 		svcMapping[prj.Path] = svc.Name
-
 	}
 
 	if addResources {
@@ -1089,21 +1081,22 @@ func promptSpringBootVersion(console input.Console, ctx context.Context) (string
 	}
 }
 
-func appendJavaEurekaOrConfigClientEnv(svc *project.ServiceConfig,
-	javaEurekaOrConfigServerService project.ServiceConfig,
-	resourceType project.ResourceType) error {
+func appendJavaEurekaServerEnv(svc *project.ServiceConfig, eurekaServerName string) error {
 	if svc.Env == nil {
 		svc.Env = map[string]string{}
 	}
-
-	clientEnvs, err := project.GetResourceConnectionEnvs(&project.ResourceConfig{
-		Name: javaEurekaOrConfigServerService.Name,
-		Type: resourceType,
-	})
-	if err != nil {
-		return err
+	clientEnvs := scaffold.GetServiceBindingEnvsForEurekaServer(eurekaServerName)
+	for _, env := range clientEnvs {
+		svc.Env[env.Name] = env.Value
 	}
+	return nil
+}
 
+func appendJavaConfigServerEnv(svc *project.ServiceConfig, configServerName string) error {
+	if svc.Env == nil {
+		svc.Env = map[string]string{}
+	}
+	clientEnvs := scaffold.GetServiceBindingEnvsForConfigServer(configServerName)
 	for _, env := range clientEnvs {
 		svc.Env[env.Name] = env.Value
 	}

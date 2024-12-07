@@ -191,3 +191,19 @@ func serviceDefPlaceholder(serviceName string) Parameter {
 		Secret: true,
 	}
 }
+
+func AddNewEnvironmentVariable(serviceSpec *ServiceSpec, name string, value string) error {
+	merged, err := mergeEnvWithDuplicationCheck(serviceSpec.Envs,
+		[]Env{
+			{
+				Name:  name,
+				Value: value,
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	serviceSpec.Envs = merged
+	return nil
+}
