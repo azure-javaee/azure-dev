@@ -72,7 +72,7 @@ func toServiceTypeAndServiceBindingInfoType(resourceConnectionEnv string) (
 
 func BindToPostgres(serviceSpec *ServiceSpec, postgres *DatabasePostgres) error {
 	serviceSpec.DbPostgres = postgres
-	envs, err := GetServiceBindingEnvs(postgres)
+	envs, err := GetServiceBindingEnvsForPostgres(*postgres)
 	if err != nil {
 		return err
 	}
@@ -83,102 +83,85 @@ func BindToPostgres(serviceSpec *ServiceSpec, postgres *DatabasePostgres) error 
 	return nil
 }
 
-func GetServiceBindingEnvs(postgres *DatabasePostgres) ([]Env, error) {
+func BindToMySql(serviceSpec *ServiceSpec, mysql *DatabaseMySql) error {
+	serviceSpec.DbMySql = mysql
+	envs, err := GetServiceBindingEnvsForMysql(*mysql)
+	if err != nil {
+		return err
+	}
+	serviceSpec.Envs, err = mergeEnvWithDuplicationCheck(serviceSpec.Envs, envs)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetServiceBindingEnvsForPostgres(postgres DatabasePostgres) ([]Env, error) {
 	switch postgres.AuthType {
 	case internal.AuthTypePassword:
 		return []Env{
 			{
-				Name: "POSTGRES_USERNAME",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeDbPostgres, ServiceBindingInfoTypeUsername,
-				),
+				Name:  "POSTGRES_USERNAME",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypeUsername),
 			},
 			{
-				Name: "POSTGRES_PASSWORD",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeDbPostgres, ServiceBindingInfoTypePassword,
-				),
+				Name:  "POSTGRES_PASSWORD",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypePassword),
 			},
 			{
-				Name: "POSTGRES_HOST",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeDbPostgres, ServiceBindingInfoTypeHost,
-				),
+				Name:  "POSTGRES_HOST",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypeHost),
 			},
 			{
-				Name: "POSTGRES_DATABASE",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeDbPostgres, ServiceBindingInfoTypeDatabaseName,
-				),
+				Name:  "POSTGRES_DATABASE",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypeDatabaseName),
 			},
 			{
-				Name: "POSTGRES_PORT",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeDbPostgres, ServiceBindingInfoTypePort,
-				),
+				Name:  "POSTGRES_PORT",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypePort),
 			},
 			{
-				Name: "POSTGRES_URL",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeDbPostgres, ServiceBindingInfoTypeUrl,
-				),
+				Name:  "POSTGRES_URL",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypeUrl),
 			},
 			{
-				Name: "spring.datasource.url",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeDbPostgres, ServiceBindingInfoTypeJdbcUrl,
-				),
+				Name:  "spring.datasource.url",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypeJdbcUrl),
 			},
 			{
-				Name: "spring.datasource.username",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeDbPostgres, ServiceBindingInfoTypeUsername,
-				),
+				Name:  "spring.datasource.username",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypeUsername),
 			},
 			{
-				Name: "spring.datasource.password",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeDbPostgres, ServiceBindingInfoTypePassword,
-				),
+				Name:  "spring.datasource.password",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypePassword),
 			},
 		}, nil
 	case internal.AuthTypeUserAssignedManagedIdentity:
 		return []Env{
 			{
-				Name: "POSTGRES_USERNAME",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeDbPostgres, ServiceBindingInfoTypeUsername,
-				),
+				Name:  "POSTGRES_USERNAME",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypeUsername),
 			},
 			{
-				Name: "POSTGRES_HOST",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeDbPostgres, ServiceBindingInfoTypeHost,
-				),
+				Name:  "POSTGRES_HOST",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypeHost),
 			},
 			{
-				Name: "POSTGRES_DATABASE",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeDbPostgres, ServiceBindingInfoTypeDatabaseName,
-				),
+				Name:  "POSTGRES_DATABASE",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypeDatabaseName),
 			},
 			{
-				Name: "POSTGRES_PORT",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeDbPostgres, ServiceBindingInfoTypePort,
-				),
+				Name:  "POSTGRES_PORT",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypePort),
 			},
 			{
-				Name: "spring.datasource.url",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeDbPostgres, ServiceBindingInfoTypeJdbcUrl,
-				),
+				Name:  "spring.datasource.url",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypeJdbcUrl),
 			},
 			{
-				Name: "spring.datasource.username",
-				Value: ToServiceBindingEnvValue(
-					ServiceTypeDbPostgres, ServiceBindingInfoTypeUsername,
-				),
+				Name:  "spring.datasource.username",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypeUsername),
 			},
 			{
 				Name:  "spring.datasource.azure.passwordless-enabled",
@@ -187,6 +170,83 @@ func GetServiceBindingEnvs(postgres *DatabasePostgres) ([]Env, error) {
 		}, nil
 	default:
 		return []Env{}, unsupportedAuthTypeError(ServiceTypeDbPostgres, postgres.AuthType)
+	}
+}
+
+func GetServiceBindingEnvsForMysql(mysql DatabaseMySql) ([]Env, error) {
+	switch mysql.AuthType {
+	case internal.AuthTypePassword:
+		return []Env{
+			{
+				Name:  "MYSQL_USERNAME",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbMySQL, ServiceBindingInfoTypeUsername),
+			},
+			{
+				Name:  "MYSQL_PASSWORD",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbMySQL, ServiceBindingInfoTypePassword),
+			},
+			{
+				Name:  "MYSQL_HOST",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbMySQL, ServiceBindingInfoTypeHost),
+			},
+			{
+				Name:  "MYSQL_DATABASE",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbMySQL, ServiceBindingInfoTypeDatabaseName),
+			},
+			{
+				Name:  "MYSQL_PORT",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbMySQL, ServiceBindingInfoTypePort),
+			},
+			{
+				Name:  "MYSQL_URL",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbMySQL, ServiceBindingInfoTypeUrl),
+			},
+			{
+				Name:  "spring.datasource.url",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbMySQL, ServiceBindingInfoTypeJdbcUrl),
+			},
+			{
+				Name:  "spring.datasource.username",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbMySQL, ServiceBindingInfoTypeUsername),
+			},
+			{
+				Name:  "spring.datasource.password",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbMySQL, ServiceBindingInfoTypePassword),
+			},
+		}, nil
+	case internal.AuthTypeUserAssignedManagedIdentity:
+		return []Env{
+			{
+				Name:  "MYSQL_USERNAME",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbMySQL, ServiceBindingInfoTypeUsername),
+			},
+			{
+				Name:  "MYSQL_HOST",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbMySQL, ServiceBindingInfoTypeHost),
+			},
+			{
+				Name:  "MYSQL_PORT",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbMySQL, ServiceBindingInfoTypePort),
+			},
+			{
+				Name:  "MYSQL_DATABASE",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbMySQL, ServiceBindingInfoTypeDatabaseName),
+			},
+			{
+				Name:  "spring.datasource.url",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbMySQL, ServiceBindingInfoTypeJdbcUrl),
+			},
+			{
+				Name:  "spring.datasource.username",
+				Value: ToServiceBindingEnvValue(ServiceTypeDbMySQL, ServiceBindingInfoTypeUsername),
+			},
+			{
+				Name:  "spring.datasource.azure.passwordless-enabled",
+				Value: "true",
+			},
+		}, nil
+	default:
+		return []Env{}, unsupportedAuthTypeError(ServiceTypeDbMySQL, mysql.AuthType)
 	}
 }
 

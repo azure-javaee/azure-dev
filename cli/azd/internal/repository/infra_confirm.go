@@ -147,6 +147,10 @@ func (i *Initializer) infraSpecFromDetect(
 					return scaffold.InfraSpec{}, err
 				}
 			case appdetect.DbMySql:
+				err := scaffold.BindToMySql(&serviceSpec, spec.DbMySql)
+				if err != nil {
+					return scaffold.InfraSpec{}, err
+				}
 				serviceSpec.DbMySql = spec.DbMySql
 			case appdetect.DbCosmos:
 				serviceSpec.DbCosmos = spec.DbCosmos

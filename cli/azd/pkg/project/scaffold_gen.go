@@ -264,14 +264,12 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 			}
 			switch usedResource.Type {
 			case ResourceTypeDbPostgres:
-				userSpec.DbPostgres = infraSpec.DbPostgres
-				err := addUsageByEnv(infraSpec, userSpec, usedResource)
+				err := scaffold.BindToPostgres(userSpec, infraSpec.DbPostgres)
 				if err != nil {
 					return err
 				}
 			case ResourceTypeDbMySQL:
-				userSpec.DbMySql = infraSpec.DbMySql
-				err := addUsageByEnv(infraSpec, userSpec, usedResource)
+				err := scaffold.BindToMySql(userSpec, infraSpec.DbMySql)
 				if err != nil {
 					return err
 				}
@@ -397,10 +395,10 @@ func printEnvListAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *Project
 			var err error
 			switch usedResource.Type {
 			case ResourceTypeDbPostgres:
-				variables, err = scaffold.GetServiceBindingEnvs(infraSpec.DbPostgres)
-			case
-				ResourceTypeDbMySQL,
-				ResourceTypeDbRedis,
+				variables, err = scaffold.GetServiceBindingEnvsForPostgres(*infraSpec.DbPostgres)
+			case ResourceTypeDbMySQL:
+				variables, err = scaffold.GetServiceBindingEnvsForMysql(*infraSpec.DbMySql)
+			case ResourceTypeDbRedis,
 				ResourceTypeDbMongo,
 				ResourceTypeDbCosmos,
 				ResourceTypeMessagingServiceBus,
@@ -481,7 +479,7 @@ func setParameter(spec *scaffold.InfraSpec, name string, value string, isSecret 
 			}
 
 			// prevent auto-generated parameters from being overwritten with different values
-			if valStr, ok := parameters.Value.(string); !ok || ok && valStr != value {
+			if valStr, ok := parameters.Value.(string); !ok || valStr != value {
 				// if you are a maintainer and run into this error, consider using a different, unique name
 				panic(fmt.Sprintf(
 					"parameter collision: parameter %s already set to %s, cannot set to %s", name, parameters.Value,
