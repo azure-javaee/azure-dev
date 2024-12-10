@@ -98,6 +98,10 @@ func GetResourceConnectionEnvs(usedResource *ResourceConfig,
 						scaffold.ResourceTypeDbPostgres, scaffold.ResourceInfoTypeUsername),
 				},
 				{
+					Name:  "spring.datasource.password",
+					Value: "",
+				},
+				{
 					Name:  "spring.datasource.azure.passwordless-enabled",
 					Value: "true",
 				},
@@ -186,6 +190,10 @@ func GetResourceConnectionEnvs(usedResource *ResourceConfig,
 					Name: "spring.datasource.username",
 					Value: scaffold.ToResourceConnectionEnv(
 						scaffold.ResourceTypeDbMySQL, scaffold.ResourceInfoTypeUsername),
+				},
+				{
+					Name:  "spring.datasource.password",
+					Value: "",
 				},
 				{
 					Name:  "spring.datasource.azure.passwordless-enabled",
