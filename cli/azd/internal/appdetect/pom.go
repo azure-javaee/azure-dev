@@ -82,8 +82,11 @@ func fileExists(path string) bool {
 	}
 }
 
+const mavenVersion = "3.9.9"
+const mavenURL = "https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/" +
+	mavenVersion + "/apache-maven-" + mavenVersion + "-bin.zip"
+
 func getDownloadedMvnCommand() (string, error) {
-	mavenVersion := "3.9.9"
 	mavenCommand, err := getAzdMvnCommand(mavenVersion)
 	if err != nil {
 		return "", err
@@ -103,11 +106,10 @@ func getDownloadedMvnCommand() (string, error) {
 			return "", fmt.Errorf("unable to create directory: %w", err)
 		}
 	}
-	mavenURL := fmt.Sprintf("https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/"+
-		"%s/apache-maven-%s-bin.zip", mavenVersion, mavenVersion)
+
 	mavenFile := fmt.Sprintf("maven-wrapper-%s-bin.zip", mavenVersion)
 	wrapperPath := filepath.Join(mavenDir, mavenFile)
-	err = downloadFile(wrapperPath, mavenURL)
+	err = downloadMaven(wrapperPath)
 	if err != nil {
 		return "", err
 	}
@@ -136,14 +138,14 @@ func getAzdMvnCommand(mavenVersion string) (string, error) {
 	return azdMvnCommand, nil
 }
 
-func downloadFile(filepath string, url string) error {
+func downloadMaven(filepath string) error {
 	out, err := os.Create(filepath)
 	if err != nil {
 		return err
 	}
 	defer out.Close()
 
-	resp, err := http.Get(url) //nolint
+	resp, err := http.Get(mavenURL)
 	if err != nil {
 		return err
 	}
@@ -163,7 +165,7 @@ func unzip(src string, dest string) error {
 	for _, file := range reader.File {
 		destPath := filepath.Join(dest, file.Name)
 		if !strings.HasPrefix(destPath, filepath.Clean(dest)+string(os.PathSeparator)) {
-			continue
+			return fmt.Errorf("%s: illegal file path", file.Name)
 		}
 		if file.FileInfo().IsDir() {
 			err := os.MkdirAll(destPath, os.ModePerm)
