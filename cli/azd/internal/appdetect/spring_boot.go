@@ -114,8 +114,8 @@ func detectAzureDependenciesByAnalyzingSpringBootProject(
 	detectSpringFrontend(azdProject, &springBootProject)
 }
 
-func detectSpringFrontend(azdProject *Project, project *SpringBootProject) {
-	for _, p := range project.mavenProject.Build.Plugins {
+func detectSpringFrontend(azdProject *Project, springBootProject *SpringBootProject) {
+	for _, p := range springBootProject.mavenProject.Build.Plugins {
 		if p.GroupId == "com.github.eirslett" && p.ArtifactId == "frontend-maven-plugin" {
 			azdProject.Dependencies = append(azdProject.Dependencies, SpringFrontend)
 			break
