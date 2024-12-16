@@ -161,15 +161,8 @@ func unzip(src string, dest string) error {
 	defer reader.Close()
 
 	for _, file := range reader.File {
-		sourcePath, _ := filepath.Abs(file.Name)
-		if strings.Contains(sourcePath, "..") {
-			continue
-		}
-		if strings.Contains(file.Name, "..") {
-			continue
-		}
 		destPath := filepath.Join(dest, file.Name)
-		if strings.Contains(destPath, "..") {
+		if !strings.HasPrefix(destPath, filepath.Clean(dest)+string(os.PathSeparator)) {
 			continue
 		}
 		if file.FileInfo().IsDir() {
