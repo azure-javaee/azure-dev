@@ -100,7 +100,7 @@ func getDownloadedMvnCommand() (string, error) {
 	if _, err := os.Stat(mavenDir); os.IsNotExist(err) {
 		err = os.Mkdir(mavenDir, os.ModePerm)
 		if err != nil {
-			return "", fmt.Errorf("unable to create directory: %v", err)
+			return "", fmt.Errorf("unable to create directory: %w", err)
 		}
 	}
 	mavenURL := fmt.Sprintf("https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/"+
@@ -113,7 +113,7 @@ func getDownloadedMvnCommand() (string, error) {
 	}
 	err = unzip(wrapperPath, mavenDir)
 	if err != nil {
-		return "", fmt.Errorf("failed to unzip maven bin.zip: %v", err)
+		return "", fmt.Errorf("failed to unzip maven bin.zip: %w", err)
 	}
 	return mavenCommand, nil
 }
@@ -122,7 +122,7 @@ func getAzdMvnDir() (string, error) {
 	azdMvnFolderName := "azd-maven"
 	userHome, err := os.UserHomeDir()
 	if err != nil {
-		return "", fmt.Errorf("unable to get user home directory: %v", err)
+		return "", fmt.Errorf("unable to get user home directory: %w", err)
 	}
 	return filepath.Join(userHome, azdMvnFolderName), nil
 }
@@ -163,7 +163,10 @@ func unzip(src string, dest string) error {
 	for _, f := range reader.File {
 		filePath := filepath.Join(dest, f.Name)
 		if f.FileInfo().IsDir() {
-			os.MkdirAll(filePath, os.ModePerm)
+			err := os.MkdirAll(filePath, os.ModePerm)
+			if err != nil {
+				return err
+			}
 		} else {
 			if err = os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
 				return err
@@ -200,7 +203,6 @@ func getEffectivePomFromConsoleOutput(consoleOutput string) (string, error) {
 			inProject = true
 		} else if strings.HasPrefix(strings.TrimSpace(line), "</project>") {
 			effectivePom.WriteString(line)
-			inProject = false
 			break
 		}
 		if inProject {
@@ -208,7 +210,7 @@ func getEffectivePomFromConsoleOutput(consoleOutput string) (string, error) {
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return "", fmt.Errorf("failed to scan console output. %v", err)
+		return "", fmt.Errorf("failed to scan console output. %w", err)
 	}
 	return effectivePom.String(), nil
 }

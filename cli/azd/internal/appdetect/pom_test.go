@@ -187,11 +187,20 @@ func TestGetMvnwCommandInProject(t *testing.T) {
 			defer os.RemoveAll(tempDir)
 
 			pomPath := filepath.Join(tempDir, c.pomPath)
-			os.MkdirAll(filepath.Dir(pomPath), os.ModePerm)
-			os.WriteFile(pomPath, []byte("<project></project>"), os.ModePerm)
+			err = os.MkdirAll(filepath.Dir(pomPath), os.ModePerm)
+			if err != nil {
+				t.Errorf("failed to mkdir")
+			}
+			err = os.WriteFile(pomPath, []byte("<project></project>"), os.ModePerm)
+			if err != nil {
+				t.Errorf("failed to write file")
+			}
 			if c.expected != "" {
 				expectedPath := filepath.Join(tempDir, c.expected)
-				os.WriteFile(expectedPath, []byte("#!/bin/sh"), os.ModePerm)
+				err = os.WriteFile(expectedPath, []byte("#!/bin/sh"), os.ModePerm)
+				if err != nil {
+					t.Errorf("failed to write file")
+				}
 			}
 
 			result, _ := getMvnwCommandInProject(pomPath)
