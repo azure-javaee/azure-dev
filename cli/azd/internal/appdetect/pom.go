@@ -160,29 +160,32 @@ func unzip(src string, dest string) error {
 	}
 	defer reader.Close()
 
-	for _, f := range reader.File {
-		p, _ := filepath.Abs(f.Name)
-		if strings.Contains(p, "..") {
+	for _, file := range reader.File {
+		sourcePath, _ := filepath.Abs(file.Name)
+		if strings.Contains(sourcePath, "..") {
 			continue
 		}
-		filePath := filepath.Join(dest, f.Name)
-		if f.FileInfo().IsDir() {
-			err := os.MkdirAll(filePath, os.ModePerm)
+		destPath := filepath.Join(dest, file.Name)
+		if strings.Contains(destPath, "..") {
+			continue
+		}
+		if file.FileInfo().IsDir() {
+			err := os.MkdirAll(destPath, os.ModePerm)
 			if err != nil {
 				return err
 			}
 		} else {
-			if err = os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
+			if err = os.MkdirAll(filepath.Dir(destPath), os.ModePerm); err != nil {
 				return err
 			}
 
-			outFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+			outFile, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
 			if err != nil {
 				return err
 			}
 			defer outFile.Close()
 
-			rc, err := f.Open()
+			rc, err := file.Open()
 			if err != nil {
 				return err
 			}
