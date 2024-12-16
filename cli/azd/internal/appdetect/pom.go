@@ -165,6 +165,9 @@ func unzip(src string, dest string) error {
 		if strings.Contains(sourcePath, "..") {
 			continue
 		}
+		if strings.Contains(file.Name, "..") {
+			continue
+		}
 		destPath := filepath.Join(dest, file.Name)
 		if strings.Contains(destPath, "..") {
 			continue
