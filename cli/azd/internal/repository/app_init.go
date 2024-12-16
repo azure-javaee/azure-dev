@@ -1113,7 +1113,8 @@ func promptBindingDestination(console input.Console, ctx context.Context, bindin
 	for {
 		destination, err := console.Prompt(ctx, input.ConsoleOptions{
 			Message: fmt.Sprintf("Input the value for spring.cloud.stream.bindings.%s.destination", bindingName),
-			Help:    "Hint: Azure Eventhubs Name, please also ensure application properties is well configured.",
+			Help: fmt.Sprintf("Hint: Azure Eventhubs Name, please also ensure that the value of property "+
+				"spring.cloud.stream.bindings.%s.destination is configured as your input.", bindingName),
 		})
 		if err != nil {
 			return "", err
@@ -1142,7 +1143,8 @@ func promptStorageContainerName(console input.Console, ctx context.Context, key 
 	for {
 		containerName, err := console.Prompt(ctx, input.ConsoleOptions{
 			Message: fmt.Sprintf("Input the value for %s", key),
-			Help:    "Hint: Azure Storage Container Name, please also ensure application properties is well configured.",
+			Help: fmt.Sprintf("Hint: Azure Storage Container Name, "+
+				"please also ensure that the value of property %s is configured as your input.", key),
 		})
 		if err != nil {
 			return "", err
