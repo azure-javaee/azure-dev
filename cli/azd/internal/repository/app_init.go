@@ -173,10 +173,10 @@ func (i *Initializer) InitFromApp(
 							if err != nil {
 								return err
 							}
-							prj.Metadata.EventhubsNameInProperty = eventHubsName
-						}
-						eventHubs.Names = []string{
-							prj.Metadata.EventhubsNameInProperty,
+							projects[index].Metadata.EventhubsNameInProperty = eventHubsName
+							eventHubs.Names = []string{
+								eventHubsName,
+							}
 						}
 					}
 					prj.AzureDeps[depIndex] = eventHubs

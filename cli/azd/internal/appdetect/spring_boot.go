@@ -556,6 +556,12 @@ func isSpringBootApplication(mavenProject *mavenProject) bool {
 		mavenProject.Parent.ArtifactId == "spring-boot-starter-parent" {
 		return true
 	}
+	for _, dep := range mavenProject.DependencyManagement.Dependencies {
+		if dep.GroupId == "org.springframework.boot" &&
+			dep.ArtifactId == "spring-boot-dependencies" {
+			return true
+		}
+	}
 	for _, dep := range mavenProject.Dependencies {
 		if dep.GroupId == "org.springframework.boot" &&
 			strings.HasPrefix(dep.ArtifactId, "spring-boot-starter") {
