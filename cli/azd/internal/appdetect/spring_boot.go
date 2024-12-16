@@ -395,7 +395,9 @@ func detectPropertyEventhubsCheckpointStoreContainer(azdProject *Project, spring
 			result[key] = value
 		}
 	}
-	azdProject.Metadata.EventhubsCheckpointStoreContainer = result
+	if len(result) != 0 {
+		azdProject.Metadata.BindingDestinationInProperty = result
+	}
 }
 
 func detectDependencySpringCloudAzureStarter(azdProject *Project, springBootProject *SpringBootProject) {
