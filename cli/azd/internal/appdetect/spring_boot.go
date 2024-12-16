@@ -165,7 +165,7 @@ func detectServiceBusAccordingToSpringCloudStreamBinderMavenDependency(
 	var targetArtifactId = "spring-cloud-azure-stream-binder-servicebus"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
 		bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
-		var destinations = distinctValues(bindingDestinations)
+		var destinations = DistinctValues(bindingDestinations)
 		newDep := AzureDepServiceBus{
 			Queues: destinations,
 			IsJms:  false,
@@ -191,7 +191,7 @@ func detectEventHubsAccordingToSpringCloudStreamBinderMavenDependency(
 	var targetArtifactId = "spring-cloud-azure-stream-binder-eventhubs"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
 		bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
-		var destinations = distinctValues(bindingDestinations)
+		var destinations = DistinctValues(bindingDestinations)
 		newDep := AzureDepEventHubs{
 			Names:    destinations,
 			UseKafka: false,
@@ -211,7 +211,7 @@ func detectEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(
 	var targetArtifactId = "spring-cloud-starter-stream-kafka"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
 		bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
-		var destinations = distinctValues(bindingDestinations)
+		var destinations = DistinctValues(bindingDestinations)
 		newDep := AzureDepEventHubs{
 			Names:             destinations,
 			UseKafka:          true,
@@ -264,6 +264,8 @@ func detectMetadata(azdProject *Project, springBootProject *SpringBootProject) {
 	detectPropertySpringDataMongodbDatabase(azdProject, springBootProject)
 	detectPropertySpringDataMongodbUri(azdProject, springBootProject)
 	detectPropertySpringDatasourceUrl(azdProject, springBootProject)
+	detectPropertySpringCloudStreamBindingDestination(azdProject, springBootProject)
+	detectPropertyEventhubCheckpointStoreContainer(azdProject, springBootProject)
 
 	detectDependencySpringCloudAzureStarter(azdProject, springBootProject)
 	detectDependencySpringCloudAzureStarterJdbcMysql(azdProject, springBootProject)
@@ -377,6 +379,23 @@ func IsValidDatabaseName(name string) bool {
 	}
 	re := regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 	return re.MatchString(name)
+}
+
+func detectPropertySpringCloudStreamBindingDestination(azdProject *Project, springBootProject *SpringBootProject) {
+	result := getBindingDestinationMap(springBootProject.applicationProperties)
+	if len(result) != 0 {
+		azdProject.Metadata.BindingDestinationInProperty = result
+	}
+}
+
+func detectPropertyEventhubCheckpointStoreContainer(azdProject *Project, springBootProject *SpringBootProject) {
+	result := make(map[string]string)
+	for key, value := range springBootProject.applicationProperties {
+		if strings.HasSuffix(key, "spring.cloud.azure.eventhubs.processor.checkpoint-store.container-name") {
+			result[key] = value
+		}
+	}
+	azdProject.Metadata.EventhubCheckpointStoreContainer = result
 }
 
 func detectDependencySpringCloudAzureStarter(azdProject *Project, springBootProject *SpringBootProject) {
@@ -509,7 +528,7 @@ func isSpringBootApplication(mavenProject *mavenProject) bool {
 	return false
 }
 
-func distinctValues(input map[string]string) []string {
+func DistinctValues(input map[string]string) []string {
 	valueSet := make(map[string]struct{})
 	for _, value := range input {
 		valueSet[value] = struct{}{}
