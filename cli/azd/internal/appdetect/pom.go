@@ -161,11 +161,11 @@ func unzip(src string, dest string) error {
 	defer reader.Close()
 
 	for _, f := range reader.File {
-		filePath := filepath.Join(dest, f.Name)
 		p, _ := filepath.Abs(f.Name)
 		if strings.Contains(p, "..") {
 			continue
 		}
+		filePath := filepath.Join(dest, f.Name)
 		if f.FileInfo().IsDir() {
 			err := os.MkdirAll(filePath, os.ModePerm)
 			if err != nil {
