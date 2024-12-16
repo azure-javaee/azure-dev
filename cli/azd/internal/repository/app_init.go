@@ -169,17 +169,17 @@ func (i *Initializer) InitFromApp(
 					prj.AzureDeps[depIndex] = eventHubs
 				}
 				if storageAccount, ok := dep.(appdetect.AzureDepStorageAccount); ok {
-					for key, containerName := range prj.Metadata.EventhubCheckpointStoreContainer {
+					for key, containerName := range prj.Metadata.EventhubsCheckpointStoreContainer {
 						if containerName == "" {
 							containerNameInput, err := promptStorageContainerName(i.console, ctx, key)
 							if err != nil {
 								return err
 							}
-							prj.Metadata.EventhubCheckpointStoreContainer[key] = containerNameInput
+							prj.Metadata.EventhubsCheckpointStoreContainer[key] = containerNameInput
 						}
 					}
 					storageAccount.ContainerNames =
-						appdetect.DistinctValues(prj.Metadata.EventhubCheckpointStoreContainer)
+						appdetect.DistinctValues(prj.Metadata.EventhubsCheckpointStoreContainer)
 					prj.AzureDeps[depIndex] = storageAccount
 				}
 			}
@@ -1113,12 +1113,12 @@ func promptBindingDestination(console input.Console, ctx context.Context, bindin
 	for {
 		destination, err := console.Prompt(ctx, input.ConsoleOptions{
 			Message: fmt.Sprintf("Input the value for spring.cloud.stream.bindings.%s.destination", bindingName),
-			Help:    "Hint: Azure Eventhub Name, please also ensure application properties is well configured.",
+			Help:    "Hint: Azure Eventhubs Name, please also ensure application properties is well configured.",
 		})
 		if err != nil {
 			return "", err
 		}
-		if IsValidEventhubName(destination) {
+		if IsValidEventhubsName(destination) {
 			return destination, nil
 		} else {
 			console.Message(ctx, "Invalid destination. Please choose another name.")
@@ -1126,7 +1126,7 @@ func promptBindingDestination(console input.Console, ctx context.Context, bindin
 	}
 }
 
-func IsValidEventhubName(name string) bool {
+func IsValidEventhubsName(name string) bool {
 	// up to 256 characters
 	if len(name) == 0 || len(name) > 256 {
 		return false

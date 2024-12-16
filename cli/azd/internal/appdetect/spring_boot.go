@@ -265,7 +265,7 @@ func detectMetadata(azdProject *Project, springBootProject *SpringBootProject) {
 	detectPropertySpringDataMongodbUri(azdProject, springBootProject)
 	detectPropertySpringDatasourceUrl(azdProject, springBootProject)
 	detectPropertySpringCloudStreamBindingDestination(azdProject, springBootProject)
-	detectPropertyEventhubCheckpointStoreContainer(azdProject, springBootProject)
+	detectPropertyEventhubsCheckpointStoreContainer(azdProject, springBootProject)
 
 	detectDependencySpringCloudAzureStarter(azdProject, springBootProject)
 	detectDependencySpringCloudAzureStarterJdbcMysql(azdProject, springBootProject)
@@ -388,14 +388,14 @@ func detectPropertySpringCloudStreamBindingDestination(azdProject *Project, spri
 	}
 }
 
-func detectPropertyEventhubCheckpointStoreContainer(azdProject *Project, springBootProject *SpringBootProject) {
+func detectPropertyEventhubsCheckpointStoreContainer(azdProject *Project, springBootProject *SpringBootProject) {
 	result := make(map[string]string)
 	for key, value := range springBootProject.applicationProperties {
 		if strings.HasSuffix(key, "spring.cloud.azure.eventhubs.processor.checkpoint-store.container-name") {
 			result[key] = value
 		}
 	}
-	azdProject.Metadata.EventhubCheckpointStoreContainer = result
+	azdProject.Metadata.EventhubsCheckpointStoreContainer = result
 }
 
 func detectDependencySpringCloudAzureStarter(azdProject *Project, springBootProject *SpringBootProject) {
