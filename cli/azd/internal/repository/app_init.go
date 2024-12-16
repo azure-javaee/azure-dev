@@ -1126,15 +1126,16 @@ func promptBindingDestination(console input.Console, ctx context.Context, bindin
 	}
 }
 
+// contain letters, numbers, periods (.), hyphens (-), and underscores (_)
+// must begin and end with a letter or number
+var eventHubsNameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$`)
+
 func IsValidEventhubsName(name string) bool {
 	// up to 256 characters
 	if len(name) == 0 || len(name) > 256 {
 		return false
 	}
-	// contain letters, numbers, periods (.), hyphens (-), and underscores (_)
-	// must begin and end with a letter or number
-	regex := regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$`)
-	return regex.MatchString(name)
+	return eventHubsNameRegex.MatchString(name)
 }
 
 func promptStorageContainerName(console input.Console, ctx context.Context, key string) (string, error) {
@@ -1154,12 +1155,13 @@ func promptStorageContainerName(console input.Console, ctx context.Context, key 
 	}
 }
 
+var storageContainerNameRegex = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
+
 func IsValidContainerName(name string) bool {
 	if len(name) < 3 || len(name) > 63 {
 		return false
 	}
-	regex := regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
-	return regex.MatchString(name)
+	return storageContainerNameRegex.MatchString(name)
 }
 
 func appendJavaEurekaServerEnv(svc *project.ServiceConfig, eurekaServerName string) error {
