@@ -156,7 +156,16 @@ type AzureDepEventHubs struct {
 	Names             []string
 	UseKafka          bool
 	SpringBootVersion string
+	DepFrom           EventHubsDependency
 }
+
+type EventHubsDependency string
+
+const (
+	SpringCloudAzureStreamEventHubsBinder EventHubsDependency = "SpringCloudAzureStreamEventHubsBinder"
+	SpringCloudAzureEventHubsStarter      EventHubsDependency = "SpringCloudAzureEventHubsStarter"
+	SpringCloudStarterStreamKafka         EventHubsDependency = "SpringCloudStarterStreamKafka"
+)
 
 func (a AzureDepEventHubs) ResourceDisplay() string {
 	return "Azure Event Hubs"
@@ -175,6 +184,7 @@ type Metadata struct {
 	DatabaseNameInPropertySpringDatasourceUrl               map[DatabaseDep]string
 	BindingDestinationInProperty                            map[string]string
 	EventhubsCheckpointStoreContainer                       map[string]string
+	EventhubsNameInProperty                                 string
 	ContainsDependencySpringCloudAzureStarter               bool
 	ContainsDependencySpringCloudAzureStarterJdbcPostgresql bool
 	ContainsDependencySpringCloudAzureStarterJdbcMysql      bool

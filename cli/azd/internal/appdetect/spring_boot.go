@@ -182,6 +182,7 @@ func detectServiceBusAccordingToSpringCloudStreamBinderMavenDependency(
 func detectEventHubs(azdProject *Project, springBootProject *SpringBootProject) {
 	// we need to figure out multiple projects are using the same event hub
 	detectEventHubsAccordingToSpringCloudStreamBinderMavenDependency(azdProject, springBootProject)
+	detectEventHubsAccordingToSpringCloudEventhubsStarterDependency(azdProject, springBootProject)
 	detectEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(azdProject, springBootProject)
 }
 
@@ -195,12 +196,34 @@ func detectEventHubsAccordingToSpringCloudStreamBinderMavenDependency(
 		newDep := AzureDepEventHubs{
 			Names:    destinations,
 			UseKafka: false,
+			DepFrom:  SpringCloudAzureStreamEventHubsBinder,
 		}
 		azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
 		logServiceAddedAccordingToMavenDependency(newDep.ResourceDisplay(), targetGroupId, targetArtifactId)
 		for bindingName, destination := range bindingDestinations {
 			log.Printf("  Detected Event Hub [%s] for binding [%s] by analyzing property file.",
 				destination, bindingName)
+		}
+	}
+}
+
+func detectEventHubsAccordingToSpringCloudEventhubsStarterDependency(
+	azdProject *Project, springBootProject *SpringBootProject) {
+	var targetGroupId = "com.azure.spring"
+	var targetArtifactId = "spring-cloud-azure-starter-eventhubs"
+	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
+		eventHubNames := []string{
+			springBootProject.applicationProperties["spring.cloud.azure.eventhubs.event-hub-name"],
+		}
+		newDep := AzureDepEventHubs{
+			Names:    eventHubNames,
+			UseKafka: false,
+			DepFrom:  SpringCloudAzureEventHubsStarter,
+		}
+		azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
+		logServiceAddedAccordingToMavenDependency(newDep.ResourceDisplay(), targetGroupId, targetArtifactId)
+		for _, name := range eventHubNames {
+			log.Printf("  Detected Event Hub [%s] by analyzing property file.", name)
 		}
 	}
 }
@@ -216,6 +239,7 @@ func detectEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(
 			Names:             destinations,
 			UseKafka:          true,
 			SpringBootVersion: springBootProject.springBootVersion,
+			DepFrom:           SpringCloudStarterStreamKafka,
 		}
 		azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
 		logServiceAddedAccordingToMavenDependency(newDep.ResourceDisplay(), targetGroupId, targetArtifactId)
@@ -266,6 +290,7 @@ func detectMetadata(azdProject *Project, springBootProject *SpringBootProject) {
 	detectPropertySpringDatasourceUrl(azdProject, springBootProject)
 	detectPropertySpringCloudStreamBindingDestination(azdProject, springBootProject)
 	detectPropertyEventhubsCheckpointStoreContainer(azdProject, springBootProject)
+	detectPropertySpringCloudAzureEventhubsName(azdProject, springBootProject)
 
 	detectDependencySpringCloudAzureStarter(azdProject, springBootProject)
 	detectDependencySpringCloudAzureStarterJdbcMysql(azdProject, springBootProject)
@@ -398,6 +423,16 @@ func detectPropertyEventhubsCheckpointStoreContainer(azdProject *Project, spring
 	if len(result) != 0 {
 		azdProject.Metadata.BindingDestinationInProperty = result
 	}
+}
+
+func detectPropertySpringCloudAzureEventhubsName(azdProject *Project, springBootProject *SpringBootProject) {
+	var targetPropertyName = "spring.cloud.azure.eventhubs.event-hub-name"
+	propertyValue, ok := springBootProject.applicationProperties[targetPropertyName]
+	if !ok {
+		log.Printf("%s property not exist in project. Path = %s", targetPropertyName, azdProject.Path)
+		return
+	}
+	azdProject.Metadata.EventhubsNameInProperty = propertyValue
 }
 
 func detectDependencySpringCloudAzureStarter(azdProject *Project, springBootProject *SpringBootProject) {

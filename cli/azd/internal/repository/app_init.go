@@ -141,31 +141,44 @@ func (i *Initializer) InitFromApp(
 		if prj.Language == appdetect.Java {
 			var hasKafkaDep bool
 			for depIndex, dep := range prj.AzureDeps {
-				if eventHubs, ok := dep.(appdetect.AzureDepEventHubs); ok && eventHubs.UseKafka {
-					hasKafkaDep = true
-					springBootVersion := eventHubs.SpringBootVersion
-
-					if springBootVersion == appdetect.UnknownSpringBootVersion {
-						var err error
-						springBootVersion, err = promptSpringBootVersion(i.console, ctx)
-						if err != nil {
-							return err
-						}
-						eventHubs.SpringBootVersion = springBootVersion
-						prj.AzureDeps[depIndex] = eventHubs
-					}
-				}
-				if eventHubs, ok := dep.(appdetect.AzureDepEventHubs); ok && !eventHubs.UseKafka {
-					for bindingName, destination := range prj.Metadata.BindingDestinationInProperty {
-						if destination == "" {
-							destinationInput, err := promptBindingDestination(i.console, ctx, bindingName)
+				if eventHubs, ok := dep.(appdetect.AzureDepEventHubs); ok {
+					// prompt spring boot version if kafka
+					if eventHubs.UseKafka {
+						hasKafkaDep = true
+						springBootVersion := eventHubs.SpringBootVersion
+						if springBootVersion == appdetect.UnknownSpringBootVersion {
+							springBootVersionInput, err := promptSpringBootVersion(i.console, ctx)
 							if err != nil {
 								return err
 							}
-							prj.Metadata.BindingDestinationInProperty[bindingName] = destinationInput
+							eventHubs.SpringBootVersion = springBootVersionInput
 						}
 					}
-					eventHubs.Names = appdetect.DistinctValues(prj.Metadata.BindingDestinationInProperty)
+					// prompt event hubs name
+					switch eventHubs.DepFrom {
+					case appdetect.SpringCloudAzureStreamEventHubsBinder, appdetect.SpringCloudStarterStreamKafka:
+						for bindingName, destination := range prj.Metadata.BindingDestinationInProperty {
+							if destination == "" {
+								destinationInput, err := promptBindingDestination(i.console, ctx, bindingName)
+								if err != nil {
+									return err
+								}
+								prj.Metadata.BindingDestinationInProperty[bindingName] = destinationInput
+							}
+						}
+						eventHubs.Names = appdetect.DistinctValues(prj.Metadata.BindingDestinationInProperty)
+					case appdetect.SpringCloudAzureEventHubsStarter:
+						if prj.Metadata.EventhubsNameInProperty == "" {
+							eventHubsName, err := promptEventHubsName(i.console, ctx)
+							if err != nil {
+								return err
+							}
+							prj.Metadata.EventhubsNameInProperty = eventHubsName
+						}
+						eventHubs.Names = []string{
+							prj.Metadata.EventhubsNameInProperty,
+						}
+					}
 					prj.AzureDeps[depIndex] = eventHubs
 				}
 				if storageAccount, ok := dep.(appdetect.AzureDepStorageAccount); ok {
@@ -1120,6 +1133,23 @@ func promptBindingDestination(console input.Console, ctx context.Context, bindin
 		}
 		if IsValidEventhubsName(destination) {
 			return destination, nil
+		} else {
+			console.Message(ctx, "Invalid destination. Please choose another name.")
+		}
+	}
+}
+
+func promptEventHubsName(console input.Console, ctx context.Context) (string, error) {
+	for {
+		eventHubsName, err := console.Prompt(ctx, input.ConsoleOptions{
+			Message: fmt.Sprintf("Input the value for spring.cloud.azure.eventhubs.event-hub-name"),
+			Help:    "Hint: Azure Eventhubs Name, please also ensure application properties is well configured.",
+		})
+		if err != nil {
+			return "", err
+		}
+		if IsValidEventhubsName(eventHubsName) {
+			return eventHubsName, nil
 		} else {
 			console.Message(ctx, "Invalid destination. Please choose another name.")
 		}
