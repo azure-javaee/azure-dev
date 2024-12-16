@@ -97,6 +97,7 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 	return nil, nil
 }
 
+// todo: rename to pom and move to pom.go.
 // mavenProject represents the top-level structure of a Maven POM file.
 type mavenProject struct {
 	XmlName              xml.Name             `xml:"project"`

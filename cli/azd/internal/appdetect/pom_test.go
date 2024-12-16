@@ -6,11 +6,11 @@ import (
 	"testing"
 )
 
-func TestGetDependenciesInEffectivePom(t *testing.T) {
+func TestMavenProjectInEffectivePom(t *testing.T) {
 	tests := []struct {
 		name       string
 		pomContent string
-		expected   []PomDependency
+		expected   []dependency
 	}{
 		{
 			name: "Test with two dependencies",
@@ -36,16 +36,16 @@ func TestGetDependenciesInEffectivePom(t *testing.T) {
 					</dependencies>
 				</project>
 				`,
-			expected: []PomDependency{
+			expected: []dependency{
 				{
-					GroupID:    "org.springframework",
-					ArtifactID: "spring-core",
+					GroupId:    "org.springframework",
+					ArtifactId: "spring-core",
 					Version:    "5.3.8",
 					Scope:      "compile",
 				},
 				{
-					GroupID:    "junit",
-					ArtifactID: "junit",
+					GroupId:    "junit",
+					ArtifactId: "junit",
 					Version:    "4.13.2",
 					Scope:      "test",
 				},
@@ -63,7 +63,7 @@ func TestGetDependenciesInEffectivePom(t *testing.T) {
 					</dependencies>
 				</project>
 				`,
-			expected: []PomDependency{},
+			expected: []dependency{},
 		},
 		{
 			name: "Test with one dependency which version is decided by dependencyManagement",
@@ -92,10 +92,10 @@ func TestGetDependenciesInEffectivePom(t *testing.T) {
 					</dependencyManagement>
 				</project>
 				`,
-			expected: []PomDependency{
+			expected: []dependency{
 				{
-					GroupID:    "org.slf4j",
-					ArtifactID: "slf4j-api",
+					GroupId:    "org.slf4j",
+					ArtifactId: "slf4j-api",
 					Version:    "2.0.4",
 					Scope:      "compile",
 				},
@@ -123,10 +123,10 @@ func TestGetDependenciesInEffectivePom(t *testing.T) {
 					</dependencies>
 				</project>
 				`,
-			expected: []PomDependency{
+			expected: []dependency{
 				{
-					GroupID:    "org.slf4j",
-					ArtifactID: "slf4j-api",
+					GroupId:    "org.slf4j",
+					ArtifactId: "slf4j-api",
 					Version:    "2.0.4",
 					Scope:      "compile",
 				},
@@ -148,16 +148,16 @@ func TestGetDependenciesInEffectivePom(t *testing.T) {
 				t.Fatalf("Failed to write temp POM file: %v", err)
 			}
 
-			dependencies, err := GetDependenciesInEffectivePom(pomPath)
+			project, err := getMavenProjectOfEffectivePom(pomPath)
 			if err != nil {
-				t.Fatalf("GetDependenciesInEffectivePom failed: %v", err)
+				t.Fatalf("getMavenProjectOfEffectivePom failed: %v", err)
 			}
 
-			if len(dependencies) != len(tt.expected) {
-				t.Fatalf("Expected %d dependencies, got %d", len(tt.expected), len(dependencies))
+			if len(project.Dependencies) != len(tt.expected) {
+				t.Fatalf("Expected %d dependencies, got %d", len(tt.expected), len(project.Dependencies))
 			}
 
-			for i, dep := range dependencies {
+			for i, dep := range project.Dependencies {
 				if dep != tt.expected[i] {
 					t.Errorf("Expected dependency %v, got %v", tt.expected[i], dep)
 				}

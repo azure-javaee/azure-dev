@@ -3,6 +3,7 @@ package appdetect
 import (
 	"archive/zip"
 	"bufio"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"log"
@@ -13,28 +14,28 @@ import (
 	"strings"
 )
 
-func GetDependenciesInEffectivePom(pomPath string) ([]PomDependency, error) {
+func getMavenProjectOfEffectivePom(pomPath string) (mavenProject, error) {
 	if !commandExistsInPath("java") {
 		log.Println("java not exist, skip get dependencies by 'mvn help:effective-pom'.")
 	}
 	mvn, err := getMvnCommand(pomPath)
 	if err != nil {
-		return nil, err
+		return mavenProject{}, err
 	}
 	cmd := exec.Command(mvn, "help:effective-pom", "-f", pomPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("failed run mvn help:effective-pom: %v", err)
+		return mavenProject{}, err
 	}
-	dependencies := getDependenciesByHelpEffectivePomGoalConsoleOutput(string(output))
-	return dependencies, nil
-}
-
-type PomDependency struct {
-	GroupID    string
-	ArtifactID string
-	Version    string
-	Scope      string
+	effectivePom, err := getEffectivePomFromConsoleOutput(string(output))
+	if err != nil {
+		return mavenProject{}, err
+	}
+	var project mavenProject
+	if err := xml.Unmarshal([]byte(effectivePom), &project); err != nil {
+		return mavenProject{}, fmt.Errorf("parsing xml: %w", err)
+	}
+	return project, nil
 }
 
 func commandExistsInPath(command string) bool {
@@ -189,59 +190,25 @@ func unzip(src string, dest string) error {
 	return nil
 }
 
-func getDependenciesByHelpEffectivePomGoalConsoleOutput(output string) []PomDependency {
-	var dependencies []PomDependency
-	scanner := bufio.NewScanner(strings.NewReader(output))
-	var dep PomDependency
-	inDependencyManagement := false
-	inDependencies := false
-	inDependency := false
+func getEffectivePomFromConsoleOutput(consoleOutput string) (string, error) {
+	var effectivePom strings.Builder
+	scanner := bufio.NewScanner(strings.NewReader(consoleOutput))
+	inProject := false
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.Contains(line, "<dependencyManagement>") {
-			inDependencyManagement = true
-		} else if strings.Contains(line, "</dependencyManagement>") {
-			inDependencyManagement = false
-		}
-		if inDependencyManagement {
-			continue
-		}
-		if strings.Contains(line, "<dependencies>") {
-			inDependencies = true
-		} else if strings.Contains(line, "</dependencies>") {
-			inDependencies = false
+		if strings.HasPrefix(strings.TrimSpace(line), "<project") {
+			inProject = true
+		} else if strings.HasPrefix(strings.TrimSpace(line), "</project>") {
+			effectivePom.WriteString(line)
+			inProject = false
 			break
 		}
-		if !inDependencies {
-			continue
-		}
-		if strings.Contains(line, "<dependency>") {
-			inDependency = true
-			dep = PomDependency{}
-		} else if strings.Contains(line, "</dependency>") {
-			inDependency = false
-			dependencies = append(dependencies, dep)
-		}
-		if inDependency {
-			if strings.Contains(line, "<groupId>") {
-				dep.GroupID = extractValue(line)
-			} else if strings.Contains(line, "<artifactId>") {
-				dep.ArtifactID = extractValue(line)
-			} else if strings.Contains(line, "<version>") {
-				dep.Version = extractValue(line)
-			} else if strings.Contains(line, "<scope>") {
-				dep.Scope = extractValue(line)
-			}
+		if inProject {
+			effectivePom.WriteString(line)
 		}
 	}
-	return dependencies
-}
-
-func extractValue(line string) string {
-	start := strings.Index(line, ">") + 1
-	end := strings.Index(line, "</")
-	if start > 0 && end > start {
-		return line[start:end]
+	if err := scanner.Err(); err != nil {
+		return "", fmt.Errorf("failed to scan console output. %v", err)
 	}
-	return ""
+	return effectivePom.String(), nil
 }
