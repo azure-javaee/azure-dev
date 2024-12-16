@@ -143,7 +143,7 @@ func TestMavenProjectInEffectivePom(t *testing.T) {
 			defer os.RemoveAll(tempDir)
 
 			pomPath := filepath.Join(tempDir, "pom.xml")
-			err = os.WriteFile(pomPath, []byte(tt.pomContent), 0644)
+			err = os.WriteFile(pomPath, []byte(tt.pomContent), 0600)
 			if err != nil {
 				t.Fatalf("Failed to write temp POM file: %v", err)
 			}
@@ -191,13 +191,13 @@ func TestGetMvnwCommandInProject(t *testing.T) {
 			if err != nil {
 				t.Errorf("failed to mkdir")
 			}
-			err = os.WriteFile(pomPath, []byte("<project></project>"), os.ModePerm)
+			err = os.WriteFile(pomPath, []byte("<project></project>"), 0600)
 			if err != nil {
 				t.Errorf("failed to write file")
 			}
 			if c.expected != "" {
 				expectedPath := filepath.Join(tempDir, c.expected)
-				err = os.WriteFile(expectedPath, []byte("#!/bin/sh"), os.ModePerm)
+				err = os.WriteFile(expectedPath, []byte("#!/bin/sh"), 0600)
 				if err != nil {
 					t.Errorf("failed to write file")
 				}

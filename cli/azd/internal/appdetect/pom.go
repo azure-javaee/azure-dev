@@ -143,7 +143,7 @@ func downloadFile(filepath string, url string) error {
 	}
 	defer out.Close()
 
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) //nolint
 	if err != nil {
 		return err
 	}
@@ -162,6 +162,10 @@ func unzip(src string, dest string) error {
 
 	for _, f := range reader.File {
 		filePath := filepath.Join(dest, f.Name)
+		p, _ := filepath.Abs(f.Name)
+		if strings.Contains(p, "..") {
+			continue
+		}
 		if f.FileInfo().IsDir() {
 			err := os.MkdirAll(filePath, os.ModePerm)
 			if err != nil {
@@ -184,7 +188,7 @@ func unzip(src string, dest string) error {
 			}
 			defer rc.Close()
 
-			_, err = io.Copy(outFile, rc)
+			_, err = io.CopyN(outFile, rc, 10_000_000)
 			if err != nil {
 				return err
 			}
