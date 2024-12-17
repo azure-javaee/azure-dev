@@ -70,22 +70,22 @@ func toPom(filePath string) (*pom, error) {
 		return nil, err
 	}
 
-	var initialProject pom
-	if err := xml.Unmarshal(bytes, &initialProject); err != nil {
+	var unmarshalledPom pom
+	if err := xml.Unmarshal(bytes, &unmarshalledPom); err != nil {
 		return nil, fmt.Errorf("parsing xml: %w", err)
 	}
 
 	// replace all placeholders with properties
-	str := replaceAllPlaceholders(initialProject, string(bytes))
+	str := replaceAllPlaceholders(unmarshalledPom, string(bytes))
 
-	var project pom
-	if err := xml.Unmarshal([]byte(str), &project); err != nil {
+	var resultPom pom
+	if err := xml.Unmarshal([]byte(str), &resultPom); err != nil {
 		return nil, fmt.Errorf("parsing xml: %w", err)
 	}
 
-	project.path = filepath.Dir(filePath)
+	resultPom.path = filepath.Dir(filePath)
 
-	return &project, nil
+	return &resultPom, nil
 }
 
 func replaceAllPlaceholders(pom pom, input string) string {
