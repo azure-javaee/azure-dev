@@ -247,11 +247,11 @@ func detectStorageAccountAccordingToSpringCloudStreamBinderMavenDependencyAndPro
 		if containsInBindingName != "" {
 			// get distinct container names
 			var containerNames []string
-			seen := make(map[string]string)
+			seen := make(map[string]struct{})
 			for key, value := range springBootProject.applicationProperties {
 				if strings.HasSuffix(key, targetPropertyName) {
 					if _, exists := seen[key]; !exists {
-						seen[key] = value
+						seen[key] = struct{}{}
 						containerNames = append(containerNames, value)
 					}
 				}
