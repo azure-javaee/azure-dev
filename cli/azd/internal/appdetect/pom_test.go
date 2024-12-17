@@ -140,7 +140,12 @@ func TestMavenProjectInEffectivePom(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create temp directory: %v", err)
 			}
-			defer os.RemoveAll(tempDir)
+			defer func(path string) {
+				err := os.RemoveAll(path)
+				if err != nil {
+					t.Fatalf("Failed to remove all in directory: %v", err)
+				}
+			}(tempDir)
 
 			pomPath := filepath.Join(tempDir, "pom.xml")
 			err = os.WriteFile(pomPath, []byte(tt.pomContent), 0600)

@@ -101,13 +101,23 @@ func downloadMaven(filepath string) error {
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer func(out *os.File) {
+		err := out.Close()
+		if err != nil {
+			log.Println("failed to close file. %w", err)
+		}
+	}(out)
 
 	resp, err := http.Get(mavenURL)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Println("failed to close ReadCloser. %w", err)
+		}
+	}(resp.Body)
 
 	_, err = io.Copy(out, resp.Body)
 	return err
@@ -118,7 +128,12 @@ func unzip(src string, destinationFolder string) error {
 	if err != nil {
 		return err
 	}
-	defer reader.Close()
+	defer func(reader *zip.ReadCloser) {
+		err := reader.Close()
+		if err != nil {
+			log.Println("failed to close ReadCloser. %w", err)
+		}
+	}(reader)
 
 	for _, file := range reader.File {
 		destinationPath, err := getValidDestPath(destinationFolder, file.Name)
@@ -139,13 +154,23 @@ func unzip(src string, destinationFolder string) error {
 			if err != nil {
 				return err
 			}
-			defer outFile.Close()
+			defer func(outFile *os.File) {
+				err := outFile.Close()
+				if err != nil {
+					log.Println("failed to close file. %w", err)
+				}
+			}(outFile)
 
 			rc, err := file.Open()
 			if err != nil {
 				return err
 			}
-			defer rc.Close()
+			defer func(rc io.ReadCloser) {
+				err := rc.Close()
+				if err != nil {
+					log.Println("failed to close file. %w", err)
+				}
+			}(rc)
 
 			for {
 				_, err = io.CopyN(outFile, rc, 1_000_000)
