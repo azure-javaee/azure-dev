@@ -192,11 +192,9 @@ func detectEventHubsAccordingToSpringCloudStreamBinderMavenDependency(
 	var targetArtifactId = "spring-cloud-azure-stream-binder-eventhubs"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
 		bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
-		var destinations = DistinctValues(bindingDestinations)
 		newDep := AzureDepEventHubs{
-			Names:    destinations,
-			UseKafka: false,
-			DepFrom:  SpringCloudAzureStreamEventHubsBinder,
+			EventHubsNamePropertyMap: bindingDestinations,
+			UseKafka:                 false,
 		}
 		azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
 		logServiceAddedAccordingToMavenDependency(newDep.ResourceDisplay(), targetGroupId, targetArtifactId)
@@ -211,19 +209,19 @@ func detectEventHubsAccordingToSpringCloudEventhubsStarterDependency(
 	azdProject *Project, springBootProject *SpringBootProject) {
 	var targetGroupId = "com.azure.spring"
 	var targetArtifactId = "spring-cloud-azure-starter-eventhubs"
+	var targetPropertyName = "spring.cloud.azure.eventhubs.event-hub-name"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
-		eventHubNames := []string{
-			springBootProject.applicationProperties["spring.cloud.azure.eventhubs.event-hub-name"],
+		eventHubsNamePropertyMap := map[string]string{
+			targetPropertyName: springBootProject.applicationProperties[targetPropertyName],
 		}
 		newDep := AzureDepEventHubs{
-			Names:    eventHubNames,
-			UseKafka: false,
-			DepFrom:  SpringCloudAzureEventHubsStarter,
+			EventHubsNamePropertyMap: eventHubsNamePropertyMap,
+			UseKafka:                 false,
 		}
 		azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
 		logServiceAddedAccordingToMavenDependency(newDep.ResourceDisplay(), targetGroupId, targetArtifactId)
-		for _, name := range eventHubNames {
-			log.Printf("  Detected Event Hub [%s] by analyzing property file.", name)
+		for property, name := range eventHubsNamePropertyMap {
+			log.Printf("  Detected Event Hub [%s] for [%s] by analyzing property file.", property, name)
 		}
 	}
 }
@@ -234,12 +232,10 @@ func detectEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(
 	var targetArtifactId = "spring-cloud-starter-stream-kafka"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
 		bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
-		var destinations = DistinctValues(bindingDestinations)
 		newDep := AzureDepEventHubs{
-			Names:             destinations,
-			UseKafka:          true,
-			SpringBootVersion: springBootProject.springBootVersion,
-			DepFrom:           SpringCloudStarterStreamKafka,
+			EventHubsNamePropertyMap: bindingDestinations,
+			UseKafka:                 true,
+			SpringBootVersion:        springBootProject.springBootVersion,
 		}
 		azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
 		logServiceAddedAccordingToMavenDependency(newDep.ResourceDisplay(), targetGroupId, targetArtifactId)
@@ -269,26 +265,21 @@ func detectStorageAccountAccordingToSpringCloudStreamBinderMavenDependencyAndPro
 			}
 		}
 		if containsInBindingName != "" {
-			// get distinct container names
-			var containerNames []string
-			seen := make(map[string]struct{})
+			containerNamePropertyMap := make(map[string]string)
 			for key, value := range springBootProject.applicationProperties {
 				if strings.HasSuffix(key, targetPropertyName) {
-					if _, exists := seen[key]; !exists {
-						seen[key] = struct{}{}
-						containerNames = append(containerNames, value)
-					}
+					containerNamePropertyMap[key] = value
 				}
 			}
 			newDep := AzureDepStorageAccount{
-				ContainerNames: containerNames,
+				ContainerNamePropertyMap: containerNamePropertyMap,
 			}
 			azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
 			logServiceAddedAccordingToMavenDependencyAndExtraCondition(newDep.ResourceDisplay(), targetGroupId,
 				targetArtifactId, "binding name ["+containsInBindingName+"] contains '-in-'")
-			for _, containerName := range containerNames {
-				log.Printf("  Detected Storage Account container name: [%s] by analyzing property file.",
-					containerName)
+			for property, containerName := range containerNamePropertyMap {
+				log.Printf("  Detected Storage container name: [%s] for [%s] by analyzing property file.",
+					containerName, property)
 			}
 		}
 	}
@@ -300,9 +291,6 @@ func detectMetadata(azdProject *Project, springBootProject *SpringBootProject) {
 	detectPropertySpringDataMongodbDatabase(azdProject, springBootProject)
 	detectPropertySpringDataMongodbUri(azdProject, springBootProject)
 	detectPropertySpringDatasourceUrl(azdProject, springBootProject)
-	detectPropertySpringCloudStreamBindingDestination(azdProject, springBootProject)
-	detectPropertyEventhubsCheckpointStoreContainer(azdProject, springBootProject)
-	detectPropertySpringCloudAzureEventhubsName(azdProject, springBootProject)
 
 	detectDependencySpringCloudAzureStarter(azdProject, springBootProject)
 	detectDependencySpringCloudAzureStarterJdbcMysql(azdProject, springBootProject)
@@ -416,36 +404,6 @@ func IsValidDatabaseName(name string) bool {
 	}
 	re := regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 	return re.MatchString(name)
-}
-
-func detectPropertySpringCloudStreamBindingDestination(azdProject *Project, springBootProject *SpringBootProject) {
-	result := getBindingDestinationMap(springBootProject.applicationProperties)
-	for key, value := range result {
-		newKey := fmt.Sprintf("spring.cloud.stream.bindings.%s.destination", key)
-		azdProject.Metadata.BindingDestinationInProperty[newKey] = value
-	}
-}
-
-func detectPropertyEventhubsCheckpointStoreContainer(azdProject *Project, springBootProject *SpringBootProject) {
-	result := make(map[string]string)
-	for key, value := range springBootProject.applicationProperties {
-		if strings.HasSuffix(key, "spring.cloud.azure.eventhubs.processor.checkpoint-store.container-name") {
-			result[key] = value
-		}
-	}
-	if len(result) != 0 {
-		azdProject.Metadata.EventhubsCheckpointStoreContainer = result
-	}
-}
-
-func detectPropertySpringCloudAzureEventhubsName(azdProject *Project, springBootProject *SpringBootProject) {
-	var targetPropertyName = "spring.cloud.azure.eventhubs.event-hub-name"
-	propertyValue, ok := springBootProject.applicationProperties[targetPropertyName]
-	if !ok {
-		log.Printf("%s property not exist in project. Path = %s", targetPropertyName, azdProject.Path)
-		return
-	}
-	azdProject.Metadata.EventhubsNameInProperty[targetPropertyName] = propertyValue
 }
 
 func detectDependencySpringCloudAzureStarter(azdProject *Project, springBootProject *SpringBootProject) {
@@ -606,10 +564,8 @@ func getBindingDestinationMap(properties map[string]string) map[string]string {
 	for key, value := range properties {
 		// Check if the key matches the pattern `spring.cloud.stream.bindings.<binding-name>.destination`
 		if strings.HasPrefix(key, "spring.cloud.stream.bindings.") && strings.HasSuffix(key, ".destination") {
-			// Extract the binding name
-			bindingName := key[len("spring.cloud.stream.bindings.") : len(key)-len(".destination")]
 			// Store the binding name and destination value
-			result[bindingName] = fmt.Sprintf("%v", value)
+			result[key] = fmt.Sprintf("%v", value)
 		}
 	}
 
