@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -157,20 +156,14 @@ func (i *Initializer) InitFromApp(
 				if eventHubs, ok := dep.(appdetect.AzureDepEventHubs); ok && !eventHubs.UseKafka {
 					for key, destination := range prj.Metadata.BindingDestinationInProperty {
 						if destination == "" {
-							err := promptMissingPropertyAndExit(i.console, ctx, key)
-							if err != nil {
-								return err
-							}
+							promptMissingPropertyAndExit(i.console, ctx, key)
 						}
 					}
 				}
 				if _, ok := dep.(appdetect.AzureDepStorageAccount); ok {
 					for key, containerName := range prj.Metadata.EventhubsCheckpointStoreContainer {
 						if containerName == "" {
-							err := promptMissingPropertyAndExit(i.console, ctx, key)
-							if err != nil {
-								return err
-							}
+							promptMissingPropertyAndExit(i.console, ctx, key)
 						}
 					}
 				}
@@ -1060,9 +1053,10 @@ func processSpringCloudAzureDepByPrompt(console input.Console, ctx context.Conte
 
 	switch continueOption {
 	case 0:
-		return errors.New("you have to manually add dependency com.azure.spring:spring-cloud-azure-starter. " +
-			"And use right version according to this page: " +
+		console.Message(ctx, "you have to manually add dependency com.azure.spring:spring-cloud-azure-starter. "+
+			"And use right version according to this page: "+
 			"https://github.com/Azure/azure-sdk-for-java/wiki/Spring-Versions-Mapping")
+		os.Exit(0)
 	case 1:
 		return nil
 	case 2:
@@ -1101,10 +1095,10 @@ func promptSpringBootVersion(console input.Console, ctx context.Context) (string
 	}
 }
 
-func promptMissingPropertyAndExit(console input.Console, ctx context.Context, key string) error {
-	console.Message(ctx, fmt.Sprintf("No value was provided for %s. Please update the 'application.properties' "+
-		"file with a valid value.", key))
-	return fmt.Errorf("missing configuration: %s", key)
+func promptMissingPropertyAndExit(console input.Console, ctx context.Context, key string) {
+	console.Message(ctx, fmt.Sprintf("No value was provided for %s. Please update the configuration file "+
+		"(like application.properties or application.yaml) with a valid value.", key))
+	os.Exit(0)
 }
 
 func appendJavaEurekaServerEnv(svc *project.ServiceConfig, eurekaServerName string) error {
