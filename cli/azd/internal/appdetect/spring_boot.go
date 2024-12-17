@@ -521,7 +521,9 @@ func detectSpringBootVersionFromProject(project *mavenProject) string {
 func isSpringBootApplication(mavenProject *mavenProject) bool {
 	// how can we tell it's a Spring Boot project?
 	// 1. It has a parent with a groupId of org.springframework.boot and an artifactId of spring-boot-starter-parent
-	// 2. It has a dependency with a groupId of org.springframework.boot and an artifactId that starts with
+	// 2. It has a dependency management with a groupId of org.springframework.boot and an artifactId of
+	// spring-boot-dependencies
+	// 3. It has a dependency with a groupId of org.springframework.boot and an artifactId that starts with
 	// spring-boot-starter
 	if mavenProject.Parent.GroupId == "org.springframework.boot" &&
 		mavenProject.Parent.ArtifactId == "spring-boot-starter-parent" {

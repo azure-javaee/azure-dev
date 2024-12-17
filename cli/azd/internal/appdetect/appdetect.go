@@ -158,14 +158,6 @@ type AzureDepEventHubs struct {
 	SpringBootVersion        string
 }
 
-type EventHubsDependency string
-
-const (
-	SpringCloudAzureStreamEventHubsBinder EventHubsDependency = "SpringCloudAzureStreamEventHubsBinder"
-	SpringCloudAzureEventHubsStarter      EventHubsDependency = "SpringCloudAzureEventHubsStarter"
-	SpringCloudStarterStreamKafka         EventHubsDependency = "SpringCloudStarterStreamKafka"
-)
-
 func (a AzureDepEventHubs) ResourceDisplay() string {
 	return "Azure Event Hubs"
 }
