@@ -8,26 +8,26 @@ import (
 	"strings"
 )
 
-func getMavenProjectOfEffectivePom(pomPath string) (mavenProject, error) {
+func toEffectivePom(pomPath string) (pom, error) {
 	if !commandExistsInPath("java") {
-		return mavenProject{}, fmt.Errorf("can not get effective pom because java command not exist")
+		return pom{}, fmt.Errorf("can not get effective pom because java command not exist")
 	}
 	mvn, err := getMvnCommand(pomPath)
 	if err != nil {
-		return mavenProject{}, err
+		return pom{}, err
 	}
 	cmd := exec.Command(mvn, "help:effective-pom", "-f", pomPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return mavenProject{}, err
+		return pom{}, err
 	}
 	effectivePom, err := getEffectivePomFromConsoleOutput(string(output))
 	if err != nil {
-		return mavenProject{}, err
+		return pom{}, err
 	}
-	var project mavenProject
+	var project pom
 	if err := xml.Unmarshal([]byte(effectivePom), &project); err != nil {
-		return mavenProject{}, fmt.Errorf("parsing xml: %w", err)
+		return pom{}, fmt.Errorf("parsing xml: %w", err)
 	}
 	return project, nil
 }

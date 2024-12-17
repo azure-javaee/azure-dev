@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestMavenProjectInEffectivePom(t *testing.T) {
+func TestToEffectivePom(t *testing.T) {
 	tests := []struct {
 		name       string
 		pomContent string
@@ -153,9 +153,9 @@ func TestMavenProjectInEffectivePom(t *testing.T) {
 				t.Fatalf("Failed to write temp POM file: %v", err)
 			}
 
-			project, err := getMavenProjectOfEffectivePom(pomPath)
+			project, err := toEffectivePom(pomPath)
 			if err != nil {
-				t.Fatalf("getMavenProjectOfEffectivePom failed: %v", err)
+				t.Fatalf("toEffectivePom failed: %v", err)
 			}
 
 			if len(project.Dependencies) != len(tt.expected) {

@@ -16,7 +16,7 @@ import (
 )
 
 type javaDetector struct {
-	rootProjects      []mavenProject
+	rootProjects      []pom
 	mavenWrapperPaths []mavenWrapper
 }
 
@@ -43,7 +43,7 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 		if strings.ToLower(entry.Name()) == "pom.xml" {
 			tracing.SetUsageAttributes(fields.AppInitJavaDetect.String("start"))
 			pomFile := filepath.Join(path, entry.Name())
-			project, err := readMavenProject(pomFile)
+			project, err := toPom(pomFile)
 			if err != nil {
 				log.Printf("Please edit azure.yaml manually to satisfy your requirement. azd can not help you "+
 					"to that by detect your java project because error happened when reading pom.xml: %s. ", err)
@@ -61,7 +61,7 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 				return nil, nil
 			}
 
-			var currentRoot *mavenProject
+			var currentRoot *pom
 			var currentWrapper mavenWrapper
 			for i, rootProject := range jd.rootProjects {
 				// we can say that the project is in the root project if the path is under the project
@@ -98,8 +98,8 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 }
 
 // todo: rename to pom and move to pom.go.
-// mavenProject represents the top-level structure of a Maven POM file.
-type mavenProject struct {
+// pom represents the top-level structure of a Maven POM file.
+type pom struct {
 	XmlName              xml.Name             `xml:"project"`
 	Parent               parent               `xml:"parent"`
 	Modules              []string             `xml:"modules>module"` // Capture the modules
@@ -151,13 +151,13 @@ type plugin struct {
 	Version    string `xml:"version"`
 }
 
-func readMavenProject(filePath string) (*mavenProject, error) {
+func toPom(filePath string) (*pom, error) {
 	bytes, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
 
-	var initialProject mavenProject
+	var initialProject pom
 	if err := xml.Unmarshal(bytes, &initialProject); err != nil {
 		return nil, fmt.Errorf("parsing xml: %w", err)
 	}
@@ -165,7 +165,7 @@ func readMavenProject(filePath string) (*mavenProject, error) {
 	// replace all placeholders with properties
 	str := replaceAllPlaceholders(initialProject, string(bytes))
 
-	var project mavenProject
+	var project pom
 	if err := xml.Unmarshal([]byte(str), &project); err != nil {
 		return nil, fmt.Errorf("parsing xml: %w", err)
 	}
@@ -175,7 +175,7 @@ func readMavenProject(filePath string) (*mavenProject, error) {
 	return &project, nil
 }
 
-func replaceAllPlaceholders(project mavenProject, input string) string {
+func replaceAllPlaceholders(project pom, input string) string {
 	propsMap := parseProperties(project.Properties)
 
 	re := regexp.MustCompile(`\$\{([A-Za-z0-9-_.]+)}`)
@@ -197,8 +197,8 @@ func parseProperties(properties Properties) map[string]string {
 	return result
 }
 
-func detectDependencies(currentRoot *mavenProject, mavenProject *mavenProject, project *Project) (*Project, error) {
-	detectAzureDependenciesByAnalyzingSpringBootProject(currentRoot, mavenProject, project)
+func detectDependencies(rootPom *pom, pom *pom, project *Project) (*Project, error) {
+	detectAzureDependenciesByAnalyzingSpringBootProject(rootPom, pom, project)
 	return project, nil
 }
 
