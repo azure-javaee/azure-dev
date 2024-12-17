@@ -91,19 +91,19 @@ var databaseDependencyRules = []DatabaseDependencyRule{
 }
 
 // todo: remove parentPom, when passed in the pom is the effective pom.
-func detectAzureDependenciesByAnalyzingSpringBootProject(parentPom *pom, pom *pom, azdProject *Project) {
-	effectivePom, err := toEffectivePom(filepath.Join(pom.path, "pom.xml"))
+func detectAzureDependenciesByAnalyzingSpringBootProject(parentPom *pom, currentPom *pom, azdProject *Project) {
+	effectivePom, err := toEffectivePom(filepath.Join(currentPom.path, "pom.xml"))
 	if err == nil {
-		pom = &effectivePom
+		currentPom = &effectivePom
 	}
-	if !isSpringBootApplication(pom) {
-		log.Printf("Skip analyzing spring boot project. path = %s.", pom.path)
+	if !isSpringBootApplication(currentPom) {
+		log.Printf("Skip analyzing spring boot project. path = %s.", currentPom.path)
 		return
 	}
 	var springBootProject = SpringBootProject{
-		springBootVersion:     detectSpringBootVersion(parentPom, pom),
+		springBootVersion:     detectSpringBootVersion(parentPom, currentPom),
 		applicationProperties: readProperties(azdProject.Path),
-		pom:                   *pom,
+		pom:                   *currentPom,
 	}
 	detectDatabases(azdProject, &springBootProject)
 	detectServiceBus(azdProject, &springBootProject)
