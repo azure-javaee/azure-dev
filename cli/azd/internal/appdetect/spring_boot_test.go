@@ -9,8 +9,8 @@ import (
 func TestDetectSpringBootVersion(t *testing.T) {
 	tests := []struct {
 		name            string
-		currentRoot     *pom
-		project         *pom
+		parentPom       *pom
+		currentPom      *pom
 		expectedVersion string
 	}{
 		{
@@ -166,7 +166,7 @@ func TestDetectSpringBootVersion(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			version := detectSpringBootVersion(tt.currentRoot, tt.project)
+			version := detectSpringBootVersion(tt.parentPom, tt.currentPom)
 			assert.Equal(t, tt.expectedVersion, version)
 		})
 	}

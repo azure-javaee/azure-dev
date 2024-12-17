@@ -494,10 +494,10 @@ func logMetadataUpdated(info string) {
 	log.Printf("Metadata updated. %s.", info)
 }
 
-func detectSpringBootVersion(currentRoot *pom, parentPom *pom) string {
-	// currentRoot prioritize than parentPom
-	if currentRoot != nil {
-		if version := detectSpringBootVersionFromProject(currentRoot); version != UnknownSpringBootVersion {
+func detectSpringBootVersion(parentPom *pom, currentPom *pom) string {
+	// currentPom prioritize than parentPom
+	if currentPom != nil {
+		if version := detectSpringBootVersionFromProject(currentPom); version != UnknownSpringBootVersion {
 			return version
 		}
 	}
