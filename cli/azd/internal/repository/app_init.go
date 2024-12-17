@@ -7,7 +7,6 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -156,31 +155,24 @@ func (i *Initializer) InitFromApp(
 					}
 				}
 				if eventHubs, ok := dep.(appdetect.AzureDepEventHubs); ok && !eventHubs.UseKafka {
-					for bindingName, destination := range prj.Metadata.BindingDestinationInProperty {
+					for key, destination := range prj.Metadata.BindingDestinationInProperty {
 						if destination == "" {
-							destinationInput, err := promptBindingDestination(i.console, ctx, bindingName)
+							err := promptMissingPropertyAndExit(i.console, ctx, key)
 							if err != nil {
 								return err
 							}
-							prj.Metadata.BindingDestinationInProperty[bindingName] = destinationInput
 						}
 					}
-					eventHubs.Names = appdetect.DistinctValues(prj.Metadata.BindingDestinationInProperty)
-					prj.AzureDeps[depIndex] = eventHubs
 				}
-				if storageAccount, ok := dep.(appdetect.AzureDepStorageAccount); ok {
+				if _, ok := dep.(appdetect.AzureDepStorageAccount); ok {
 					for key, containerName := range prj.Metadata.EventhubsCheckpointStoreContainer {
 						if containerName == "" {
-							containerNameInput, err := promptStorageContainerName(i.console, ctx, key)
+							err := promptMissingPropertyAndExit(i.console, ctx, key)
 							if err != nil {
 								return err
 							}
-							prj.Metadata.EventhubsCheckpointStoreContainer[key] = containerNameInput
 						}
 					}
-					storageAccount.ContainerNames =
-						appdetect.DistinctValues(prj.Metadata.EventhubsCheckpointStoreContainer)
-					prj.AzureDeps[depIndex] = storageAccount
 				}
 			}
 
@@ -1109,61 +1101,10 @@ func promptSpringBootVersion(console input.Console, ctx context.Context) (string
 	}
 }
 
-func promptBindingDestination(console input.Console, ctx context.Context, bindingName string) (string, error) {
-	for {
-		destination, err := console.Prompt(ctx, input.ConsoleOptions{
-			Message: fmt.Sprintf("Input the value for spring.cloud.stream.bindings.%s.destination", bindingName),
-			Help: fmt.Sprintf("Hint: Azure Eventhubs Name, please also ensure that the value of property "+
-				"spring.cloud.stream.bindings.%s.destination is configured as your input.", bindingName),
-		})
-		if err != nil {
-			return "", err
-		}
-		if IsValidEventhubsName(destination) {
-			return destination, nil
-		} else {
-			console.Message(ctx, "Invalid destination. Please choose another name.")
-		}
-	}
-}
-
-// contain letters, numbers, periods (.), hyphens (-), and underscores (_)
-// must begin and end with a letter or number
-var eventHubsNameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$`)
-
-func IsValidEventhubsName(name string) bool {
-	// up to 256 characters
-	if len(name) == 0 || len(name) > 256 {
-		return false
-	}
-	return eventHubsNameRegex.MatchString(name)
-}
-
-func promptStorageContainerName(console input.Console, ctx context.Context, key string) (string, error) {
-	for {
-		containerName, err := console.Prompt(ctx, input.ConsoleOptions{
-			Message: fmt.Sprintf("Input the value for %s", key),
-			Help: fmt.Sprintf("Hint: Azure Storage Container Name, "+
-				"please also ensure that the value of property %s is configured as your input.", key),
-		})
-		if err != nil {
-			return "", err
-		}
-		if IsValidContainerName(containerName) {
-			return containerName, nil
-		} else {
-			console.Message(ctx, "Invalid container name. Please choose another name.")
-		}
-	}
-}
-
-var storageContainerNameRegex = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
-
-func IsValidContainerName(name string) bool {
-	if len(name) < 3 || len(name) > 63 {
-		return false
-	}
-	return storageContainerNameRegex.MatchString(name)
+func promptMissingPropertyAndExit(console input.Console, ctx context.Context, key string) error {
+	console.Message(ctx, fmt.Sprintf("No value was provided for %s. Please update the 'application.properties' "+
+		"file with a valid value.", key))
+	return fmt.Errorf("missing configuration: %s", key)
 }
 
 func appendJavaEurekaServerEnv(svc *project.ServiceConfig, eurekaServerName string) error {

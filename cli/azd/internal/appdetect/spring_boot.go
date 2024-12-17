@@ -245,15 +245,27 @@ func detectStorageAccountAccordingToSpringCloudStreamBinderMavenDependencyAndPro
 			}
 		}
 		if containsInBindingName != "" {
-			targetPropertyValue := springBootProject.applicationProperties[targetPropertyName]
+			// get distinct container names
+			var containerNames []string
+			seen := make(map[string]string)
+			for key, value := range springBootProject.applicationProperties {
+				if strings.HasSuffix(key, targetPropertyName) {
+					if _, exists := seen[key]; !exists {
+						seen[key] = value
+						containerNames = append(containerNames, value)
+					}
+				}
+			}
 			newDep := AzureDepStorageAccount{
-				ContainerNames: []string{targetPropertyValue},
+				ContainerNames: containerNames,
 			}
 			azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
 			logServiceAddedAccordingToMavenDependencyAndExtraCondition(newDep.ResourceDisplay(), targetGroupId,
 				targetArtifactId, "binding name ["+containsInBindingName+"] contains '-in-'")
-			log.Printf("  Detected Storage Account container name: [%s] by analyzing property file.",
-				targetPropertyValue)
+			for _, containerName := range containerNames {
+				log.Printf("  Detected Storage Account container name: [%s] by analyzing property file.",
+					containerName)
+			}
 		}
 	}
 }
@@ -383,8 +395,9 @@ func IsValidDatabaseName(name string) bool {
 
 func detectPropertySpringCloudStreamBindingDestination(azdProject *Project, springBootProject *SpringBootProject) {
 	result := getBindingDestinationMap(springBootProject.applicationProperties)
-	if len(result) != 0 {
-		azdProject.Metadata.BindingDestinationInProperty = result
+	for key, value := range result {
+		newKey := fmt.Sprintf("spring.cloud.stream.bindings.%s.destination", key)
+		azdProject.Metadata.BindingDestinationInProperty[newKey] = value
 	}
 }
 
@@ -396,7 +409,7 @@ func detectPropertyEventhubsCheckpointStoreContainer(azdProject *Project, spring
 		}
 	}
 	if len(result) != 0 {
-		azdProject.Metadata.BindingDestinationInProperty = result
+		azdProject.Metadata.EventhubsCheckpointStoreContainer = result
 	}
 }
 
