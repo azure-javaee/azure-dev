@@ -204,9 +204,8 @@ func detectDependencies(currentRoot *mavenProject, mavenProject *mavenProject, p
 
 func detectMavenWrapper(path string, executable string) string {
 	wrapperPath := filepath.Join(path, executable)
-	if _, err := os.Stat(wrapperPath); err == nil {
+	if fileExists(wrapperPath) {
 		return wrapperPath
 	}
-
 	return ""
 }
