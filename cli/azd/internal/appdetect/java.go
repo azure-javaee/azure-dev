@@ -67,35 +67,25 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 				}
 			}
 
-			result, err := detectDependencies(parentPom, currentPom, &Project{
+			project := Project{
 				Language:      Java,
 				Path:          path,
 				DetectionRule: "Inferred by presence of: pom.xml",
-			})
+			}
+			detectAzureDependenciesByAnalyzingSpringBootProject(parentPom, currentPom, &project)
 			if parentPom != nil {
-				result.Options = map[string]interface{}{
+				project.Options = map[string]interface{}{
 					JavaProjectOptionMavenParentPath:       parentPom.path,
 					JavaProjectOptionPosixMavenWrapperPath: currentWrapper.posixPath,
 					JavaProjectOptionWinMavenWrapperPath:   currentWrapper.winPath,
 				}
 			}
-			if err != nil {
-				log.Printf("Please edit azure.yaml manually to satisfy your requirement. azd can not help you "+
-					"to that by detect your java project because error happened when detecting dependencies: %s", err)
-				return nil, nil
-			}
 
 			tracing.SetUsageAttributes(fields.AppInitJavaDetect.String("finish"))
-			return result, nil
+			return &project, nil
 		}
 	}
-
 	return nil, nil
-}
-
-func detectDependencies(rootPom *pom, pom *pom, project *Project) (*Project, error) {
-	detectAzureDependenciesByAnalyzingSpringBootProject(rootPom, pom, project)
-	return project, nil
 }
 
 func detectMavenWrapper(path string, executable string) string {
