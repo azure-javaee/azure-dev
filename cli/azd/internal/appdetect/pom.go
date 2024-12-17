@@ -45,12 +45,12 @@ func commandExistsInPath(command string) bool {
 }
 
 func getMvnCommand(pomPath string) (string, error) {
-	if commandExistsInPath("mvn") {
-		return "mvn", nil
-	}
 	mvnwCommand, err := getMvnwCommandInProject(pomPath)
 	if err == nil {
 		return mvnwCommand, nil
+	}
+	if commandExistsInPath("mvn") {
+		return "mvn", nil
 	}
 	return getDownloadedMvnCommand()
 }
