@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -168,6 +167,20 @@ func (i *Initializer) InitFromApp(
 							if eventHubsName == "" {
 								promptMissingPropertyAndExit(i.console, ctx, key)
 							}
+						}
+					}
+				}
+				if _, ok := dep.(appdetect.AzureDepStorageAccount); ok {
+					for key, containerName := range prj.Metadata.EventhubsCheckpointStoreContainer {
+						if containerName == "" {
+							promptMissingPropertyAndExit(i.console, ctx, key)
+						}
+					}
+				}
+				if eventHubs, ok := dep.(appdetect.AzureDepEventHubs); ok && !eventHubs.UseKafka {
+					for key, destination := range prj.Metadata.BindingDestinationInProperty {
+						if destination == "" {
+							promptMissingPropertyAndExit(i.console, ctx, key)
 						}
 					}
 				}
@@ -1064,9 +1077,10 @@ func processSpringCloudAzureDepByPrompt(console input.Console, ctx context.Conte
 
 	switch continueOption {
 	case 0:
-		return errors.New("you have to manually add dependency com.azure.spring:spring-cloud-azure-starter. " +
-			"And use right version according to this page: " +
+		console.Message(ctx, "you have to manually add dependency com.azure.spring:spring-cloud-azure-starter. "+
+			"And use right version according to this page: "+
 			"https://github.com/Azure/azure-sdk-for-java/wiki/Spring-Versions-Mapping")
+		os.Exit(0)
 	case 1:
 		return nil
 	case 2:
