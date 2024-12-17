@@ -17,7 +17,7 @@ import (
 
 func getMavenProjectOfEffectivePom(pomPath string) (mavenProject, error) {
 	if !commandExistsInPath("java") {
-		log.Println("java not exist, skip get dependencies by 'mvn help:effective-pom'.")
+		return mavenProject{}, fmt.Errorf("can not get effective pom because java command not exist")
 	}
 	mvn, err := getMvnCommand(pomPath)
 	if err != nil {
