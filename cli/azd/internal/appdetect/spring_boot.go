@@ -165,7 +165,7 @@ func detectServiceBusAccordingToSpringCloudStreamBinderMavenDependency(
 	var targetArtifactId = "spring-cloud-azure-stream-binder-servicebus"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
 		bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
-		var destinations = DistinctValues(bindingDestinations)
+		var destinations = distinctValues(bindingDestinations)
 		newDep := AzureDepServiceBus{
 			Queues: destinations,
 			IsJms:  false,
@@ -191,7 +191,7 @@ func detectEventHubsAccordingToSpringCloudStreamBinderMavenDependency(
 	var targetArtifactId = "spring-cloud-azure-stream-binder-eventhubs"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
 		bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
-		var destinations = DistinctValues(bindingDestinations)
+		var destinations = distinctValues(bindingDestinations)
 		newDep := AzureDepEventHubs{
 			Names:    destinations,
 			UseKafka: false,
@@ -211,7 +211,7 @@ func detectEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(
 	var targetArtifactId = "spring-cloud-starter-stream-kafka"
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
 		bindingDestinations := getBindingDestinationMap(springBootProject.applicationProperties)
-		var destinations = DistinctValues(bindingDestinations)
+		var destinations = distinctValues(bindingDestinations)
 		newDep := AzureDepEventHubs{
 			Names:             destinations,
 			UseKafka:          true,
@@ -543,7 +543,7 @@ func isSpringBootApplication(mavenProject *mavenProject) bool {
 	return false
 }
 
-func DistinctValues(input map[string]string) []string {
+func distinctValues(input map[string]string) []string {
 	valueSet := make(map[string]struct{})
 	for _, value := range input {
 		valueSet[value] = struct{}{}
