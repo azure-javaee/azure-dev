@@ -7,7 +7,6 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -142,7 +141,7 @@ func (i *Initializer) InitFromApp(
 			var hasKafkaDep bool
 			for depIndex, dep := range prj.AzureDeps {
 				if eventHubs, ok := dep.(appdetect.AzureDepEventHubs); ok {
-					// prompt spring boot version if kafka
+					// prompt spring boot version if not detected when kafka
 					if eventHubs.UseKafka {
 						hasKafkaDep = true
 						springBootVersion := eventHubs.SpringBootVersion
@@ -152,48 +151,32 @@ func (i *Initializer) InitFromApp(
 								return err
 							}
 							eventHubs.SpringBootVersion = springBootVersionInput
+							prj.AzureDeps[depIndex] = eventHubs
 						}
 					}
-					// prompt event hubs name
+					// prompt event hubs name if not detected
 					switch eventHubs.DepFrom {
 					case appdetect.SpringCloudAzureStreamEventHubsBinder, appdetect.SpringCloudStarterStreamKafka:
 						for bindingName, destination := range prj.Metadata.BindingDestinationInProperty {
 							if destination == "" {
-								destinationInput, err := promptBindingDestination(i.console, ctx, bindingName)
-								if err != nil {
-									return err
-								}
-								prj.Metadata.BindingDestinationInProperty[bindingName] = destinationInput
+								promptMissingPropertyAndExit(i.console, ctx, bindingName)
 							}
 						}
 						eventHubs.Names = appdetect.DistinctValues(prj.Metadata.BindingDestinationInProperty)
 					case appdetect.SpringCloudAzureEventHubsStarter:
-						if prj.Metadata.EventhubsNameInProperty == "" {
-							eventHubsName, err := promptEventHubsName(i.console, ctx)
-							if err != nil {
-								return err
-							}
-							projects[index].Metadata.EventhubsNameInProperty = eventHubsName
-							eventHubs.Names = []string{
-								eventHubsName,
+						for key, eventHubsName := range prj.Metadata.EventhubsNameInProperty {
+							if eventHubsName == "" {
+								promptMissingPropertyAndExit(i.console, ctx, key)
 							}
 						}
 					}
-					prj.AzureDeps[depIndex] = eventHubs
 				}
-				if storageAccount, ok := dep.(appdetect.AzureDepStorageAccount); ok {
+				if _, ok := dep.(appdetect.AzureDepStorageAccount); ok {
 					for key, containerName := range prj.Metadata.EventhubsCheckpointStoreContainer {
 						if containerName == "" {
-							containerNameInput, err := promptStorageContainerName(i.console, ctx, key)
-							if err != nil {
-								return err
-							}
-							prj.Metadata.EventhubsCheckpointStoreContainer[key] = containerNameInput
+							promptMissingPropertyAndExit(i.console, ctx, key)
 						}
 					}
-					storageAccount.ContainerNames =
-						appdetect.DistinctValues(prj.Metadata.EventhubsCheckpointStoreContainer)
-					prj.AzureDeps[depIndex] = storageAccount
 				}
 			}
 
@@ -1122,74 +1105,10 @@ func promptSpringBootVersion(console input.Console, ctx context.Context) (string
 	}
 }
 
-func promptBindingDestination(console input.Console, ctx context.Context, bindingName string) (string, error) {
-	for {
-		destination, err := console.Prompt(ctx, input.ConsoleOptions{
-			Message: fmt.Sprintf("Input the value for spring.cloud.stream.bindings.%s.destination", bindingName),
-			Help:    "Hint: Azure Eventhubs Name, please also ensure application properties is well configured.",
-		})
-		if err != nil {
-			return "", err
-		}
-		if IsValidEventhubsName(destination) {
-			return destination, nil
-		} else {
-			console.Message(ctx, "Invalid destination. Please choose another name.")
-		}
-	}
-}
-
-func promptEventHubsName(console input.Console, ctx context.Context) (string, error) {
-	for {
-		eventHubsName, err := console.Prompt(ctx, input.ConsoleOptions{
-			Message: fmt.Sprintf("Input the value for spring.cloud.azure.eventhubs.event-hub-name"),
-			Help:    "Hint: Azure Eventhubs Name, please also ensure application properties is well configured.",
-		})
-		if err != nil {
-			return "", err
-		}
-		if IsValidEventhubsName(eventHubsName) {
-			return eventHubsName, nil
-		} else {
-			console.Message(ctx, "Invalid destination. Please choose another name.")
-		}
-	}
-}
-
-func IsValidEventhubsName(name string) bool {
-	// up to 256 characters
-	if len(name) == 0 || len(name) > 256 {
-		return false
-	}
-	// contain letters, numbers, periods (.), hyphens (-), and underscores (_)
-	// must begin and end with a letter or number
-	regex := regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$`)
-	return regex.MatchString(name)
-}
-
-func promptStorageContainerName(console input.Console, ctx context.Context, key string) (string, error) {
-	for {
-		containerName, err := console.Prompt(ctx, input.ConsoleOptions{
-			Message: fmt.Sprintf("Input the value for %s", key),
-			Help:    "Hint: Azure Storage Container Name, please also ensure application properties is well configured.",
-		})
-		if err != nil {
-			return "", err
-		}
-		if IsValidContainerName(containerName) {
-			return containerName, nil
-		} else {
-			console.Message(ctx, "Invalid container name. Please choose another name.")
-		}
-	}
-}
-
-func IsValidContainerName(name string) bool {
-	if len(name) < 3 || len(name) > 63 {
-		return false
-	}
-	regex := regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
-	return regex.MatchString(name)
+func promptMissingPropertyAndExit(console input.Console, ctx context.Context, key string) {
+	console.Message(ctx, fmt.Sprintf("No value was provided for %s. Please update the configuration file "+
+		"(like application.properties or application.yaml) with a valid value.", key))
+	os.Exit(0)
 }
 
 func appendJavaEurekaServerEnv(svc *project.ServiceConfig, eurekaServerName string) error {

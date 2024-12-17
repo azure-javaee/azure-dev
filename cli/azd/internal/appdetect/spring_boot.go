@@ -432,7 +432,7 @@ func detectPropertySpringCloudAzureEventhubsName(azdProject *Project, springBoot
 		log.Printf("%s property not exist in project. Path = %s", targetPropertyName, azdProject.Path)
 		return
 	}
-	azdProject.Metadata.EventhubsNameInProperty = propertyValue
+	azdProject.Metadata.EventhubsNameInProperty[targetPropertyName] = propertyValue
 }
 
 func detectDependencySpringCloudAzureStarter(azdProject *Project, springBootProject *SpringBootProject) {

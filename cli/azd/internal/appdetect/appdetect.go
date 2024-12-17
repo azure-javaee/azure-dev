@@ -184,7 +184,7 @@ type Metadata struct {
 	DatabaseNameInPropertySpringDatasourceUrl               map[DatabaseDep]string
 	BindingDestinationInProperty                            map[string]string
 	EventhubsCheckpointStoreContainer                       map[string]string
-	EventhubsNameInProperty                                 string
+	EventhubsNameInProperty                                 map[string]string
 	ContainsDependencySpringCloudAzureStarter               bool
 	ContainsDependencySpringCloudAzureStarterJdbcPostgresql bool
 	ContainsDependencySpringCloudAzureStarterJdbcMysql      bool
