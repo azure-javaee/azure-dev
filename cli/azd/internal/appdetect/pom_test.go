@@ -216,16 +216,16 @@ func TestToEffectivePom(t *testing.T) {
 				t.Fatalf("Failed to write temp POM file: %v", err)
 			}
 
-			project, err := toEffectivePom(pomPath)
+			effectivePom, err := toEffectivePom(pomPath)
 			if err != nil {
 				t.Fatalf("toEffectivePom failed: %v", err)
 			}
 
-			if len(project.Dependencies) != len(tt.expected) {
-				t.Fatalf("Expected %d dependencies, got %d", len(tt.expected), len(project.Dependencies))
+			if len(effectivePom.Dependencies) != len(tt.expected) {
+				t.Fatalf("Expected %d dependencies, got %d", len(tt.expected), len(effectivePom.Dependencies))
 			}
 
-			for i, dep := range project.Dependencies {
+			for i, dep := range effectivePom.Dependencies {
 				if dep != tt.expected[i] {
 					t.Errorf("Expected dependency %v, got %v", tt.expected[i], dep)
 				}
