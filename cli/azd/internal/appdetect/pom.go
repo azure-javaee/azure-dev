@@ -189,9 +189,14 @@ func unzip(src string, dest string) error {
 			}
 			defer rc.Close()
 
-			_, err = io.CopyN(outFile, rc, 10_000_000)
-			if err != nil {
-				return err
+			for {
+				_, err = io.CopyN(outFile, rc, 1_000_000)
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					return err
+				}
 			}
 		}
 	}
