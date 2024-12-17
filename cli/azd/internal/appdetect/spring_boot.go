@@ -497,27 +497,27 @@ func logMetadataUpdated(info string) {
 func detectSpringBootVersion(parentPom *pom, currentPom *pom) string {
 	// currentPom prioritize than parentPom
 	if currentPom != nil {
-		if version := detectSpringBootVersionFromProject(currentPom); version != UnknownSpringBootVersion {
+		if version := detectSpringBootVersionFromPom(currentPom); version != UnknownSpringBootVersion {
 			return version
 		}
 	}
 	// fallback to detect parentPom
 	if parentPom != nil {
-		return detectSpringBootVersionFromProject(parentPom)
+		return detectSpringBootVersionFromPom(parentPom)
 	}
 	return UnknownSpringBootVersion
 }
 
-func detectSpringBootVersionFromProject(project *pom) string {
-	if project.Parent.ArtifactId == "spring-boot-starter-parent" {
-		return project.Parent.Version
+func detectSpringBootVersionFromPom(pom *pom) string {
+	if pom.Parent.ArtifactId == "spring-boot-starter-parent" {
+		return pom.Parent.Version
 	} else {
-		for _, dep := range project.DependencyManagement.Dependencies {
+		for _, dep := range pom.DependencyManagement.Dependencies {
 			if dep.ArtifactId == "spring-boot-dependencies" {
 				return dep.Version
 			}
 		}
-		for _, dep := range project.Dependencies {
+		for _, dep := range pom.Dependencies {
 			if dep.GroupId == "org.springframework.boot" {
 				return dep.Version
 			}
