@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -192,7 +193,7 @@ func unzip(src string, destinationFolder string) error {
 			for {
 				_, err = io.CopyN(outFile, rc, 1_000_000)
 				if err != nil {
-					if err == io.EOF {
+					if errors.Is(err, io.EOF) {
 						break
 					}
 					return err
