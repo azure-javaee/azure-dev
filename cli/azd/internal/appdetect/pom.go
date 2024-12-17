@@ -88,8 +88,8 @@ func toPom(filePath string) (*pom, error) {
 	return &project, nil
 }
 
-func replaceAllPlaceholders(project pom, input string) string {
-	propsMap := parseProperties(project.Properties)
+func replaceAllPlaceholders(pom pom, input string) string {
+	propsMap := parseProperties(pom.Properties)
 
 	re := regexp.MustCompile(`\$\{([A-Za-z0-9-_.]+)}`)
 	return re.ReplaceAllStringFunc(input, func(match string) string {

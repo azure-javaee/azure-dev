@@ -11,10 +11,10 @@ import (
 
 func TestReplaceAllPlaceholders(t *testing.T) {
 	tests := []struct {
-		name    string
-		project pom
-		input   string
-		output  string
+		name   string
+		pom    pom
+		input  string
+		output string
 	}{
 		{
 			"empty.input",
@@ -63,7 +63,7 @@ func TestReplaceAllPlaceholders(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			output := replaceAllPlaceholders(tt.project, tt.input)
+			output := replaceAllPlaceholders(tt.pom, tt.input)
 			assert.Equal(t, tt.output, output)
 		})
 	}
