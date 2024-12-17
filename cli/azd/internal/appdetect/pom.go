@@ -155,7 +155,7 @@ func downloadMaven(filepath string) error {
 	return err
 }
 
-func unzip(src string, dest string) error {
+func unzip(src string, destinationFolder string) error {
 	reader, err := zip.OpenReader(src)
 	if err != nil {
 		return err
@@ -163,21 +163,21 @@ func unzip(src string, dest string) error {
 	defer reader.Close()
 
 	for _, file := range reader.File {
-		destPath := filepath.Join(dest, file.Name)
-		if !strings.HasPrefix(destPath, filepath.Clean(dest)+string(os.PathSeparator)) {
-			return fmt.Errorf("%s: illegal file path", file.Name)
+		destinationPath, err := getValidDestPath(destinationFolder, file.Name)
+		if err != nil {
+			return err
 		}
 		if file.FileInfo().IsDir() {
-			err := os.MkdirAll(destPath, os.ModePerm)
+			err := os.MkdirAll(destinationPath, os.ModePerm)
 			if err != nil {
 				return err
 			}
 		} else {
-			if err = os.MkdirAll(filepath.Dir(destPath), os.ModePerm); err != nil {
+			if err = os.MkdirAll(filepath.Dir(destinationPath), os.ModePerm); err != nil {
 				return err
 			}
 
-			outFile, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
+			outFile, err := os.OpenFile(destinationPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
 			if err != nil {
 				return err
 			}
@@ -201,6 +201,14 @@ func unzip(src string, dest string) error {
 		}
 	}
 	return nil
+}
+
+func getValidDestPath(destinationFolder string, fileName string) (string, error) {
+	destinationPath := filepath.Clean(filepath.Join(destinationFolder, fileName))
+	if !strings.HasPrefix(destinationPath, destinationFolder+string(os.PathSeparator)) {
+		return "", fmt.Errorf("%s: illegal file path", fileName)
+	}
+	return destinationPath, nil
 }
 
 func getEffectivePomFromConsoleOutput(consoleOutput string) (string, error) {
