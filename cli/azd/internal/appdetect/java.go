@@ -12,7 +12,7 @@ import (
 )
 
 type javaDetector struct {
-	rootProjects      []pom
+	parentPoms        []pom
 	mavenWrapperPaths []mavenWrapper
 }
 
@@ -39,17 +39,17 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 		if strings.ToLower(entry.Name()) == "pom.xml" {
 			tracing.SetUsageAttributes(fields.AppInitJavaDetect.String("start"))
 			pomFile := filepath.Join(path, entry.Name())
-			project, err := toPom(pomFile)
+			currentPom, err := toPom(pomFile)
 			if err != nil {
 				log.Printf("Please edit azure.yaml manually to satisfy your requirement. azd can not help you "+
 					"to that by detect your java project because error happened when reading pom.xml: %s. ", err)
 				return nil, nil
 			}
 
-			if len(project.Modules) > 0 {
+			if len(currentPom.Modules) > 0 {
 				// This is a multi-module project, we will capture the analysis, but return nil
 				// to continue recursing
-				jd.rootProjects = append(jd.rootProjects, *project)
+				jd.parentPoms = append(jd.parentPoms, *currentPom)
 				jd.mavenWrapperPaths = append(jd.mavenWrapperPaths, mavenWrapper{
 					posixPath: detectMavenWrapper(path, "mvnw"),
 					winPath:   detectMavenWrapper(path, "mvnw.cmd"),
@@ -57,24 +57,24 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 				return nil, nil
 			}
 
-			var currentRoot *pom
+			var parentPom *pom
 			var currentWrapper mavenWrapper
-			for i, rootProject := range jd.rootProjects {
+			for i, parentPomItem := range jd.parentPoms {
 				// we can say that the project is in the root project if the path is under the project
-				if inRoot := strings.HasPrefix(pomFile, rootProject.path); inRoot {
-					currentRoot = &rootProject
+				if inRoot := strings.HasPrefix(pomFile, parentPomItem.path); inRoot {
+					parentPom = &parentPomItem
 					currentWrapper = jd.mavenWrapperPaths[i]
 				}
 			}
 
-			result, err := detectDependencies(currentRoot, project, &Project{
+			result, err := detectDependencies(parentPom, currentPom, &Project{
 				Language:      Java,
 				Path:          path,
 				DetectionRule: "Inferred by presence of: pom.xml",
 			})
-			if currentRoot != nil {
+			if parentPom != nil {
 				result.Options = map[string]interface{}{
-					JavaProjectOptionMavenParentPath:       currentRoot.path,
+					JavaProjectOptionMavenParentPath:       parentPom.path,
 					JavaProjectOptionPosixMavenWrapperPath: currentWrapper.posixPath,
 					JavaProjectOptionWinMavenWrapperPath:   currentWrapper.winPath,
 				}
