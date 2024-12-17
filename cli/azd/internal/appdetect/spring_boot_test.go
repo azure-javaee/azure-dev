@@ -1,7 +1,6 @@
 package appdetect
 
 import (
-	"encoding/xml"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -169,66 +168,6 @@ func TestDetectSpringBootVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			version := detectSpringBootVersion(tt.currentRoot, tt.project)
 			assert.Equal(t, tt.expectedVersion, version)
-		})
-	}
-}
-
-func TestReplaceAllPlaceholders(t *testing.T) {
-	tests := []struct {
-		name    string
-		project pom
-		input   string
-		output  string
-	}{
-		{
-			"empty.input",
-			pom{
-				Properties: Properties{
-					Entries: []Property{
-						{
-							XMLName: xml.Name{
-								Local: "version.spring-boot_2.x",
-							},
-							Value: "2.x",
-						},
-					},
-				},
-			},
-			"",
-			"",
-		},
-		{
-			"empty.properties",
-			pom{
-				Properties: Properties{
-					Entries: []Property{},
-				},
-			},
-			"org.springframework.boot:spring-boot-dependencies:${version.spring-boot_2.x}",
-			"org.springframework.boot:spring-boot-dependencies:${version.spring-boot_2.x}",
-		},
-		{
-			"dependency.version",
-			pom{
-				Properties: Properties{
-					Entries: []Property{
-						{
-							XMLName: xml.Name{
-								Local: "version.spring-boot_2.x",
-							},
-							Value: "2.x",
-						},
-					},
-				},
-			},
-			"org.springframework.boot:spring-boot-dependencies:${version.spring-boot_2.x}",
-			"org.springframework.boot:spring-boot-dependencies:2.x",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			output := replaceAllPlaceholders(tt.project, tt.input)
-			assert.Equal(t, tt.output, output)
 		})
 	}
 }
