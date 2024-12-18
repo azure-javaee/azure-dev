@@ -70,13 +70,16 @@ func toPom(filePath string) (*pom, error) {
 	if err != nil {
 		return nil, err
 	}
-	readPropertiesToPropertyMap(&pom)
-	updateVersionAccordingToPropertyMap(&pom)
-	// not handle pluginManagement because not we are not care about plugin's version.
-	readDependencyManagementToDependencyManagementMap(&pom)
-	updateVersionAccordingToDependencyManagementMap(&pom)
 	pom.path = filepath.Dir(filePath)
 	return &pom, nil
+}
+
+func updateVersionAccordingToPropertiesAndDependencyManagement(pom *pom) {
+	readPropertiesToPropertyMap(pom)
+	updateVersionAccordingToPropertyMap(pom)
+	// not handle pluginManagement because not we are not care about plugin's version.
+	readDependencyManagementToDependencyManagementMap(pom)
+	updateVersionAccordingToDependencyManagementMap(pom)
 }
 
 func unmarshalPomFromFilePath(pomFilePath string) (pom, error) {

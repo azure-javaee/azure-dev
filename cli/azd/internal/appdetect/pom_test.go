@@ -9,13 +9,13 @@ import (
 
 func TestToEffectivePom(t *testing.T) {
 	tests := []struct {
-		name       string
-		pomContent string
-		expected   []dependency
+		name      string
+		pomString string
+		expected  []dependency
 	}{
 		{
 			name: "Test with two dependencies",
-			pomContent: `
+			pomString: `
 				<project>
 					<modelVersion>4.0.0</modelVersion>
 					<groupId>com.example</groupId>
@@ -54,7 +54,7 @@ func TestToEffectivePom(t *testing.T) {
 		},
 		{
 			name: "Test with no dependencies",
-			pomContent: `
+			pomString: `
 				<project>
 					<modelVersion>4.0.0</modelVersion>
 					<groupId>com.example</groupId>
@@ -68,7 +68,7 @@ func TestToEffectivePom(t *testing.T) {
 		},
 		{
 			name: "Test with one dependency which version is decided by dependencyManagement",
-			pomContent: `
+			pomString: `
 				<project>
 					<modelVersion>4.0.0</modelVersion>
 					<groupId>com.example</groupId>
@@ -104,7 +104,7 @@ func TestToEffectivePom(t *testing.T) {
 		},
 		{
 			name: "Test with one dependency which version is decided by parent",
-			pomContent: `
+			pomString: `
 				<project>
 					<parent>
 						<groupId>org.springframework.boot</groupId>
@@ -149,7 +149,7 @@ func TestToEffectivePom(t *testing.T) {
 			}(tempDir)
 
 			pomPath := filepath.Join(tempDir, "pom.xml")
-			err = os.WriteFile(pomPath, []byte(tt.pomContent), 0600)
+			err = os.WriteFile(pomPath, []byte(tt.pomString), 0600)
 			if err != nil {
 				t.Fatalf("Failed to write temp POM file: %v", err)
 			}
@@ -160,12 +160,12 @@ func TestToEffectivePom(t *testing.T) {
 			}
 
 			if len(effectivePom.Dependencies) != len(tt.expected) {
-				t.Fatalf("Expected %d dependencies, got %d", len(tt.expected), len(effectivePom.Dependencies))
+				t.Fatalf("Expected: %d\nActual: %d", len(tt.expected), len(effectivePom.Dependencies))
 			}
 
 			for i, dep := range effectivePom.Dependencies {
 				if dep != tt.expected[i] {
-					t.Errorf("Expected dependency %v, got %v", tt.expected[i], dep)
+					t.Errorf("Expected: %s\nActual: %s", tt.expected[i], dep)
 				}
 			}
 		})
@@ -174,13 +174,13 @@ func TestToEffectivePom(t *testing.T) {
 
 func TestReadPropertiesToPropertyMap(t *testing.T) {
 	tests := []struct {
-		name       string
-		pomContent string
-		expected   map[string]string
+		name      string
+		pomString string
+		expected  map[string]string
 	}{
 		{
 			name: "Test with two dependencies",
-			pomContent: `
+			pomString: `
 				<project>
 					<modelVersion>4.0.0</modelVersion>
 					<groupId>com.example</groupId>
@@ -203,13 +203,13 @@ func TestReadPropertiesToPropertyMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pom, err := unmarshalPomFromString(tt.pomContent)
+			pom, err := unmarshalPomFromString(tt.pomString)
 			if err != nil {
-				t.Fatalf("Failed to unmarshal content: %v", err)
+				t.Fatalf("Failed to unmarshal string: %v", err)
 			}
 			readPropertiesToPropertyMap(&pom)
 			if !reflect.DeepEqual(pom.propertyMap, tt.expected) {
-				t.Fatalf("Expected %s dependencies, got %s", tt.expected, pom.propertyMap)
+				t.Fatalf("Expected: %s\nActual: %s", tt.expected, pom.propertyMap)
 			}
 		})
 	}
@@ -293,7 +293,7 @@ func TestFulfillPropertyValue(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			updateVersionAccordingToPropertyMap(&tt.inputPom)
 			if !reflect.DeepEqual(tt.inputPom, tt.expected) {
-				t.Fatalf("Expected %s dependencies, got %s", tt.expected, tt.inputPom)
+				t.Fatalf("Expected: %s\nActual: %s", tt.expected, tt.inputPom)
 			}
 		})
 	}
@@ -350,7 +350,7 @@ func TestReadDependencyManagementToDependencyManagementMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			readDependencyManagementToDependencyManagementMap(&tt.inputPom)
 			if !reflect.DeepEqual(tt.inputPom, tt.expected) {
-				t.Fatalf("Expected %s dependencies, got %s", tt.expected, tt.inputPom)
+				t.Fatalf("Expected: %s\nActual: %s", tt.expected, tt.inputPom)
 			}
 		})
 	}
@@ -393,7 +393,78 @@ func TestUpdateVersionAccordingToDependencyManagementMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			updateVersionAccordingToDependencyManagementMap(&tt.inputPom)
 			if !reflect.DeepEqual(tt.inputPom, tt.expected) {
-				t.Fatalf("Expected %s dependencies, got %s", tt.expected, tt.inputPom)
+				t.Fatalf("Expected: %s\nActual: %s", tt.expected, tt.inputPom)
+			}
+		})
+	}
+}
+
+func TestUpdateVersionAccordingToPropertiesAndDependencyManagement(t *testing.T) {
+	var tests = []struct {
+		name      string
+		pomString string
+		expected  []dependency
+	}{
+		{
+			name: "Test updateVersionAccordingToPropertiesAndDependencyManagement",
+			pomString: `
+				<project>
+					<modelVersion>4.0.0</modelVersion>
+					<groupId>com.example</groupId>
+					<artifactId>example-project</artifactId>
+					<version>1.0.0</version>
+					<properties>
+						<version.slf4j>1.0.0</version.slf4j>
+						<version.junit>2.0.0</version.junit>
+					</properties>
+					<dependencyManagement>
+						<dependencies>
+							<dependency>
+								<groupId>org.slf4j</groupId>
+								<artifactId>slf4j-api</artifactId>
+								<version>${version.slf4j}</version>
+							</dependency>
+						</dependencies>
+					</dependencyManagement>
+					<dependencies>
+						<dependency>
+							<groupId>org.slf4j</groupId>
+							<artifactId>slf4j-api</artifactId>
+						</dependency>
+						<dependency>
+							<groupId>junit</groupId>
+							<artifactId>junit</artifactId>
+							<version>${version.junit}</version>
+							<scope>test</scope>
+						</dependency>
+					</dependencies>
+				</project>
+				`,
+			expected: []dependency{
+				{
+					GroupId:    "org.slf4j",
+					ArtifactId: "slf4j-api",
+					Version:    "1.0.0",
+				},
+				{
+					GroupId:    "junit",
+					ArtifactId: "junit",
+					Version:    "2.0.0",
+					Scope:      "test",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pom, err := unmarshalPomFromString(tt.pomString)
+			if err != nil {
+				t.Fatalf("Failed to unmarshal POM string: %v", err)
+			}
+
+			updateVersionAccordingToPropertiesAndDependencyManagement(&pom)
+			if !reflect.DeepEqual(pom.Dependencies, tt.expected) {
+				t.Fatalf("Expected: %s\nActual: %s", tt.expected, pom.Dependencies)
 			}
 		})
 	}
