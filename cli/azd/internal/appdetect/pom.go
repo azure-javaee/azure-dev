@@ -96,15 +96,12 @@ func unmarshalPomFromBytes(pomBytes []byte) (pom, error) {
 }
 
 func readPropertiesToPropertyMap(pom *pom) {
-	pom.propertyMap = parseProperties(pom.Properties)
-}
-
-func parseProperties(properties Properties) map[string]string {
-	result := make(map[string]string)
-	for _, entry := range properties.Entries {
-		result[entry.XMLName.Local] = entry.Value
+	if pom.propertyMap == nil {
+		pom.propertyMap = make(map[string]string)
 	}
-	return result
+	for _, entry := range pom.Properties.Entries {
+		pom.propertyMap[entry.XMLName.Local] = entry.Value
+	}
 }
 
 func toEffectivePomByMvnCommand(pomPath string) (pom, error) {
