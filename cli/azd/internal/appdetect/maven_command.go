@@ -75,7 +75,7 @@ func getDownloadedMvnCommand() (string, error) {
 		return "", err
 	}
 	if _, err := os.Stat(mavenDir); os.IsNotExist(err) {
-		err = os.Mkdir(mavenDir, os.ModePerm)
+		err = os.MkdirAll(mavenDir, os.ModePerm)
 		if err != nil {
 			return "", fmt.Errorf("unable to create directory: %w", err)
 		}
