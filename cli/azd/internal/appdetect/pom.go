@@ -20,7 +20,8 @@ type pom struct {
 	Dependencies         []dependency         `xml:"dependencies>dependency"`
 	DependencyManagement dependencyManagement `xml:"dependencyManagement"`
 	Build                build                `xml:"build"`
-	path                 string
+	path                 string               // todo: add 'pom.xml' in the path.
+	propertyMap          map[string]string
 }
 
 // Parent represents the parent POM if this project is a module.
@@ -65,27 +66,38 @@ type plugin struct {
 }
 
 func toPom(filePath string) (*pom, error) {
-	bytes, err := os.ReadFile(filePath)
+	pom, err := unmarshalPomFromFilePath(filePath)
 	if err != nil {
 		return nil, err
 	}
+	// todo: replace the properties
+	pom.path = filepath.Dir(filePath)
 
+	return &pom, nil
+}
+
+func unmarshalPomFromFilePath(pomFilePath string) (pom, error) {
+	bytes, err := os.ReadFile(pomFilePath)
+	if err != nil {
+		return pom{}, err
+	}
+	return unmarshalPomFromBytes(bytes)
+}
+
+func unmarshalPomFromString(pomString string) (pom, error) {
+	return unmarshalPomFromBytes([]byte(pomString))
+}
+
+func unmarshalPomFromBytes(pomBytes []byte) (pom, error) {
 	var unmarshalledPom pom
-	if err := xml.Unmarshal(bytes, &unmarshalledPom); err != nil {
-		return nil, fmt.Errorf("parsing xml: %w", err)
+	if err := xml.Unmarshal(pomBytes, &unmarshalledPom); err != nil {
+		return pom{}, fmt.Errorf("parsing xml: %w", err)
 	}
+	return unmarshalledPom, nil
+}
 
-	// replace all placeholders with properties
-	str := replaceAllPlaceholders(unmarshalledPom, string(bytes))
-
-	var resultPom pom
-	if err := xml.Unmarshal([]byte(str), &resultPom); err != nil {
-		return nil, fmt.Errorf("parsing xml: %w", err)
-	}
-
-	resultPom.path = filepath.Dir(filePath)
-
-	return &resultPom, nil
+func readPropertiesToPropertyMap(pom *pom) {
+	pom.propertyMap = parseProperties(pom.Properties)
 }
 
 func replaceAllPlaceholders(pom pom, input string) string {

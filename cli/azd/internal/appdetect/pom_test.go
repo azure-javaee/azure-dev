@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -199,7 +200,7 @@ func TestToEffectivePom(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tempDir, err := os.MkdirTemp("", "test")
+			tempDir, err := os.MkdirTemp("", "TestToEffectivePom")
 			if err != nil {
 				t.Fatalf("Failed to create temp directory: %v", err)
 			}
@@ -229,6 +230,49 @@ func TestToEffectivePom(t *testing.T) {
 				if dep != tt.expected[i] {
 					t.Errorf("Expected dependency %v, got %v", tt.expected[i], dep)
 				}
+			}
+		})
+	}
+}
+
+func TestReadPropertiesToPropertyMap(t *testing.T) {
+	tests := []struct {
+		name       string
+		pomContent string
+		expected   map[string]string
+	}{
+		{
+			name: "Test with two dependencies",
+			pomContent: `
+				<project>
+					<modelVersion>4.0.0</modelVersion>
+					<groupId>com.example</groupId>
+					<artifactId>example-project</artifactId>
+					<version>1.0.0</version>
+					<properties>
+						<version.spring.boot>3.3.5</version.spring.boot>
+						<version.spring.cloud>2023.0.3</version.spring.cloud>
+						<version.spring.cloud.azure>5.18.0</version.spring.cloud.azure>
+					</properties>
+				</project>
+				`,
+			expected: map[string]string{
+				"version.spring.boot":        "3.3.5",
+				"version.spring.cloud":       "2023.0.3",
+				"version.spring.cloud.azure": "5.18.0",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pom, err := unmarshalPomFromString(tt.pomContent)
+			if err != nil {
+				t.Fatalf("Failed to unmarshal content: %v", err)
+			}
+			readPropertiesToPropertyMap(&pom)
+			if !reflect.DeepEqual(pom.propertyMap, tt.expected) {
+				t.Fatalf("Expected %s dependencies, got %s", tt.expected, pom.propertyMap)
 			}
 		})
 	}
