@@ -298,3 +298,60 @@ func TestFulfillPropertyValue(t *testing.T) {
 		})
 	}
 }
+
+func TestReadDependencyManagementToDependencyManagementMap(t *testing.T) {
+	var tests = []struct {
+		name     string
+		inputPom pom
+		expected pom
+	}{
+		{
+			name: "Test updateVersionAccordingToPropertyMap",
+			inputPom: pom{
+				DependencyManagement: dependencyManagement{
+					Dependencies: []dependency{
+						{
+							GroupId:    "groupIdOne",
+							ArtifactId: "artifactIdOne",
+							Version:    "1.0.0",
+						},
+					},
+				},
+				Dependencies: []dependency{
+					{
+						GroupId:    "groupIdOne",
+						ArtifactId: "artifactIdOne",
+					},
+				},
+			},
+			expected: pom{
+				DependencyManagement: dependencyManagement{
+					Dependencies: []dependency{
+						{
+							GroupId:    "groupIdOne",
+							ArtifactId: "artifactIdOne",
+							Version:    "1.0.0",
+						},
+					},
+				},
+				Dependencies: []dependency{
+					{
+						GroupId:    "groupIdOne",
+						ArtifactId: "artifactIdOne",
+					},
+				},
+				dependencyManagementMap: map[string]string{
+					"groupIdOne:artifactIdOne": "1.0.0",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			readDependencyManagementToDependencyManagementMap(&tt.inputPom)
+			if !reflect.DeepEqual(tt.inputPom, tt.expected) {
+				t.Fatalf("Expected %s dependencies, got %s", tt.expected, tt.inputPom)
+			}
+		})
+	}
+}

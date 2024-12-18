@@ -12,15 +12,16 @@ import (
 
 // pom represents the top-level structure of a Maven POM file.
 type pom struct {
-	XmlName              xml.Name             `xml:"project"`
-	Parent               parent               `xml:"parent"`
-	Modules              []string             `xml:"modules>module"` // Capture the modules
-	Properties           Properties           `xml:"properties"`
-	Dependencies         []dependency         `xml:"dependencies>dependency"`
-	DependencyManagement dependencyManagement `xml:"dependencyManagement"`
-	Build                build                `xml:"build"`
-	path                 string               // todo: add 'pom.xml' in the path.
-	propertyMap          map[string]string
+	XmlName                 xml.Name             `xml:"project"`
+	Parent                  parent               `xml:"parent"`
+	Modules                 []string             `xml:"modules>module"` // Capture the modules
+	Properties              Properties           `xml:"properties"`
+	Dependencies            []dependency         `xml:"dependencies>dependency"`
+	DependencyManagement    dependencyManagement `xml:"dependencyManagement"`
+	Build                   build                `xml:"build"`
+	path                    string               // todo: add 'pom.xml' in the path.
+	propertyMap             map[string]string
+	dependencyManagementMap map[string]string
 }
 
 // Parent represents the parent POM if this project is a module.
@@ -71,6 +72,8 @@ func toPom(filePath string) (*pom, error) {
 	}
 	readPropertiesToPropertyMap(&pom)
 	updateVersionAccordingToPropertyMap(&pom)
+	// not handle pluginManagement because not we are not care about plugin's version.
+	readDependencyManagementToDependencyManagementMap(&pom)
 	pom.path = filepath.Dir(filePath)
 	return &pom, nil
 }
@@ -140,6 +143,31 @@ func isVariable(value string) bool {
 
 func getVariableName(value string) string {
 	return strings.TrimSuffix(strings.TrimPrefix(value, variablePrefix), variableSuffix)
+}
+
+func toDependencyManagementMapKey(dependency dependency) string {
+	return fmt.Sprintf("%s:%s", dependency.GroupId, dependency.ArtifactId)
+}
+
+func readDependencyManagementToDependencyManagementMap(pom *pom) {
+	if pom.dependencyManagementMap == nil {
+		pom.dependencyManagementMap = make(map[string]string)
+	}
+	for _, dep := range pom.DependencyManagement.Dependencies {
+		updateDependencyManagementMap(pom, dep)
+	}
+}
+
+func updateDependencyManagementMap(pom *pom, dependency dependency) {
+	version := strings.TrimSpace(dependency.Version)
+	if version == "" {
+		return
+	}
+	key := toDependencyManagementMapKey(dependency)
+	if _, ok := pom.dependencyManagementMap[key]; ok {
+		return
+	}
+	pom.dependencyManagementMap[key] = version
 }
 
 func toEffectivePomByMvnCommand(pomPath string) (pom, error) {
