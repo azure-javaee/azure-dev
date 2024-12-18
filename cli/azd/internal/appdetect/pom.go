@@ -69,7 +69,8 @@ func toPom(filePath string) (*pom, error) {
 	if err != nil {
 		return nil, err
 	}
-	fulfillPropertyValue(&pom)
+	readPropertiesToPropertyMap(&pom)
+	updateVersionAccordingToPropertyMap(&pom)
 	pom.path = filepath.Dir(filePath)
 	return &pom, nil
 }
@@ -103,7 +104,7 @@ func readPropertiesToPropertyMap(pom *pom) {
 	}
 }
 
-func fulfillPropertyValue(pom *pom) {
+func updateVersionAccordingToPropertyMap(pom *pom) {
 	for i, dep := range pom.DependencyManagement.Dependencies {
 		if isVariable(dep.Version) {
 			variableName := getVariableName(dep.Version)

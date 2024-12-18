@@ -222,7 +222,7 @@ func TestFulfillPropertyValue(t *testing.T) {
 		expected pom
 	}{
 		{
-			name: "Test fulfillPropertyValue",
+			name: "Test updateVersionAccordingToPropertyMap",
 			inputPom: pom{
 				propertyMap: map[string]string{
 					"version.spring.boot":        "3.3.5",
@@ -291,7 +291,7 @@ func TestFulfillPropertyValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fulfillPropertyValue(&tt.inputPom)
+			updateVersionAccordingToPropertyMap(&tt.inputPom)
 			if !reflect.DeepEqual(tt.inputPom, tt.expected) {
 				t.Fatalf("Expected %s dependencies, got %s", tt.expected, tt.inputPom)
 			}
