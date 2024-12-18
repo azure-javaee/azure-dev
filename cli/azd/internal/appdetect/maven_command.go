@@ -15,7 +15,7 @@ import (
 func getMvnCommand() (string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
-		panic(err)
+		return "", fmt.Errorf("can not get working directory")
 	}
 	return getMvnCommandFromPath(cwd)
 }
