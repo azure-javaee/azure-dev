@@ -65,12 +65,14 @@ type plugin struct {
 	Version    string `xml:"version"`
 }
 
-func toPom(filePath string) (*pom, error) {
+func toEffectivePomWithoutMvnCommand(filePath string) (*pom, error) {
 	pom, err := unmarshalPomFromFilePath(filePath)
 	if err != nil {
 		return nil, err
 	}
 	pom.path = filepath.Dir(filePath)
+	updateVersionAccordingToPropertiesAndDependencyManagement(&pom)
+	// todo absorb information from parent and imported dependencies in dependencyManagement section
 	return &pom, nil
 }
 

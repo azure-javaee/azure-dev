@@ -5,7 +5,7 @@ type mavenProject struct {
 }
 
 func toMavenProject(pomFilePath string) (*mavenProject, error) {
-	pom, err := toPom(pomFilePath)
+	pom, err := toEffectivePomWithoutMvnCommand(pomFilePath)
 	if err != nil {
 		return nil, err
 	}
