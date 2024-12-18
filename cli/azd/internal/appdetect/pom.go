@@ -69,9 +69,8 @@ func toPom(filePath string) (*pom, error) {
 	if err != nil {
 		return nil, err
 	}
-	// todo: replace the properties
+	fulfillPropertyValue(&pom)
 	pom.path = filepath.Dir(filePath)
-
 	return &pom, nil
 }
 
@@ -102,6 +101,44 @@ func readPropertiesToPropertyMap(pom *pom) {
 	for _, entry := range pom.Properties.Entries {
 		pom.propertyMap[entry.XMLName.Local] = entry.Value
 	}
+}
+
+func fulfillPropertyValue(pom *pom) {
+	for i, dep := range pom.DependencyManagement.Dependencies {
+		if isVariable(dep.Version) {
+			variableName := getVariableName(dep.Version)
+			if variableValue, ok := pom.propertyMap[variableName]; ok {
+				pom.DependencyManagement.Dependencies[i].Version = variableValue
+			}
+		}
+	}
+	for i, dep := range pom.Dependencies {
+		if isVariable(dep.Version) {
+			variableName := getVariableName(dep.Version)
+			if variableValue, ok := pom.propertyMap[variableName]; ok {
+				pom.Dependencies[i].Version = variableValue
+			}
+		}
+	}
+	for i, dep := range pom.Build.Plugins {
+		if isVariable(dep.Version) {
+			variableName := getVariableName(dep.Version)
+			if variableValue, ok := pom.propertyMap[variableName]; ok {
+				pom.Build.Plugins[i].Version = variableValue
+			}
+		}
+	}
+}
+
+const variablePrefix = "${"
+const variableSuffix = "}"
+
+func isVariable(value string) bool {
+	return strings.HasPrefix(value, variablePrefix) && strings.HasSuffix(value, variableSuffix)
+}
+
+func getVariableName(value string) string {
+	return strings.TrimSuffix(strings.TrimPrefix(value, variablePrefix), variableSuffix)
 }
 
 func toEffectivePomByMvnCommand(pomPath string) (pom, error) {

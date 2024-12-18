@@ -214,3 +214,87 @@ func TestReadPropertiesToPropertyMap(t *testing.T) {
 		})
 	}
 }
+
+func TestFulfillPropertyValue(t *testing.T) {
+	var tests = []struct {
+		name     string
+		inputPom pom
+		expected pom
+	}{
+		{
+			name: "Test fulfillPropertyValue",
+			inputPom: pom{
+				propertyMap: map[string]string{
+					"version.spring.boot":        "3.3.5",
+					"version.spring.cloud":       "2023.0.3",
+					"version.spring.cloud.azure": "5.18.0",
+				},
+				DependencyManagement: dependencyManagement{
+					Dependencies: []dependency{
+						{
+							GroupId:    "groupIdOne",
+							ArtifactId: "artifactIdOne",
+							Version:    "${version.spring.boot}",
+						},
+					},
+				},
+				Dependencies: []dependency{
+					{
+						GroupId:    "groupIdTwo",
+						ArtifactId: "artifactIdTwo",
+						Version:    "${version.spring.cloud}",
+					},
+				},
+				Build: build{
+					Plugins: []plugin{
+						{
+							GroupId:    "groupIdThree",
+							ArtifactId: "artifactIdThree",
+							Version:    "${version.spring.cloud.azure}",
+						},
+					},
+				},
+			},
+			expected: pom{
+				propertyMap: map[string]string{
+					"version.spring.boot":        "3.3.5",
+					"version.spring.cloud":       "2023.0.3",
+					"version.spring.cloud.azure": "5.18.0",
+				},
+				DependencyManagement: dependencyManagement{
+					Dependencies: []dependency{
+						{
+							GroupId:    "groupIdOne",
+							ArtifactId: "artifactIdOne",
+							Version:    "3.3.5",
+						},
+					},
+				},
+				Dependencies: []dependency{
+					{
+						GroupId:    "groupIdTwo",
+						ArtifactId: "artifactIdTwo",
+						Version:    "2023.0.3",
+					},
+				},
+				Build: build{
+					Plugins: []plugin{
+						{
+							GroupId:    "groupIdThree",
+							ArtifactId: "artifactIdThree",
+							Version:    "5.18.0",
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fulfillPropertyValue(&tt.inputPom)
+			if !reflect.DeepEqual(tt.inputPom, tt.expected) {
+				t.Fatalf("Expected %s dependencies, got %s", tt.expected, tt.inputPom)
+			}
+		})
+	}
+}
