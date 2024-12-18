@@ -66,17 +66,17 @@ type plugin struct {
 }
 
 // Not strictly equal to effective pom. Just try best to make sure the Dependencies are accurate.
-func createEffectivePomWithoutMvnCommandFromFilePath(filePath string) (*pom, error) {
+func createSimulatedEffectivePomFilePath(filePath string) (*pom, error) {
 	pom, err := unmarshalPomFromFilePath(filePath)
 	if err != nil {
 		return nil, err
 	}
 	pom.path = filepath.Dir(filePath)
-	convertToEffectivePomWithoutMvnCommand(&pom)
+	convertToSimulatedEffectivePom(&pom)
 	return &pom, nil
 }
 
-func convertToEffectivePomWithoutMvnCommand(pom *pom) {
+func convertToSimulatedEffectivePom(pom *pom) {
 	updateVersionAccordingToPropertiesAndDependencyManagement(pom)
 	absorbInformationFromParentAndImportedDependenciesInDependencyManagement(pom)
 }
@@ -103,11 +103,10 @@ func absorbInformationFromImportedDependenciesInDependencyManagement(pom *pom) {
 		if dep.Scope != "import" {
 			continue
 		}
-		importedPom, err := getPomByDependency(dep)
+		importedPom, err := getSimulatedEffectivePomByDependency(dep)
 		if err != nil {
 			continue // ignore error, because we want to get as more information as possible
 		}
-		convertToEffectivePomWithoutMvnCommand(&importedPom)
 		for key, value := range importedPom.propertyMap {
 			addToPropertyMapIfKeyIsNew(pom, key, value)
 		}
@@ -119,7 +118,7 @@ func absorbInformationFromImportedDependenciesInDependencyManagement(pom *pom) {
 	updateVersionAccordingToDependencyManagementMap(pom)
 }
 
-func getPomByDependency(dependency dependency) (pom, error) {
+func getSimulatedEffectivePomByDependency(dependency dependency) (pom, error) {
 	// todo finish this
 	return pom{}, nil
 }
