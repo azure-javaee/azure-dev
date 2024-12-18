@@ -79,12 +79,11 @@ func getDownloadedMvnCommand() (string, error) {
 }
 
 func getAzdMvnDir() (string, error) {
-	azdMvnFolderName := "azd-maven"
 	userHome, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("unable to get user home directory: %w", err)
 	}
-	return filepath.Join(userHome, azdMvnFolderName), nil
+	return filepath.Join(userHome, ".azd", "java", "maven"), nil
 }
 
 func getAzdMvnCommand(mavenVersion string) (string, error) {
