@@ -110,7 +110,7 @@ func parseProperties(properties Properties) map[string]string {
 	return result
 }
 
-func toEffectivePom(pomPath string) (pom, error) {
+func toEffectivePomByMvnCommand(pomPath string) (pom, error) {
 	if !commandExistsInPath("java") {
 		return pom{}, fmt.Errorf("can not get effective pom because java command not exist")
 	}

@@ -216,9 +216,9 @@ func TestToEffectivePom(t *testing.T) {
 				t.Fatalf("Failed to write temp POM file: %v", err)
 			}
 
-			effectivePom, err := toEffectivePom(pomPath)
+			effectivePom, err := toEffectivePomByMvnCommand(pomPath)
 			if err != nil {
-				t.Fatalf("toEffectivePom failed: %v", err)
+				t.Fatalf("toEffectivePomByMvnCommand failed: %v", err)
 			}
 
 			if len(effectivePom.Dependencies) != len(tt.expected) {
