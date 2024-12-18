@@ -41,8 +41,9 @@ func getMvnwCommandInProject(pomPath string) (string, error) {
 }
 
 const mavenVersion = "3.9.9"
+const mavenZipFileName = "apache-maven-" + mavenVersion + "-bin.zip"
 const mavenURL = "https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/" +
-	mavenVersion + "/apache-maven-" + mavenVersion + "-bin.zip"
+	mavenVersion + "/" + mavenZipFileName
 
 func getDownloadedMvnCommand() (string, error) {
 	mavenCommand, err := getAzdMvnCommand(mavenVersion)
@@ -65,13 +66,12 @@ func getDownloadedMvnCommand() (string, error) {
 		}
 	}
 
-	mavenFile := fmt.Sprintf("maven-wrapper-%s-bin.zip", mavenVersion)
-	wrapperPath := filepath.Join(mavenDir, mavenFile)
-	err = downloadMaven(wrapperPath)
+	mavenZipFilePath := filepath.Join(mavenDir, mavenZipFileName)
+	err = downloadMaven(mavenZipFilePath)
 	if err != nil {
 		return "", err
 	}
-	err = unzip(wrapperPath, mavenDir)
+	err = unzip(mavenZipFilePath, mavenDir)
 	if err != nil {
 		return "", fmt.Errorf("failed to unzip maven bin.zip: %w", err)
 	}
