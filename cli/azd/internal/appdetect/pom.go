@@ -65,23 +65,63 @@ type plugin struct {
 	Version    string `xml:"version"`
 }
 
-func toEffectivePomWithoutMvnCommand(filePath string) (*pom, error) {
+// Not strictly equal to effective pom. Just try best to make sure the Dependencies are accurate.
+func createEffectivePomWithoutMvnCommandFromFilePath(filePath string) (*pom, error) {
 	pom, err := unmarshalPomFromFilePath(filePath)
 	if err != nil {
 		return nil, err
 	}
 	pom.path = filepath.Dir(filePath)
-	updateVersionAccordingToPropertiesAndDependencyManagement(&pom)
-	// todo absorb information from parent and imported dependencies in dependencyManagement section
+	convertToEffectivePomWithoutMvnCommand(&pom)
 	return &pom, nil
+}
+
+func convertToEffectivePomWithoutMvnCommand(pom *pom) {
+	updateVersionAccordingToPropertiesAndDependencyManagement(pom)
+	absorbInformationFromParentAndImportedDependenciesInDependencyManagement(pom)
 }
 
 func updateVersionAccordingToPropertiesAndDependencyManagement(pom *pom) {
 	readPropertiesToPropertyMap(pom)
 	updateVersionAccordingToPropertyMap(pom)
-	// not handle pluginManagement because not we are not care about plugin's version.
+	// not handle pluginManagement because now we only care about dependency's version.
 	readDependencyManagementToDependencyManagementMap(pom)
 	updateVersionAccordingToDependencyManagementMap(pom)
+}
+
+func absorbInformationFromParentAndImportedDependenciesInDependencyManagement(pom *pom) {
+	absorbInformationFromParent(pom)
+	absorbInformationFromImportedDependenciesInDependencyManagement(pom)
+}
+
+func absorbInformationFromParent(pom *pom) {
+	// todo finish this
+}
+
+func absorbInformationFromImportedDependenciesInDependencyManagement(pom *pom) {
+	for _, dep := range pom.DependencyManagement.Dependencies {
+		if dep.Scope != "import" {
+			continue
+		}
+		importedPom, err := getPomByDependency(dep)
+		if err != nil {
+			continue // ignore error, because we want to get as more information as possible
+		}
+		convertToEffectivePomWithoutMvnCommand(&importedPom)
+		for key, value := range importedPom.propertyMap {
+			addToPropertyMapIfKeyIsNew(pom, key, value)
+		}
+		for _, dep := range importedPom.DependencyManagement.Dependencies {
+			addToDependencyManagementMapIfDependencyIsNew(pom, dep)
+		}
+	}
+	updateVersionAccordingToPropertyMap(pom)
+	updateVersionAccordingToDependencyManagementMap(pom)
+}
+
+func getPomByDependency(dependency dependency) (pom, error) {
+	// todo finish this
+	return pom{}, nil
 }
 
 func unmarshalPomFromFilePath(pomFilePath string) (pom, error) {
@@ -105,12 +145,19 @@ func unmarshalPomFromBytes(pomBytes []byte) (pom, error) {
 }
 
 func readPropertiesToPropertyMap(pom *pom) {
+	for _, entry := range pom.Properties.Entries {
+		addToPropertyMapIfKeyIsNew(pom, entry.XMLName.Local, entry.Value)
+	}
+}
+
+func addToPropertyMapIfKeyIsNew(pom *pom, key string, value string) {
 	if pom.propertyMap == nil {
 		pom.propertyMap = make(map[string]string)
 	}
-	for _, entry := range pom.Properties.Entries {
-		pom.propertyMap[entry.XMLName.Local] = entry.Value
+	if _, ok := pom.propertyMap[key]; ok {
+		return
 	}
+	pom.propertyMap[key] = value
 }
 
 func updateVersionAccordingToPropertyMap(pom *pom) {
@@ -160,11 +207,11 @@ func readDependencyManagementToDependencyManagementMap(pom *pom) {
 		pom.dependencyManagementMap = make(map[string]string)
 	}
 	for _, dep := range pom.DependencyManagement.Dependencies {
-		updateDependencyManagementMap(pom, dep)
+		addToDependencyManagementMapIfDependencyIsNew(pom, dep)
 	}
 }
 
-func updateDependencyManagementMap(pom *pom, dependency dependency) {
+func addToDependencyManagementMapIfDependencyIsNew(pom *pom, dependency dependency) {
 	version := strings.TrimSpace(dependency.Version)
 	if version == "" {
 		return
