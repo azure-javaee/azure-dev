@@ -39,17 +39,17 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 		if strings.ToLower(entry.Name()) == "pom.xml" {
 			tracing.SetUsageAttributes(fields.AppInitJavaDetect.String("start"))
 			pomFile := filepath.Join(path, entry.Name())
-			currentPom, err := toPom(pomFile)
+			mavenProject, err := toMavenProject(pomFile)
 			if err != nil {
 				log.Printf("Please edit azure.yaml manually to satisfy your requirement. azd can not help you "+
 					"to that by detect your java project because error happened when reading pom.xml: %s. ", err)
 				return nil, nil
 			}
 
-			if len(currentPom.Modules) > 0 {
+			if len(mavenProject.pom.Modules) > 0 {
 				// This is a multi-module project, we will capture the analysis, but return nil
 				// to continue recursing
-				jd.parentPoms = append(jd.parentPoms, *currentPom)
+				jd.parentPoms = append(jd.parentPoms, mavenProject.pom)
 				jd.mavenWrapperPaths = append(jd.mavenWrapperPaths, mavenWrapper{
 					posixPath: detectMavenWrapper(path, "mvnw"),
 					winPath:   detectMavenWrapper(path, "mvnw.cmd"),
@@ -72,7 +72,7 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 				Path:          path,
 				DetectionRule: "Inferred by presence of: pom.xml",
 			}
-			detectAzureDependenciesByAnalyzingSpringBootProject(parentPom, currentPom, &project)
+			detectAzureDependenciesByAnalyzingSpringBootProject(parentPom, &mavenProject.pom, &project)
 			if parentPom != nil {
 				project.Options = map[string]interface{}{
 					JavaProjectOptionMavenParentPath:       parentPom.path,
