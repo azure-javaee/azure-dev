@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
@@ -98,20 +97,6 @@ func unmarshalPomFromBytes(pomBytes []byte) (pom, error) {
 
 func readPropertiesToPropertyMap(pom *pom) {
 	pom.propertyMap = parseProperties(pom.Properties)
-}
-
-func replaceAllPlaceholders(pom pom, input string) string {
-	propsMap := parseProperties(pom.Properties)
-
-	re := regexp.MustCompile(`\$\{([A-Za-z0-9-_.]+)}`)
-	return re.ReplaceAllStringFunc(input, func(match string) string {
-		// Extract the key inside ${}
-		key := re.FindStringSubmatch(match)[1]
-		if value, exists := propsMap[key]; exists {
-			return value
-		}
-		return match
-	})
 }
 
 func parseProperties(properties Properties) map[string]string {
