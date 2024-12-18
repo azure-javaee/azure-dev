@@ -74,6 +74,7 @@ func toPom(filePath string) (*pom, error) {
 	updateVersionAccordingToPropertyMap(&pom)
 	// not handle pluginManagement because not we are not care about plugin's version.
 	readDependencyManagementToDependencyManagementMap(&pom)
+	updateVersionAccordingToDependencyManagementMap(&pom)
 	pom.path = filepath.Dir(filePath)
 	return &pom, nil
 }
@@ -168,6 +169,22 @@ func updateDependencyManagementMap(pom *pom, dependency dependency) {
 		return
 	}
 	pom.dependencyManagementMap[key] = version
+}
+
+func updateVersionAccordingToDependencyManagementMap(pom *pom) {
+	if pom.dependencyManagementMap == nil {
+		pom.dependencyManagementMap = make(map[string]string)
+	}
+	for i, dep := range pom.Dependencies {
+		if strings.TrimSpace(dep.Version) != "" {
+			continue
+		}
+		key := toDependencyManagementMapKey(dep)
+		managedVersion := pom.dependencyManagementMap[key]
+		if managedVersion != "" {
+			pom.Dependencies[i].Version = managedVersion
+		}
+	}
 }
 
 func toEffectivePomByMvnCommand(pomPath string) (pom, error) {
