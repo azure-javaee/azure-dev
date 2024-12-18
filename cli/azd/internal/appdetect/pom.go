@@ -66,7 +66,7 @@ type plugin struct {
 }
 
 // Not strictly equal to effective pom. Just try best to make sure the Dependencies are accurate.
-func createSimulatedEffectivePomFilePath(filePath string) (*pom, error) {
+func createSimulatedEffectivePomFromFilePath(filePath string) (*pom, error) {
 	pom, err := unmarshalPomFromFilePath(filePath)
 	if err != nil {
 		return nil, err
