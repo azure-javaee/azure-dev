@@ -69,3 +69,13 @@ func TestGetDownloadedMvnCommand(t *testing.T) {
 		t.Errorf("getDownloadedMvnCommand failed")
 	}
 }
+
+func TestGetMvnCommand(t *testing.T) {
+	maven, err := getMvnCommand()
+	if err != nil {
+		t.Errorf("getMvnCommand failed, %v", err)
+	}
+	if maven == "" {
+		t.Errorf("getMvnCommand failed")
+	}
+}
