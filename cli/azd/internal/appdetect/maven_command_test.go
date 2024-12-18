@@ -48,7 +48,7 @@ func TestGetMvnwCommandInProject(t *testing.T) {
 				}
 			}
 
-			result, _ := getMvnwCommandInProject(pomPath)
+			result, _ := getMvnwCommand(pomPath)
 			expectedResult := ""
 			if c.expected != "" {
 				expectedResult = filepath.Join(tempDir, c.expected)

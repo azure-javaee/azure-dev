@@ -12,8 +12,16 @@ import (
 	"strings"
 )
 
-func getMvnCommand(pomPath string) (string, error) {
-	mvnwCommand, err := getMvnwCommandInProject(pomPath)
+func getMvnCommand() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	return getMvnCommandFromPath(cwd)
+}
+
+func getMvnCommandFromPath(path string) (string, error) {
+	mvnwCommand, err := getMvnwCommand(path)
 	if err == nil {
 		return mvnwCommand, nil
 	}
@@ -23,9 +31,16 @@ func getMvnCommand(pomPath string) (string, error) {
 	return getDownloadedMvnCommand()
 }
 
-func getMvnwCommandInProject(pomPath string) (string, error) {
+func getMvnwCommand(path string) (string, error) {
 	mvnwCommand := "mvnw"
-	dir := filepath.Dir(pomPath)
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Dir(path)
+	if fileInfo.IsDir() {
+		dir = path
+	}
 	for {
 		commandPath := filepath.Join(dir, mvnwCommand)
 		if fileExists(commandPath) {
