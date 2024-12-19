@@ -165,7 +165,7 @@ func TestToEffectivePom(t *testing.T) {
 
 			for i, dep := range effectivePom.Dependencies {
 				if dep != tt.expected[i] {
-					t.Errorf("Expected: %s\nActual: %s", tt.expected[i], dep)
+					t.Errorf("\nExpected: %s\nActual:   %s", tt.expected[i], dep)
 				}
 			}
 		})
@@ -209,25 +209,26 @@ func TestReadPropertiesToPropertyMap(t *testing.T) {
 			}
 			readPropertiesToPropertyMap(&pom)
 			if !reflect.DeepEqual(pom.propertyMap, tt.expected) {
-				t.Fatalf("Expected: %s\nActual: %s", tt.expected, pom.propertyMap)
+				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, pom.propertyMap)
 			}
 		})
 	}
 }
 
-func TestFulfillPropertyValue(t *testing.T) {
+func TestUpdatePropertyValueAccordingToPropertyMap(t *testing.T) {
 	var tests = []struct {
 		name     string
 		inputPom pom
 		expected pom
 	}{
 		{
-			name: "Test updateVersionAccordingToPropertyMap",
+			name: "Test updatePropertyValueAccordingToPropertyMap",
 			inputPom: pom{
 				propertyMap: map[string]string{
 					"version.spring.boot":        "3.3.5",
 					"version.spring.cloud":       "2023.0.3",
 					"version.spring.cloud.azure": "5.18.0",
+					"another.property":           "${version.spring.cloud.azure}",
 				},
 				DependencyManagement: dependencyManagement{
 					Dependencies: []dependency{
@@ -260,6 +261,7 @@ func TestFulfillPropertyValue(t *testing.T) {
 					"version.spring.boot":        "3.3.5",
 					"version.spring.cloud":       "2023.0.3",
 					"version.spring.cloud.azure": "5.18.0",
+					"another.property":           "5.18.0",
 				},
 				DependencyManagement: dependencyManagement{
 					Dependencies: []dependency{
@@ -291,9 +293,9 @@ func TestFulfillPropertyValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			updateVersionAccordingToPropertyMap(&tt.inputPom)
+			updatePropertyValueAccordingToPropertyMap(&tt.inputPom)
 			if !reflect.DeepEqual(tt.inputPom, tt.expected) {
-				t.Fatalf("Expected: %s\nActual: %s", tt.expected, tt.inputPom)
+				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.inputPom)
 			}
 		})
 	}
@@ -306,7 +308,7 @@ func TestReadDependencyManagementToDependencyManagementMap(t *testing.T) {
 		expected pom
 	}{
 		{
-			name: "Test updateVersionAccordingToPropertyMap",
+			name: "Test readDependencyManagementToDependencyManagementMap",
 			inputPom: pom{
 				DependencyManagement: dependencyManagement{
 					Dependencies: []dependency{
@@ -350,7 +352,7 @@ func TestReadDependencyManagementToDependencyManagementMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			readDependencyManagementToDependencyManagementMap(&tt.inputPom)
 			if !reflect.DeepEqual(tt.inputPom, tt.expected) {
-				t.Fatalf("Expected: %s\nActual: %s", tt.expected, tt.inputPom)
+				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.inputPom)
 			}
 		})
 	}
@@ -363,7 +365,7 @@ func TestUpdateVersionAccordingToDependencyManagementMap(t *testing.T) {
 		expected pom
 	}{
 		{
-			name: "Test updateVersionAccordingToPropertyMap",
+			name: "Test updateVersionAccordingToDependencyManagementMap",
 			inputPom: pom{
 				Dependencies: []dependency{
 					{
@@ -393,7 +395,7 @@ func TestUpdateVersionAccordingToDependencyManagementMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			updateVersionAccordingToDependencyManagementMap(&tt.inputPom)
 			if !reflect.DeepEqual(tt.inputPom, tt.expected) {
-				t.Fatalf("Expected: %s\nActual: %s", tt.expected, tt.inputPom)
+				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.inputPom)
 			}
 		})
 	}
@@ -464,7 +466,7 @@ func TestUpdateVersionAccordingToPropertiesAndDependencyManagement(t *testing.T)
 
 			updateVersionAccordingToPropertiesAndDependencyManagement(&pom)
 			if !reflect.DeepEqual(pom.Dependencies, tt.expected) {
-				t.Fatalf("Expected: %s\nActual: %s", tt.expected, pom.Dependencies)
+				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, pom.Dependencies)
 			}
 		})
 	}
@@ -497,9 +499,9 @@ func TestGetMavenRepositoryUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual := getMavenRepositoryUrl(tt.groupId, tt.artifactId, tt.version)
+			actual := getRemoteMavenRepositoryUrl(tt.groupId, tt.artifactId, tt.version)
 			if !reflect.DeepEqual(actual, tt.expected) {
-				t.Fatalf("Expected: %s\nActual: %s", tt.expected, actual)
+				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, actual)
 			}
 		})
 	}
@@ -518,25 +520,44 @@ func TestGetSimulatedEffectivePom(t *testing.T) {
 			groupId:    "org.springframework.boot",
 			artifactId: "spring-boot-starter-parent",
 			version:    "3.4.0",
-			expected:   0, // todo: update this after parent information absorbed.
+			expected:   1496,
 		},
 		{
 			name:       "spring-boot-dependencies",
 			groupId:    "org.springframework.boot",
 			artifactId: "spring-boot-dependencies",
 			version:    "3.4.0",
-			expected:   409,
+			expected:   1496,
+		},
+		{
+			name:       "kotlin-bom",
+			groupId:    "org.jetbrains.kotlin",
+			artifactId: "kotlin-bom",
+			version:    "1.9.25",
+			expected:   23,
+		},
+		{
+			name:       "infinispan-bom",
+			groupId:    "org.infinispan",
+			artifactId: "infinispan-bom",
+			version:    "15.0.11.Final",
+			expected:   65,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pom, err := getSimulatedEffectivePom(tt.groupId, tt.artifactId, tt.version)
+			pom, err := getSimulatedEffectivePomFromRemoteMavenRepository(tt.groupId, tt.artifactId, tt.version)
 			if err != nil {
 				t.Fatalf("Failed to create temp directory: %v", err)
 			}
-			actual := len(pom.DependencyManagement.Dependencies)
+			for _, value := range pom.dependencyManagementMap {
+				if isVariable(value) {
+					t.Fatalf("Unresolved property: value = %s", value)
+				}
+			}
+			actual := len(pom.dependencyManagementMap)
 			if !reflect.DeepEqual(actual, tt.expected) {
-				t.Fatalf("Expected: %d\nActual: %d", tt.expected, actual)
+				t.Fatalf("\nExpected: %d\nActual:   %d", tt.expected, actual)
 			}
 		})
 	}

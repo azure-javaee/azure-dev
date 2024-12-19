@@ -17,6 +17,9 @@ import (
 type pom struct {
 	XmlName                 xml.Name             `xml:"project"`
 	Parent                  parent               `xml:"parent"`
+	GroupId                 string               `xml:"groupId"`
+	ArtifactId              string               `xml:"artifactId"`
+	Version                 string               `xml:"version"`
 	Modules                 []string             `xml:"modules>module"` // Capture the modules
 	Properties              Properties           `xml:"properties"`
 	Dependencies            []dependency         `xml:"dependencies>dependency"`
@@ -85,8 +88,9 @@ func convertToSimulatedEffectivePom(pom *pom) {
 }
 
 func updateVersionAccordingToPropertiesAndDependencyManagement(pom *pom) {
+	addCommonPropertiesLikeProjectGroupIdAndProjectVersionToPropertyMap(pom)
 	readPropertiesToPropertyMap(pom)
-	updateVersionAccordingToPropertyMap(pom)
+	updatePropertyValueAccordingToPropertyMap(pom)
 	// not handle pluginManagement because now we only care about dependency's version.
 	readDependencyManagementToDependencyManagementMap(pom)
 	updateVersionAccordingToDependencyManagementMap(pom)
@@ -98,7 +102,20 @@ func absorbInformationFromParentAndImportedDependenciesInDependencyManagement(po
 }
 
 func absorbInformationFromParent(pom *pom) {
+	absorbInformationFromParentInLocalFileSystem(pom)
+	absorbInformationFromParentInRemoteMavenRepository(pom)
+}
+
+func absorbInformationFromParentInLocalFileSystem(pom *pom) {
 	// todo finish this
+}
+
+func absorbInformationFromParentInRemoteMavenRepository(pom *pom) {
+	p := pom.Parent
+	if p.Version == "" {
+		return
+	}
+	absorbInformationFromRemoteMavenRepository(pom, p.GroupId, p.ArtifactId, p.Version)
 }
 
 func absorbInformationFromImportedDependenciesInDependencyManagement(pom *pom) {
@@ -106,21 +123,25 @@ func absorbInformationFromImportedDependenciesInDependencyManagement(pom *pom) {
 		if dep.Scope != "import" {
 			continue
 		}
-		importedPom, _ := getSimulatedEffectivePom(dep.GroupId, dep.ArtifactId, dep.Version)
-		// ignore error, because we want to get as more information as possible
-		for key, value := range importedPom.propertyMap {
-			addToPropertyMapIfKeyIsNew(pom, key, value)
-		}
-		for _, dep := range importedPom.DependencyManagement.Dependencies {
-			addToDependencyManagementMapIfDependencyIsNew(pom, dep)
-		}
+		absorbInformationFromRemoteMavenRepository(pom, dep.GroupId, dep.ArtifactId, dep.Version)
 	}
-	updateVersionAccordingToPropertyMap(pom)
+}
+
+func absorbInformationFromRemoteMavenRepository(pom *pom, groupId string, artifactId string, version string) {
+	importedPom, _ := getSimulatedEffectivePomFromRemoteMavenRepository(groupId, artifactId, version)
+	// ignore error, because we want to get as more information as possible
+	for key, value := range importedPom.propertyMap {
+		addToPropertyMapIfKeyIsNew(pom, key, value)
+	}
+	for key, value := range importedPom.dependencyManagementMap {
+		addToDependencyManagementMapIfDependencyIsNew(pom, key, value)
+	}
+	updatePropertyValueAccordingToPropertyMap(pom)
 	updateVersionAccordingToDependencyManagementMap(pom)
 }
 
-func getSimulatedEffectivePom(groupId string, artifactId string, version string) (pom, error) {
-	url := getMavenRepositoryUrl(groupId, artifactId, version)
+func getSimulatedEffectivePomFromRemoteMavenRepository(groupId string, artifactId string, version string) (pom, error) {
+	url := getRemoteMavenRepositoryUrl(groupId, artifactId, version)
 	resp, err := http.Get(url)
 	if err != nil {
 		return pom{}, err
@@ -140,10 +161,15 @@ func getSimulatedEffectivePom(groupId string, artifactId string, version string)
 		return pom{}, fmt.Errorf("parsing xml: %w", err)
 	}
 	convertToSimulatedEffectivePom(&result)
+	for _, value := range result.dependencyManagementMap {
+		if isVariable(value) {
+			log.Printf("Unresolved property: value = %s\n", value)
+		}
+	}
 	return result, nil
 }
 
-func getMavenRepositoryUrl(groupId string, artifactId string, version string) string {
+func getRemoteMavenRepositoryUrl(groupId string, artifactId string, version string) string {
 	return fmt.Sprintf("https://repo.maven.apache.org/maven2/%s/%s/%s/%s-%s.pom",
 		strings.ReplaceAll(groupId, ".", "/"), artifactId, version, artifactId, version)
 }
@@ -168,6 +194,15 @@ func unmarshalPomFromBytes(pomBytes []byte) (pom, error) {
 	return unmarshalledPom, nil
 }
 
+func addCommonPropertiesLikeProjectGroupIdAndProjectVersionToPropertyMap(pom *pom) {
+	addToPropertyMapIfKeyIsNew(pom, "project.groupId", pom.GroupId)
+	pomVersion := pom.Version
+	if pomVersion == "" {
+		pomVersion = pom.Parent.Version
+	}
+	addToPropertyMapIfKeyIsNew(pom, "project.version", pomVersion)
+}
+
 func readPropertiesToPropertyMap(pom *pom) {
 	for _, entry := range pom.Properties.Entries {
 		addToPropertyMapIfKeyIsNew(pom, entry.XMLName.Local, entry.Value)
@@ -184,12 +219,35 @@ func addToPropertyMapIfKeyIsNew(pom *pom, key string, value string) {
 	pom.propertyMap[key] = value
 }
 
-func updateVersionAccordingToPropertyMap(pom *pom) {
+func updatePropertyValueAccordingToPropertyMap(pom *pom) {
+	// propertiesMap should be updated before others.
+	for key, value := range pom.propertyMap {
+		if isVariable(value) {
+			variableName := getVariableName(value)
+			if variableValue, ok := pom.propertyMap[variableName]; ok {
+				pom.propertyMap[key] = variableValue
+			}
+		}
+	}
+	for key, value := range pom.dependencyManagementMap {
+		if isVariable(value) {
+			variableName := getVariableName(value)
+			if variableValue, ok := pom.propertyMap[variableName]; ok {
+				pom.dependencyManagementMap[key] = variableValue
+			}
+		}
+	}
 	for i, dep := range pom.DependencyManagement.Dependencies {
 		if isVariable(dep.Version) {
 			variableName := getVariableName(dep.Version)
 			if variableValue, ok := pom.propertyMap[variableName]; ok {
 				pom.DependencyManagement.Dependencies[i].Version = variableValue
+			}
+		}
+		if isVariable(dep.GroupId) {
+			variableName := getVariableName(dep.GroupId)
+			if variableValue, ok := pom.propertyMap[variableName]; ok {
+				pom.DependencyManagement.Dependencies[i].GroupId = variableValue
 			}
 		}
 	}
@@ -200,12 +258,24 @@ func updateVersionAccordingToPropertyMap(pom *pom) {
 				pom.Dependencies[i].Version = variableValue
 			}
 		}
+		if isVariable(dep.GroupId) {
+			variableName := getVariableName(dep.GroupId)
+			if variableValue, ok := pom.propertyMap[variableName]; ok {
+				pom.Dependencies[i].GroupId = variableValue
+			}
+		}
 	}
 	for i, dep := range pom.Build.Plugins {
 		if isVariable(dep.Version) {
 			variableName := getVariableName(dep.Version)
 			if variableValue, ok := pom.propertyMap[variableName]; ok {
 				pom.Build.Plugins[i].Version = variableValue
+			}
+		}
+		if isVariable(dep.GroupId) {
+			variableName := getVariableName(dep.GroupId)
+			if variableValue, ok := pom.propertyMap[variableName]; ok {
+				pom.Build.Plugins[i].GroupId = variableValue
 			}
 		}
 	}
@@ -231,20 +301,18 @@ func readDependencyManagementToDependencyManagementMap(pom *pom) {
 		pom.dependencyManagementMap = make(map[string]string)
 	}
 	for _, dep := range pom.DependencyManagement.Dependencies {
-		addToDependencyManagementMapIfDependencyIsNew(pom, dep)
+		addToDependencyManagementMapIfDependencyIsNew(pom, toDependencyManagementMapKey(dep), dep.Version)
 	}
 }
 
-func addToDependencyManagementMapIfDependencyIsNew(pom *pom, dependency dependency) {
-	version := strings.TrimSpace(dependency.Version)
-	if version == "" {
+func addToDependencyManagementMapIfDependencyIsNew(pom *pom, key string, value string) {
+	if value == "" {
 		return
 	}
-	key := toDependencyManagementMapKey(dependency)
 	if _, ok := pom.dependencyManagementMap[key]; ok {
 		return
 	}
-	pom.dependencyManagementMap[key] = version
+	pom.dependencyManagementMap[key] = value
 }
 
 func updateVersionAccordingToDependencyManagementMap(pom *pom) {
