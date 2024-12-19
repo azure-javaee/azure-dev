@@ -4,6 +4,9 @@ import (
 	"bufio"
 	"encoding/xml"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -103,10 +106,8 @@ func absorbInformationFromImportedDependenciesInDependencyManagement(pom *pom) {
 		if dep.Scope != "import" {
 			continue
 		}
-		importedPom, err := getSimulatedEffectivePomByDependency(dep)
-		if err != nil {
-			continue // ignore error, because we want to get as more information as possible
-		}
+		importedPom, _ := getSimulatedEffectivePom(dep.GroupId, dep.ArtifactId, dep.Version)
+		// ignore error, because we want to get as more information as possible
 		for key, value := range importedPom.propertyMap {
 			addToPropertyMapIfKeyIsNew(pom, key, value)
 		}
@@ -118,9 +119,28 @@ func absorbInformationFromImportedDependenciesInDependencyManagement(pom *pom) {
 	updateVersionAccordingToDependencyManagementMap(pom)
 }
 
-func getSimulatedEffectivePomByDependency(dependency dependency) (pom, error) {
-	// todo finish this
-	return pom{}, nil
+func getSimulatedEffectivePom(groupId string, artifactId string, version string) (pom, error) {
+	url := getMavenRepositoryUrl(groupId, artifactId, version)
+	resp, err := http.Get(url)
+	if err != nil {
+		return pom{}, err
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Println("failed to close http response body")
+		}
+	}(resp.Body)
+	bytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return pom{}, err
+	}
+	var result pom
+	if err := xml.Unmarshal(bytes, &result); err != nil {
+		return pom{}, fmt.Errorf("parsing xml: %w", err)
+	}
+	convertToSimulatedEffectivePom(&result)
+	return result, nil
 }
 
 func getMavenRepositoryUrl(groupId string, artifactId string, version string) string {

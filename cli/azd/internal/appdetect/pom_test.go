@@ -504,3 +504,40 @@ func TestGetMavenRepositoryUrl(t *testing.T) {
 		})
 	}
 }
+
+func TestGetSimulatedEffectivePom(t *testing.T) {
+	var tests = []struct {
+		name       string
+		groupId    string
+		artifactId string
+		version    string
+		expected   int
+	}{
+		{
+			name:       "spring-boot-starter-parent",
+			groupId:    "org.springframework.boot",
+			artifactId: "spring-boot-starter-parent",
+			version:    "3.4.0",
+			expected:   0, // todo: update this after parent information absorbed.
+		},
+		{
+			name:       "spring-boot-dependencies",
+			groupId:    "org.springframework.boot",
+			artifactId: "spring-boot-dependencies",
+			version:    "3.4.0",
+			expected:   409,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pom, err := getSimulatedEffectivePom(tt.groupId, tt.artifactId, tt.version)
+			if err != nil {
+				t.Fatalf("Failed to create temp directory: %v", err)
+			}
+			actual := len(pom.DependencyManagement.Dependencies)
+			if !reflect.DeepEqual(actual, tt.expected) {
+				t.Fatalf("Expected: %d\nActual: %d", tt.expected, actual)
+			}
+		})
+	}
+}
