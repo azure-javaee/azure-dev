@@ -469,3 +469,38 @@ func TestUpdateVersionAccordingToPropertiesAndDependencyManagement(t *testing.T)
 		})
 	}
 }
+
+func TestGetMavenRepositoryUrl(t *testing.T) {
+	var tests = []struct {
+		name       string
+		groupId    string
+		artifactId string
+		version    string
+		expected   string
+	}{
+		{
+			name:       "spring-boot-starter-parent",
+			groupId:    "org.springframework.boot",
+			artifactId: "spring-boot-starter-parent",
+			version:    "3.4.0",
+			expected: "https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-starter-parent/3.4.0/" +
+				"spring-boot-starter-parent-3.4.0.pom",
+		},
+		{
+			name:       "spring-boot-dependencies",
+			groupId:    "org.springframework.boot",
+			artifactId: "spring-boot-dependencies",
+			version:    "3.4.0",
+			expected: "https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-dependencies/3.4.0/" +
+				"spring-boot-dependencies-3.4.0.pom",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := getMavenRepositoryUrl(tt.groupId, tt.artifactId, tt.version)
+			if !reflect.DeepEqual(actual, tt.expected) {
+				t.Fatalf("Expected: %s\nActual: %s", tt.expected, actual)
+			}
+		})
+	}
+}

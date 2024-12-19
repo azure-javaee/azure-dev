@@ -123,6 +123,11 @@ func getSimulatedEffectivePomByDependency(dependency dependency) (pom, error) {
 	return pom{}, nil
 }
 
+func getMavenRepositoryUrl(groupId string, artifactId string, version string) string {
+	return fmt.Sprintf("https://repo.maven.apache.org/maven2/%s/%s/%s/%s-%s.pom",
+		strings.ReplaceAll(groupId, ".", "/"), artifactId, version, artifactId, version)
+}
+
 func unmarshalPomFromFilePath(pomFilePath string) (pom, error) {
 	bytes, err := os.ReadFile(pomFilePath)
 	if err != nil {
