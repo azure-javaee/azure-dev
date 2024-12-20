@@ -5,11 +5,8 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
-	"io"
 	"log"
 	"log/slog"
-	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -210,20 +207,7 @@ func absorbDependencyManagement(pom *pom, toBeAbsorbedPom pom) {
 
 func getSimulatedEffectivePomFromRemoteMavenRepository(groupId string, artifactId string, version string) (pom, error) {
 	requestUrl := getRemoteMavenRepositoryUrl(groupId, artifactId, version)
-	if _, err := url.ParseRequestURI(requestUrl); err != nil {
-		return pom{}, err
-	}
-	resp, err := http.Get(requestUrl)
-	if err != nil {
-		return pom{}, err
-	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			log.Println("failed to close http response body")
-		}
-	}(resp.Body)
-	bytes, err := io.ReadAll(resp.Body)
+	bytes, err := download(requestUrl)
 	if err != nil {
 		return pom{}, err
 	}

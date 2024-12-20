@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -115,35 +113,13 @@ func getAzdMvnCommand(mavenVersion string) (string, error) {
 	return azdMvnCommand, nil
 }
 
-func downloadMaven(mavenVersion string, filepath string) error {
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer func(out *os.File) {
-		err := out.Close()
-		if err != nil {
-			log.Println("failed to close file. %w", err)
-		}
-	}(out)
-
+func downloadMaven(mavenVersion string, filePath string) error {
 	requestUrl := mavenUrl(mavenVersion)
-	if _, err := url.ParseRequestURI(requestUrl); err != nil {
-		return err
-	}
-	resp, err := http.Get(requestUrl)
+	data, err := download(requestUrl)
 	if err != nil {
 		return err
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			log.Println("failed to close ReadCloser. %w", err)
-		}
-	}(resp.Body)
-
-	_, err = io.Copy(out, resp.Body)
-	return err
+	return os.WriteFile(filePath, data, 0600)
 }
 
 func unzip(src string, destinationFolder string) error {
