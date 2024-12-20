@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -147,8 +148,11 @@ func absorbInformationFromRemoteMavenRepository(pom *pom, groupId string, artifa
 }
 
 func getSimulatedEffectivePomFromRemoteMavenRepository(groupId string, artifactId string, version string) (pom, error) {
-	url := getRemoteMavenRepositoryUrl(groupId, artifactId, version)
-	resp, err := http.Get(url)
+	requestUrl := getRemoteMavenRepositoryUrl(groupId, artifactId, version)
+	if _, err := url.ParseRequestURI(requestUrl); err != nil {
+		return pom{}, err
+	}
+	resp, err := http.Get(requestUrl)
 	if err != nil {
 		return pom{}, err
 	}
