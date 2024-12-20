@@ -33,9 +33,10 @@ type pom struct {
 
 // Parent represents the parent POM if this project is a module.
 type parent struct {
-	GroupId    string `xml:"groupId"`
-	ArtifactId string `xml:"artifactId"`
-	Version    string `xml:"version"`
+	GroupId      string `xml:"groupId"`
+	ArtifactId   string `xml:"artifactId"`
+	Version      string `xml:"version"`
+	RelativePath string `xml:"relativePath"`
 }
 
 type Properties struct {
@@ -112,7 +113,21 @@ func absorbInformationFromParent(pom *pom) {
 }
 
 func absorbInformationFromParentInLocalFileSystem(pom *pom) {
+	if !parentExists(*pom) {
+		return
+	}
 	// todo finish this
+}
+
+func parentExists(pom pom) bool {
+	return pom.Parent.GroupId != "" && pom.Parent.ArtifactId != ""
+}
+
+func getParentPomFilePath(pom pom) string {
+	if pom.Parent.RelativePath == "" {
+		return ""
+	}
+	return "" // todo finish this.
 }
 
 func absorbInformationFromParentInRemoteMavenRepository(pom *pom) {
