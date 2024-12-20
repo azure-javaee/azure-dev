@@ -171,20 +171,37 @@ func absorbInformationFromParentInRemoteMavenRepository(pom *pom) {
 	absorbDependencyManagement(pom, toBeAbsorbedPom)
 	absorbPropertyMap(pom, toBeAbsorbedPom)
 	absorbDependency(pom, toBeAbsorbedPom)
-	// todo absorb build plugin from parent
+	absorbBuildPlugin(pom, toBeAbsorbedPom)
 }
 
 func absorbDependency(pom *pom, toBeAbsorbedPom pom) {
 	for _, dep := range toBeAbsorbedPom.Dependencies {
-		if !contains(pom.Dependencies, dep) {
+		if !containsDependency(pom.Dependencies, dep) {
 			pom.Dependencies = append(pom.Dependencies, dep)
 		}
 	}
 }
 
-func contains(deps []dependency, dep dependency) bool {
-	for _, d := range deps {
-		if d.GroupId == dep.GroupId && d.ArtifactId == dep.ArtifactId {
+func containsDependency(deps []dependency, targetDep dependency) bool {
+	for _, dep := range deps {
+		if dep.GroupId == targetDep.GroupId && dep.ArtifactId == targetDep.ArtifactId {
+			return true
+		}
+	}
+	return false
+}
+
+func absorbBuildPlugin(pom *pom, toBeAbsorbedPom pom) {
+	for _, p := range toBeAbsorbedPom.Build.Plugins {
+		if !containsBuildPlugin(pom.Build.Plugins, p) {
+			pom.Build.Plugins = append(pom.Build.Plugins, p)
+		}
+	}
+}
+
+func containsBuildPlugin(plugins []plugin, targetPlugin plugin) bool {
+	for _, p := range plugins {
+		if p.GroupId == targetPlugin.GroupId && p.ArtifactId == targetPlugin.ArtifactId {
 			return true
 		}
 	}

@@ -865,7 +865,7 @@ func TestAbsorbDependency(t *testing.T) {
 		expected        pom
 	}{
 		{
-			name: "normal case",
+			name: "absorb 2 dependencies",
 			input: pom{
 				GroupId:      "sampleGroupId",
 				ArtifactId:   "sampleArtifactId",
@@ -911,10 +911,183 @@ func TestAbsorbDependency(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "absorb 1 dependency and skip 1 dependency",
+			input: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactId",
+				Version:    "1.0.0",
+				Dependencies: []dependency{
+					{
+						GroupId:    "groupIdOne",
+						ArtifactId: "artifactIdOne",
+						Version:    "2.0.0",
+						Scope:      "compile",
+					},
+				},
+			},
+			toBeAbsorbedPom: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactIdToBeAbsorbed",
+				Version:    "1.0.0",
+				Dependencies: []dependency{
+					{
+						GroupId:    "groupIdOne",
+						ArtifactId: "artifactIdOne",
+						Version:    "1.0.0",
+						Scope:      "compile",
+					},
+					{
+						GroupId:    "groupIdTwo",
+						ArtifactId: "artifactIdTwo",
+						Version:    "1.0.0",
+						Scope:      "test",
+					},
+				},
+			},
+			expected: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactId",
+				Version:    "1.0.0",
+				Dependencies: []dependency{
+					{
+						GroupId:    "groupIdOne",
+						ArtifactId: "artifactIdOne",
+						Version:    "2.0.0", // keep original value
+						Scope:      "compile",
+					},
+					{
+						GroupId:    "groupIdTwo",
+						ArtifactId: "artifactIdTwo",
+						Version:    "1.0.0",
+						Scope:      "test",
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			absorbDependency(&tt.input, tt.toBeAbsorbedPom)
+			if !reflect.DeepEqual(tt.input, tt.expected) {
+				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.input)
+			}
+		})
+	}
+}
+
+func TestAbsorbBuildPlugin(t *testing.T) {
+	var tests = []struct {
+		name            string
+		input           pom
+		toBeAbsorbedPom pom
+		expected        pom
+	}{
+		{
+			name: "absorb 2 plugins",
+			input: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactId",
+				Version:    "1.0.0",
+			},
+			toBeAbsorbedPom: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactIdToBeAbsorbed",
+				Version:    "1.0.0",
+				Build: build{
+					Plugins: []plugin{
+						{
+							GroupId:    "groupIdOne",
+							ArtifactId: "artifactIdOne",
+							Version:    "1.0.0",
+						},
+						{
+							GroupId:    "groupIdTwo",
+							ArtifactId: "artifactIdTwo",
+							Version:    "1.0.0",
+						},
+					},
+				},
+			},
+			expected: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactId",
+				Version:    "1.0.0",
+				Build: build{
+					Plugins: []plugin{
+						{
+							GroupId:    "groupIdOne",
+							ArtifactId: "artifactIdOne",
+							Version:    "1.0.0",
+						},
+						{
+							GroupId:    "groupIdTwo",
+							ArtifactId: "artifactIdTwo",
+							Version:    "1.0.0",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "absorb 1 plugin and skip 1 plugin",
+			input: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactId",
+				Version:    "1.0.0",
+				Build: build{
+					Plugins: []plugin{
+						{
+							GroupId:    "groupIdOne",
+							ArtifactId: "artifactIdOne",
+							Version:    "2.0.0",
+						},
+					},
+				},
+			},
+			toBeAbsorbedPom: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactIdToBeAbsorbed",
+				Version:    "1.0.0",
+				Build: build{
+					Plugins: []plugin{
+						{
+							GroupId:    "groupIdOne",
+							ArtifactId: "artifactIdOne",
+							Version:    "1.0.0",
+						},
+						{
+							GroupId:    "groupIdTwo",
+							ArtifactId: "artifactIdTwo",
+							Version:    "1.0.0",
+						},
+					},
+				},
+			},
+			expected: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactId",
+				Version:    "1.0.0",
+				Build: build{
+					Plugins: []plugin{
+						{
+							GroupId:    "groupIdOne",
+							ArtifactId: "artifactIdOne",
+							Version:    "2.0.0", // keep original value
+						},
+						{
+							GroupId:    "groupIdTwo",
+							ArtifactId: "artifactIdTwo",
+							Version:    "1.0.0",
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			absorbBuildPlugin(&tt.input, tt.toBeAbsorbedPom)
 			if !reflect.DeepEqual(tt.input, tt.expected) {
 				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.input)
 			}
