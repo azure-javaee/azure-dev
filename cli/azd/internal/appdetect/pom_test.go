@@ -1,6 +1,7 @@
 package appdetect
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -155,9 +156,9 @@ func TestToEffectivePom(t *testing.T) {
 				t.Fatalf("Failed to write temp POM file: %v", err)
 			}
 
-			effectivePom, err := toEffectivePomByMvnCommand(pomPath)
+			effectivePom, err := createEffectivePom(pomPath)
 			if err != nil {
-				t.Fatalf("toEffectivePomByMvnCommand failed: %v", err)
+				t.Fatalf("createEffectivePom failed: %v", err)
 			}
 
 			if len(effectivePom.Dependencies) != len(tt.expected) {
@@ -1093,4 +1094,102 @@ func TestAbsorbBuildPlugin(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
+	if !commandExistsInPath("java") {
+		slog.Debug("Skip TestCreateSimulatedEffectivePomFromFilePath because java command not found.")
+	}
+	var tests = []struct {
+		name     string
+		testPoms []testPom
+	}{
+		{
+			name: "no parent",
+			testPoms: []testPom{
+				{
+					pomFilePath: "pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+							<groupId>com.example</groupId>
+							<artifactId>example-project</artifactId>
+							<version>1.0.0</version>
+							<dependencies>
+								<dependency>
+									<groupId>org.springframework</groupId>
+									<artifactId>spring-core</artifactId>
+									<version>5.3.8</version>
+									<scope>compile</scope>
+								</dependency>
+								<dependency>
+									<groupId>junit</groupId>
+									<artifactId>junit</artifactId>
+									<version>4.13.2</version>
+									<scope>test</scope>
+								</dependency>
+							</dependencies>
+						</project>
+						`,
+				},
+				// todo add more cases
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, testPom := range tt.testPoms {
+				path, err := prepareTestPomFiles(testPom)
+				if err != nil {
+					t.Fatalf("%v", err)
+				}
+				pomFilePath := filepath.Join(path, testPom.pomFilePath)
+				effectivePom, err := createEffectivePom(pomFilePath)
+				if err != nil {
+					t.Fatalf("%v", err)
+				}
+				simulatedEffectivePom, err := createSimulatedEffectivePom(pomFilePath)
+				if !reflect.DeepEqual(effectivePom.Dependencies, simulatedEffectivePom.Dependencies) {
+					t.Fatalf("\neffectivePom.Dependencies:          %s\nsimulatedEffectivePom.Dependencies:   %s",
+						effectivePom.Dependencies, simulatedEffectivePom)
+				}
+				removeDefaultMavenPluginsInEffectivePom(&effectivePom)
+				if !reflect.DeepEqual(effectivePom.Build.Plugins, simulatedEffectivePom.Build.Plugins) {
+					t.Fatalf("\neffectivePom.Build.Plugins:          %s\nsimulatedEffectivePom.Build.Plugins:   %s",
+						effectivePom.Build.Plugins, simulatedEffectivePom.Build.Plugins)
+				}
+			}
+		})
+	}
+}
+
+func removeDefaultMavenPluginsInEffectivePom(effectivePom *pom) {
+	var newPlugins []plugin
+	for _, plugin := range effectivePom.Build.Plugins {
+		if strings.HasPrefix(plugin.ArtifactId, "maven-") &&
+			strings.HasSuffix(plugin.ArtifactId, "-plugin") {
+			continue
+		}
+		newPlugins = append(newPlugins, plugin)
+	}
+	effectivePom.Build.Plugins = newPlugins
+}
+
+type testPom struct {
+	pomFilePath      string
+	pomContentString string
+}
+
+func prepareTestPomFiles(testPom testPom) (string, error) {
+	tempDir, err := os.MkdirTemp("", "prepareTestPomFiles")
+	if err != nil {
+		return "", err
+	}
+
+	pomPath := filepath.Join(tempDir, testPom.pomFilePath)
+	err = os.WriteFile(pomPath, []byte(testPom.pomContentString), 0600)
+	if err != nil {
+		return "", err
+	}
+	return tempDir, nil
 }

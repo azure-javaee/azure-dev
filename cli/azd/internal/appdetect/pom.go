@@ -72,8 +72,13 @@ type plugin struct {
 	Version    string `xml:"version"`
 }
 
-// Not strictly equal to effective pom. Just try best to make sure the Dependencies are accurate.
-func createSimulatedEffectivePomFromFilePath(pomFilePath string) (*pom, error) {
+// Simulated effective pom means not strictly equal to effective pom.
+// Just try best to make sure these item are same to the real effective pom:
+//  1. pom.Dependencies. Only make sure the groupId/artifactId/version.
+//  2. pom.Build.Plugins.
+//     2.1. Only make sure the groupId/artifactId/version.
+//     2.2. Not include the default maven plugins (name with this patten: "maven-xxx-plugin").
+func createSimulatedEffectivePom(pomFilePath string) (*pom, error) {
 	pom, err := unmarshalPomFromFilePath(pomFilePath)
 	if err != nil {
 		return nil, err
@@ -125,7 +130,7 @@ func absorbInformationFromParentInLocalFileSystem(pom *pom) bool {
 			"pomFilePath", pom.pomFilePath)
 		return false
 	}
-	parentEffectivePom, err := createSimulatedEffectivePomFromFilePath(parentPomFilePath)
+	parentEffectivePom, err := createSimulatedEffectivePom(parentPomFilePath)
 	if err != nil {
 		slog.DebugContext(context.TODO(), "Skip analyze parent pom because analyze parent pom failed.",
 			"pomFilePath", pom.pomFilePath)
@@ -452,7 +457,7 @@ func updateDependencyVersionAccordingToDependencyManagement(pom *pom) {
 	}
 }
 
-func toEffectivePomByMvnCommand(pomPath string) (pom, error) {
+func createEffectivePom(pomPath string) (pom, error) {
 	if !commandExistsInPath("java") {
 		return pom{}, fmt.Errorf("can not get effective pom because java command not exist")
 	}
@@ -469,11 +474,12 @@ func toEffectivePomByMvnCommand(pomPath string) (pom, error) {
 	if err != nil {
 		return pom{}, err
 	}
-	var project pom
-	if err := xml.Unmarshal([]byte(effectivePom), &project); err != nil {
+	var resultPom pom
+	if err := xml.Unmarshal([]byte(effectivePom), &resultPom); err != nil {
 		return pom{}, fmt.Errorf("parsing xml: %w", err)
 	}
-	return project, nil
+	resultPom.pomFilePath = pomPath
+	return resultPom, nil
 }
 
 func commandExistsInPath(command string) bool {

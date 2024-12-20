@@ -91,7 +91,7 @@ var databaseDependencyRules = []DatabaseDependencyRule{
 
 // todo: remove parentPom, when passed in the pom is the effective pom.
 func detectAzureDependenciesByAnalyzingSpringBootProject(parentPom *pom, currentPom *pom, azdProject *Project) {
-	effectivePom, err := toEffectivePomByMvnCommand(currentPom.pomFilePath)
+	effectivePom, err := createEffectivePom(currentPom.pomFilePath)
 	if err == nil {
 		currentPom = &effectivePom
 	}
