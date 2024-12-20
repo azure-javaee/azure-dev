@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"maps"
-	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -92,12 +91,12 @@ var databaseDependencyRules = []DatabaseDependencyRule{
 
 // todo: remove parentPom, when passed in the pom is the effective pom.
 func detectAzureDependenciesByAnalyzingSpringBootProject(parentPom *pom, currentPom *pom, azdProject *Project) {
-	effectivePom, err := toEffectivePomByMvnCommand(filepath.Join(currentPom.path, "pom.xml"))
+	effectivePom, err := toEffectivePomByMvnCommand(currentPom.pomFilePath)
 	if err == nil {
 		currentPom = &effectivePom
 	}
 	if !isSpringBootApplication(currentPom) {
-		log.Printf("Skip analyzing spring boot project. path = %s.", currentPom.path)
+		log.Printf("Skip analyzing spring boot project. pomFilePath = %s.", currentPom.pomFilePath)
 		return
 	}
 	var springBootProject = SpringBootProject{

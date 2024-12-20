@@ -61,7 +61,7 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 			var currentWrapper mavenWrapper
 			for i, parentPomItem := range jd.parentPoms {
 				// we can say that the project is in the root project if the path is under the project
-				if inRoot := strings.HasPrefix(pomFile, parentPomItem.path); inRoot {
+				if inRoot := strings.HasPrefix(pomFile, filepath.Dir(parentPomItem.pomFilePath)); inRoot {
 					parentPom = &parentPomItem
 					currentWrapper = jd.mavenWrapperPaths[i]
 				}
@@ -75,7 +75,7 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 			detectAzureDependenciesByAnalyzingSpringBootProject(parentPom, &mavenProject.pom, &project)
 			if parentPom != nil {
 				project.Options = map[string]interface{}{
-					JavaProjectOptionMavenParentPath:       parentPom.path,
+					JavaProjectOptionMavenParentPath:       filepath.Dir(parentPom.pomFilePath),
 					JavaProjectOptionPosixMavenWrapperPath: currentWrapper.posixPath,
 					JavaProjectOptionWinMavenWrapperPath:   currentWrapper.winPath,
 				}

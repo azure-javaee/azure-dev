@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 )
 
@@ -26,7 +25,7 @@ type pom struct {
 	Dependencies            []dependency         `xml:"dependencies>dependency"`
 	DependencyManagement    dependencyManagement `xml:"dependencyManagement"`
 	Build                   build                `xml:"build"`
-	path                    string               // todo: add 'pom.xml' in the path.
+	pomFilePath             string
 	propertyMap             map[string]string
 	dependencyManagementMap map[string]string
 }
@@ -74,12 +73,12 @@ type plugin struct {
 }
 
 // Not strictly equal to effective pom. Just try best to make sure the Dependencies are accurate.
-func createSimulatedEffectivePomFromFilePath(filePath string) (*pom, error) {
-	pom, err := unmarshalPomFromFilePath(filePath)
+func createSimulatedEffectivePomFromFilePath(pomFilePath string) (*pom, error) {
+	pom, err := unmarshalPomFromFilePath(pomFilePath)
 	if err != nil {
 		return nil, err
 	}
-	pom.path = filepath.Dir(filePath)
+	pom.pomFilePath = pomFilePath
 	convertToSimulatedEffectivePom(&pom)
 	return &pom, nil
 }
