@@ -170,7 +170,25 @@ func absorbInformationFromParentInRemoteMavenRepository(pom *pom) {
 	}
 	absorbDependencyManagement(pom, toBeAbsorbedPom)
 	absorbPropertyMap(pom, toBeAbsorbedPom)
-	// todo absorb, dependency, build plugin from parent
+	absorbDependency(pom, toBeAbsorbedPom)
+	// todo absorb build plugin from parent
+}
+
+func absorbDependency(pom *pom, toBeAbsorbedPom pom) {
+	for _, dep := range toBeAbsorbedPom.Dependencies {
+		if !contains(pom.Dependencies, dep) {
+			pom.Dependencies = append(pom.Dependencies, dep)
+		}
+	}
+}
+
+func contains(deps []dependency, dep dependency) bool {
+	for _, d := range deps {
+		if d.GroupId == dep.GroupId && d.ArtifactId == dep.ArtifactId {
+			return true
+		}
+	}
+	return false
 }
 
 func absorbImportedBomInDependencyManagement(pom *pom) {

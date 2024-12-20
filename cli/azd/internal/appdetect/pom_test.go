@@ -715,7 +715,7 @@ func TestAbsorbPropertyMap(t *testing.T) {
 			},
 			toBeAbsorbedPom: pom{
 				GroupId:    "sampleGroupId",
-				ArtifactId: "sampleArtifactId",
+				ArtifactId: "sampleArtifactIdToBeAbsorbed",
 				Version:    "1.0.0",
 				propertyMap: map[string]string{
 					"version.spring.boot":        "3.3.5",
@@ -803,7 +803,7 @@ func TestAbsorbDependencyManagement(t *testing.T) {
 			},
 			toBeAbsorbedPom: pom{
 				GroupId:    "sampleGroupId",
-				ArtifactId: "sampleArtifactId",
+				ArtifactId: "sampleArtifactIdToBeAbsorbed",
 				Version:    "1.0.0",
 				DependencyManagement: dependencyManagement{
 					Dependencies: []dependency{
@@ -850,6 +850,71 @@ func TestAbsorbDependencyManagement(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			absorbDependencyManagement(&tt.input, tt.toBeAbsorbedPom)
+			if !reflect.DeepEqual(tt.input, tt.expected) {
+				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.input)
+			}
+		})
+	}
+}
+
+func TestAbsorbDependency(t *testing.T) {
+	var tests = []struct {
+		name            string
+		input           pom
+		toBeAbsorbedPom pom
+		expected        pom
+	}{
+		{
+			name: "normal case",
+			input: pom{
+				GroupId:      "sampleGroupId",
+				ArtifactId:   "sampleArtifactId",
+				Version:      "1.0.0",
+				Dependencies: []dependency{},
+			},
+			toBeAbsorbedPom: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactIdToBeAbsorbed",
+				Version:    "1.0.0",
+				Dependencies: []dependency{
+					{
+						GroupId:    "groupIdOne",
+						ArtifactId: "artifactIdOne",
+						Version:    "1.0.0",
+						Scope:      "compile",
+					},
+					{
+						GroupId:    "groupIdTwo",
+						ArtifactId: "artifactIdTwo",
+						Version:    "1.0.0",
+						Scope:      "test",
+					},
+				},
+			},
+			expected: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactId",
+				Version:    "1.0.0",
+				Dependencies: []dependency{
+					{
+						GroupId:    "groupIdOne",
+						ArtifactId: "artifactIdOne",
+						Version:    "1.0.0",
+						Scope:      "compile",
+					},
+					{
+						GroupId:    "groupIdTwo",
+						ArtifactId: "artifactIdTwo",
+						Version:    "1.0.0",
+						Scope:      "test",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			absorbDependency(&tt.input, tt.toBeAbsorbedPom)
 			if !reflect.DeepEqual(tt.input, tt.expected) {
 				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.input)
 			}
