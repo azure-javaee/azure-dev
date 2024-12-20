@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -586,6 +587,77 @@ func TestGetSimulatedEffectivePom(t *testing.T) {
 			actual := len(pom.dependencyManagementMap)
 			if !reflect.DeepEqual(actual, tt.expected) {
 				t.Fatalf("\nExpected: %d\nActual:   %d", tt.expected, actual)
+			}
+		})
+	}
+}
+
+func TestMakePathFitCurrentOs(t *testing.T) {
+	var tests = []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "linux",
+			input: "/home/user/example/file.txt",
+		},
+		{
+			name:  "windows",
+			input: "C:\\Users\\example\\Work",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := makePathFitCurrentOs(tt.input)
+			strings.Contains(actual, string(os.PathSeparator))
+		})
+	}
+}
+
+func TestGetParentPomFilePath(t *testing.T) {
+	var tests = []struct {
+		name     string
+		input    pom
+		expected string
+	}{
+		{
+			name: "relativePath not set",
+			input: pom{
+				pomFilePath: "/home/user/example-user/" +
+					"example-project-grandparent/example-project-parent/example-project-module-one/pom.xml",
+			},
+			expected: makePathFitCurrentOs("/home/user/example-user/" +
+				"example-project-grandparent/example-project-parent/pom.xml"),
+		},
+		{
+			name: "relativePath set to grandparent folder",
+			input: pom{
+				pomFilePath: "/home/user/example-user/" +
+					"example-project-grandparent/example-project-parent/example-project-module-one/pom.xml",
+				Parent: parent{
+					RelativePath: "../../pom.xml",
+				},
+			},
+			expected: makePathFitCurrentOs("/home/user/example-user/example-project-grandparent/pom.xml"),
+		},
+		{
+			name: "relativePath set to another file name",
+			input: pom{
+				pomFilePath: "/home/user/example-user/" +
+					"example-project-grandparent/example-project-parent/example-project-module-one/pom.xml",
+				Parent: parent{
+					RelativePath: "../another-pom.xml",
+				},
+			},
+			expected: makePathFitCurrentOs("/home/user/example-user/" +
+				"example-project-grandparent/example-project-parent/another-pom.xml"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := getParentPomFilePath(tt.input)
+			if !reflect.DeepEqual(actual, tt.expected) {
+				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, actual)
 			}
 		})
 	}

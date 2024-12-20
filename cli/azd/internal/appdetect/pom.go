@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -123,10 +124,22 @@ func parentExists(pom pom) bool {
 }
 
 func getParentPomFilePath(pom pom) string {
-	if pom.Parent.RelativePath == "" {
-		return ""
+	relativePath := pom.Parent.RelativePath
+	if relativePath == "" {
+		relativePath = "../pom.xml"
 	}
-	return "" // todo finish this.
+	parentPomFilePath := filepath.Join(filepath.Dir(makePathFitCurrentOs(pom.pomFilePath)),
+		makePathFitCurrentOs(relativePath))
+	parentPomFilePath = filepath.Clean(parentPomFilePath)
+	return parentPomFilePath
+}
+
+func makePathFitCurrentOs(filePath string) string {
+	if os.PathSeparator == '\\' {
+		return strings.ReplaceAll(filePath, "/", "\\")
+	} else {
+		return strings.ReplaceAll(filePath, "\\", "/")
+	}
 }
 
 func absorbInformationFromParentInRemoteMavenRepository(pom *pom) {
