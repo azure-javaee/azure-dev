@@ -172,14 +172,14 @@ func TestToEffectivePom(t *testing.T) {
 	}
 }
 
-func TestReadPropertiesToPropertyMap(t *testing.T) {
+func TestCreatePropertyMap(t *testing.T) {
 	tests := []struct {
 		name      string
 		pomString string
 		expected  map[string]string
 	}{
 		{
-			name: "Test with two dependencies",
+			name: "Test createPropertyMap",
 			pomString: `
 				<project>
 					<modelVersion>4.0.0</modelVersion>
@@ -207,7 +207,7 @@ func TestReadPropertiesToPropertyMap(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to unmarshal string: %v", err)
 			}
-			readPropertiesToPropertyMap(&pom)
+			createPropertyMap(&pom)
 			if !reflect.DeepEqual(pom.propertyMap, tt.expected) {
 				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, pom.propertyMap)
 			}
@@ -215,21 +215,18 @@ func TestReadPropertiesToPropertyMap(t *testing.T) {
 	}
 }
 
-func TestUpdatePropertyValueAccordingToPropertyMap(t *testing.T) {
+func TestReplacePropertyPlaceHolder(t *testing.T) {
 	var tests = []struct {
 		name     string
 		inputPom pom
 		expected pom
 	}{
 		{
-			name: "Test updatePropertyValueAccordingToPropertyMap",
+			name: "Test replacePropertyPlaceHolder",
 			inputPom: pom{
-				propertyMap: map[string]string{
-					"version.spring.boot":        "3.3.5",
-					"version.spring.cloud":       "2023.0.3",
-					"version.spring.cloud.azure": "5.18.0",
-					"another.property":           "${version.spring.cloud.azure}",
-				},
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactId",
+				Version:    "1.0.0",
 				DependencyManagement: dependencyManagement{
 					Dependencies: []dependency{
 						{
@@ -245,6 +242,11 @@ func TestUpdatePropertyValueAccordingToPropertyMap(t *testing.T) {
 						ArtifactId: "artifactIdTwo",
 						Version:    "${version.spring.cloud}",
 					},
+					{
+						GroupId:    "${project.groupId}",
+						ArtifactId: "artifactIdTwo",
+						Version:    "${project.version}",
+					},
 				},
 				Build: build{
 					Plugins: []plugin{
@@ -255,14 +257,20 @@ func TestUpdatePropertyValueAccordingToPropertyMap(t *testing.T) {
 						},
 					},
 				},
-			},
-			expected: pom{
 				propertyMap: map[string]string{
 					"version.spring.boot":        "3.3.5",
 					"version.spring.cloud":       "2023.0.3",
 					"version.spring.cloud.azure": "5.18.0",
-					"another.property":           "5.18.0",
+					"another.property":           "${version.spring.cloud.azure}",
 				},
+				dependencyManagementMap: map[string]string{
+					"groupIdOne:artifactIdOne:compile": "${version.spring.boot}",
+				},
+			},
+			expected: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactId",
+				Version:    "1.0.0",
 				DependencyManagement: dependencyManagement{
 					Dependencies: []dependency{
 						{
@@ -278,6 +286,11 @@ func TestUpdatePropertyValueAccordingToPropertyMap(t *testing.T) {
 						ArtifactId: "artifactIdTwo",
 						Version:    "2023.0.3",
 					},
+					{
+						GroupId:    "sampleGroupId",
+						ArtifactId: "artifactIdTwo",
+						Version:    "1.0.0",
+					},
 				},
 				Build: build{
 					Plugins: []plugin{
@@ -288,12 +301,27 @@ func TestUpdatePropertyValueAccordingToPropertyMap(t *testing.T) {
 						},
 					},
 				},
+				propertyMap: map[string]string{
+					"version.spring.boot":        "3.3.5",
+					"version.spring.cloud":       "2023.0.3",
+					"version.spring.cloud.azure": "5.18.0",
+					"another.property":           "5.18.0",
+					"project.groupId":            "sampleGroupId",
+					"project.version":            "1.0.0",
+				},
+				dependencyManagementMap: map[string]string{
+					"groupIdOne:artifactIdOne:compile": "3.3.5",
+				},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			updatePropertyValueAccordingToPropertyMap(&tt.inputPom)
+			addCommonPropertiesLikeProjectGroupIdAndProjectVersionToPropertyMap(&tt.inputPom)
+			replacePropertyPlaceHolderInPropertyMap(&tt.inputPom)
+			replacePropertyPlaceHolderInGroupId(&tt.inputPom)
+			createDependencyManagementMap(&tt.inputPom)
+			replacePropertyPlaceHolderInVersion(&tt.inputPom)
 			if !reflect.DeepEqual(tt.inputPom, tt.expected) {
 				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.inputPom)
 			}
@@ -301,14 +329,14 @@ func TestUpdatePropertyValueAccordingToPropertyMap(t *testing.T) {
 	}
 }
 
-func TestReadDependencyManagementToDependencyManagementMap(t *testing.T) {
+func TestCreateDependencyManagementMap(t *testing.T) {
 	var tests = []struct {
 		name     string
 		inputPom pom
 		expected pom
 	}{
 		{
-			name: "Test readDependencyManagementToDependencyManagementMap",
+			name: "Test createDependencyManagementMap",
 			inputPom: pom{
 				DependencyManagement: dependencyManagement{
 					Dependencies: []dependency{
@@ -350,7 +378,7 @@ func TestReadDependencyManagementToDependencyManagementMap(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			readDependencyManagementToDependencyManagementMap(&tt.inputPom)
+			createDependencyManagementMap(&tt.inputPom)
 			if !reflect.DeepEqual(tt.inputPom, tt.expected) {
 				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.inputPom)
 			}
@@ -365,7 +393,7 @@ func TestUpdateVersionAccordingToDependencyManagementMap(t *testing.T) {
 		expected pom
 	}{
 		{
-			name: "Test updateVersionAccordingToDependencyManagementMap",
+			name: "Test updateDependencyVersionAccordingToDependencyManagement",
 			inputPom: pom{
 				Dependencies: []dependency{
 					{
@@ -393,7 +421,7 @@ func TestUpdateVersionAccordingToDependencyManagementMap(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			updateVersionAccordingToDependencyManagementMap(&tt.inputPom)
+			updateDependencyVersionAccordingToDependencyManagement(&tt.inputPom)
 			if !reflect.DeepEqual(tt.inputPom, tt.expected) {
 				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.inputPom)
 			}

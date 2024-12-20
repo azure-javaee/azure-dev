@@ -88,12 +88,16 @@ func convertToSimulatedEffectivePom(pom *pom) {
 }
 
 func updateVersionAccordingToPropertiesAndDependencyManagement(pom *pom) {
+	createPropertyMap(pom)
 	addCommonPropertiesLikeProjectGroupIdAndProjectVersionToPropertyMap(pom)
-	readPropertiesToPropertyMap(pom)
-	updatePropertyValueAccordingToPropertyMap(pom)
-	// not handle pluginManagement because now we only care about dependency's version.
-	readDependencyManagementToDependencyManagementMap(pom)
-	updateVersionAccordingToDependencyManagementMap(pom)
+	// replacePropertyPlaceHolderInPropertyMap should run before other replacePropertyPlaceHolderInXxx
+	replacePropertyPlaceHolderInPropertyMap(pom)
+	// replacePropertyPlaceHolderInGroupId should run before createDependencyManagementMap
+	replacePropertyPlaceHolderInGroupId(pom)
+	// createDependencyManagementMap run before replacePropertyPlaceHolderInVersion
+	createDependencyManagementMap(pom)
+	replacePropertyPlaceHolderInVersion(pom)
+	updateDependencyVersionAccordingToDependencyManagement(pom)
 }
 
 func absorbInformationFromParentAndImportedDependenciesInDependencyManagement(pom *pom) {
@@ -133,11 +137,13 @@ func absorbInformationFromRemoteMavenRepository(pom *pom, groupId string, artifa
 	for key, value := range importedPom.propertyMap {
 		addToPropertyMapIfKeyIsNew(pom, key, value)
 	}
+	replacePropertyPlaceHolderInPropertyMap(pom)
+	replacePropertyPlaceHolderInGroupId(pom)
+	replacePropertyPlaceHolderInVersion(pom)
 	for key, value := range importedPom.dependencyManagementMap {
-		addToDependencyManagementMapIfDependencyIsNew(pom, key, value)
+		addNewDependencyInDependencyManagementIfDependencyIsNew(pom, key, value)
 	}
-	updatePropertyValueAccordingToPropertyMap(pom)
-	updateVersionAccordingToDependencyManagementMap(pom)
+	updateDependencyVersionAccordingToDependencyManagement(pom)
 }
 
 func getSimulatedEffectivePomFromRemoteMavenRepository(groupId string, artifactId string, version string) (pom, error) {
@@ -203,24 +209,21 @@ func addCommonPropertiesLikeProjectGroupIdAndProjectVersionToPropertyMap(pom *po
 	addToPropertyMapIfKeyIsNew(pom, "project.version", pomVersion)
 }
 
-func readPropertiesToPropertyMap(pom *pom) {
+func createPropertyMap(pom *pom) {
+	pom.propertyMap = make(map[string]string) // propertyMap only create once
 	for _, entry := range pom.Properties.Entries {
 		addToPropertyMapIfKeyIsNew(pom, entry.XMLName.Local, entry.Value)
 	}
 }
 
 func addToPropertyMapIfKeyIsNew(pom *pom, key string, value string) {
-	if pom.propertyMap == nil {
-		pom.propertyMap = make(map[string]string)
-	}
 	if _, ok := pom.propertyMap[key]; ok {
 		return
 	}
 	pom.propertyMap[key] = value
 }
 
-func updatePropertyValueAccordingToPropertyMap(pom *pom) {
-	// propertiesMap should be updated before others.
+func replacePropertyPlaceHolderInPropertyMap(pom *pom) {
 	for key, value := range pom.propertyMap {
 		if isVariable(value) {
 			variableName := getVariableName(value)
@@ -229,25 +232,41 @@ func updatePropertyValueAccordingToPropertyMap(pom *pom) {
 			}
 		}
 	}
-	for key, value := range pom.dependencyManagementMap {
-		if isVariable(value) {
-			variableName := getVariableName(value)
-			if variableValue, ok := pom.propertyMap[variableName]; ok {
-				pom.dependencyManagementMap[key] = variableValue
-			}
-		}
-	}
+}
+
+func replacePropertyPlaceHolderInGroupId(pom *pom) {
 	for i, dep := range pom.DependencyManagement.Dependencies {
-		if isVariable(dep.Version) {
-			variableName := getVariableName(dep.Version)
-			if variableValue, ok := pom.propertyMap[variableName]; ok {
-				pom.DependencyManagement.Dependencies[i].Version = variableValue
-			}
-		}
 		if isVariable(dep.GroupId) {
 			variableName := getVariableName(dep.GroupId)
 			if variableValue, ok := pom.propertyMap[variableName]; ok {
 				pom.DependencyManagement.Dependencies[i].GroupId = variableValue
+			}
+		}
+	}
+	for i, dep := range pom.Dependencies {
+		if isVariable(dep.GroupId) {
+			variableName := getVariableName(dep.GroupId)
+			if variableValue, ok := pom.propertyMap[variableName]; ok {
+				pom.Dependencies[i].GroupId = variableValue
+			}
+		}
+	}
+	for i, dep := range pom.Build.Plugins {
+		if isVariable(dep.GroupId) {
+			variableName := getVariableName(dep.GroupId)
+			if variableValue, ok := pom.propertyMap[variableName]; ok {
+				pom.Build.Plugins[i].GroupId = variableValue
+			}
+		}
+	}
+}
+
+func replacePropertyPlaceHolderInVersion(pom *pom) {
+	for key, value := range pom.dependencyManagementMap {
+		if isVariable(value) {
+			variableName := getVariableName(value)
+			if variableValue, ok := pom.propertyMap[variableName]; ok {
+				updateDependencyVersionInDependencyManagement(pom, key, variableValue)
 			}
 		}
 	}
@@ -258,24 +277,12 @@ func updatePropertyValueAccordingToPropertyMap(pom *pom) {
 				pom.Dependencies[i].Version = variableValue
 			}
 		}
-		if isVariable(dep.GroupId) {
-			variableName := getVariableName(dep.GroupId)
-			if variableValue, ok := pom.propertyMap[variableName]; ok {
-				pom.Dependencies[i].GroupId = variableValue
-			}
-		}
 	}
 	for i, dep := range pom.Build.Plugins {
 		if isVariable(dep.Version) {
 			variableName := getVariableName(dep.Version)
 			if variableValue, ok := pom.propertyMap[variableName]; ok {
 				pom.Build.Plugins[i].Version = variableValue
-			}
-		}
-		if isVariable(dep.GroupId) {
-			variableName := getVariableName(dep.GroupId)
-			if variableValue, ok := pom.propertyMap[variableName]; ok {
-				pom.Build.Plugins[i].GroupId = variableValue
 			}
 		}
 	}
@@ -293,39 +300,60 @@ func getVariableName(value string) string {
 }
 
 func toDependencyManagementMapKey(dependency dependency) string {
-	return fmt.Sprintf("%s:%s", dependency.GroupId, dependency.ArtifactId)
+	scope := dependency.Scope
+	if scope == "" {
+		scope = "compile"
+	}
+	return fmt.Sprintf("%s:%s:%s", dependency.GroupId, dependency.ArtifactId, scope)
 }
 
-func readDependencyManagementToDependencyManagementMap(pom *pom) {
-	if pom.dependencyManagementMap == nil {
-		pom.dependencyManagementMap = make(map[string]string)
+func createDependencyFromDependencyManagementMapKeyAndVersion(key string, version string) dependency {
+	parts := strings.Split(key, ":")
+	if len(parts) != 3 {
+		return dependency{}
 	}
+	return dependency{parts[0], parts[1], version, parts[2]}
+}
+
+func createDependencyManagementMap(pom *pom) {
+	pom.dependencyManagementMap = make(map[string]string) // dependencyManagementMap only create once
 	for _, dep := range pom.DependencyManagement.Dependencies {
-		addToDependencyManagementMapIfDependencyIsNew(pom, toDependencyManagementMapKey(dep), dep.Version)
+		pom.dependencyManagementMap[toDependencyManagementMapKey(dep)] = dep.Version
 	}
 }
 
-func addToDependencyManagementMapIfDependencyIsNew(pom *pom, key string, value string) {
+func addNewDependencyInDependencyManagementIfDependencyIsNew(pom *pom, key string, value string) {
 	if value == "" {
+		log.Printf("error: add dependency management without version")
 		return
 	}
 	if _, ok := pom.dependencyManagementMap[key]; ok {
 		return
 	}
+	// always make sure DependencyManagement and dependencyManagementMap synced
 	pom.dependencyManagementMap[key] = value
+	pom.DependencyManagement.Dependencies = append(pom.DependencyManagement.Dependencies,
+		createDependencyFromDependencyManagementMapKeyAndVersion(key, value))
 }
 
-func updateVersionAccordingToDependencyManagementMap(pom *pom) {
-	if pom.dependencyManagementMap == nil {
-		pom.dependencyManagementMap = make(map[string]string)
+// always make sure DependencyManagement and dependencyManagementMap synced
+func updateDependencyVersionInDependencyManagement(pom *pom, key string, value string) {
+	pom.dependencyManagementMap[key] = value
+	for i, dep := range pom.DependencyManagement.Dependencies {
+		currentKey := toDependencyManagementMapKey(dep)
+		if currentKey == key {
+			pom.DependencyManagement.Dependencies[i].Version = value
+		}
 	}
+}
+
+func updateDependencyVersionAccordingToDependencyManagement(pom *pom) {
 	for i, dep := range pom.Dependencies {
 		if strings.TrimSpace(dep.Version) != "" {
 			continue
 		}
 		key := toDependencyManagementMapKey(dep)
-		managedVersion := pom.dependencyManagementMap[key]
-		if managedVersion != "" {
+		if managedVersion, ok := pom.dependencyManagementMap[key]; ok {
 			pom.Dependencies[i].Version = managedVersion
 		}
 	}
