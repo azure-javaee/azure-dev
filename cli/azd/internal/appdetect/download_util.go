@@ -15,7 +15,7 @@ func download(requestUrl string) ([]byte, error) {
 		return nil, err
 	}
 	if !isAllowedHost(parsedUrl.Host) {
-		return nil, fmt.Errorf("unvalid host")
+		return nil, fmt.Errorf("invalid host")
 	}
 	client := &http.Client{
 		Timeout: 30 * time.Second,
