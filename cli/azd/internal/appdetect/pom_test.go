@@ -173,14 +173,14 @@ func TestToEffectivePom(t *testing.T) {
 	}
 }
 
-func TestCreatePropertyMap(t *testing.T) {
+func TestCreatePropertyMapAccordingToProjectProperty(t *testing.T) {
 	tests := []struct {
 		name      string
 		pomString string
 		expected  map[string]string
 	}{
 		{
-			name: "Test createPropertyMap",
+			name: "Test createPropertyMapAccordingToProjectProperty",
 			pomString: `
 				<project>
 					<modelVersion>4.0.0</modelVersion>
@@ -208,7 +208,7 @@ func TestCreatePropertyMap(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to unmarshal string: %v", err)
 			}
-			createPropertyMap(&pom)
+			createPropertyMapAccordingToProjectProperty(&pom)
 			if !reflect.DeepEqual(pom.propertyMap, tt.expected) {
 				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, pom.propertyMap)
 			}

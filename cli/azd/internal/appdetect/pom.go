@@ -89,7 +89,7 @@ func convertToSimulatedEffectivePom(pom *pom) {
 }
 
 func updateVersionAccordingToPropertiesAndDependencyManagement(pom *pom) {
-	createPropertyMap(pom)
+	createPropertyMapAccordingToProjectProperty(pom)
 	addCommonPropertiesLikeProjectGroupIdAndProjectVersionToPropertyMap(pom)
 	// replacePropertyPlaceHolderInPropertyMap should run before other replacePropertyPlaceHolderInXxx
 	replacePropertyPlaceHolderInPropertyMap(pom)
@@ -302,7 +302,7 @@ func addCommonPropertiesLikeProjectGroupIdAndProjectVersionToPropertyMap(pom *po
 	addToPropertyMapIfKeyIsNew(pom, "project.version", pomVersion)
 }
 
-func createPropertyMap(pom *pom) {
+func createPropertyMapAccordingToProjectProperty(pom *pom) {
 	pom.propertyMap = make(map[string]string) // propertyMap only create once
 	for _, entry := range pom.Properties.Entries {
 		addToPropertyMapIfKeyIsNew(pom, entry.XMLName.Local, entry.Value)
