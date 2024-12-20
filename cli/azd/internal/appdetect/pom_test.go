@@ -371,7 +371,7 @@ func TestCreateDependencyManagementMap(t *testing.T) {
 					},
 				},
 				dependencyManagementMap: map[string]string{
-					"groupIdOne:artifactIdOne": "1.0.0",
+					"groupIdOne:artifactIdOne:compile": "1.0.0",
 				},
 			},
 		},
@@ -402,19 +402,19 @@ func TestUpdateVersionAccordingToDependencyManagementMap(t *testing.T) {
 					},
 				},
 				dependencyManagementMap: map[string]string{
-					"groupIdOne:artifactIdOne": "1.0.0",
+					"groupIdOne:artifactIdOne:compile": "1.0.0",
 				},
 			},
 			expected: pom{
-				dependencyManagementMap: map[string]string{
-					"groupIdOne:artifactIdOne": "1.0.0",
-				},
 				Dependencies: []dependency{
 					{
 						GroupId:    "groupIdOne",
 						ArtifactId: "artifactIdOne",
 						Version:    "1.0.0",
 					},
+				},
+				dependencyManagementMap: map[string]string{
+					"groupIdOne:artifactIdOne:compile": "1.0.0",
 				},
 			},
 		},
