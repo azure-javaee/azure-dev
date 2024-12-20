@@ -245,15 +245,15 @@ func TestReplacePropertyPlaceHolder(t *testing.T) {
 					},
 					{
 						GroupId:    "${project.groupId}",
-						ArtifactId: "artifactIdTwo",
+						ArtifactId: "artifactIdThree",
 						Version:    "${project.version}",
 					},
 				},
 				Build: build{
 					Plugins: []plugin{
 						{
-							GroupId:    "groupIdThree",
-							ArtifactId: "artifactIdThree",
+							GroupId:    "groupIdFour",
+							ArtifactId: "artifactIdFour",
 							Version:    "${version.spring.cloud.azure}",
 						},
 					},
@@ -289,15 +289,15 @@ func TestReplacePropertyPlaceHolder(t *testing.T) {
 					},
 					{
 						GroupId:    "sampleGroupId",
-						ArtifactId: "artifactIdTwo",
+						ArtifactId: "artifactIdThree",
 						Version:    "1.0.0",
 					},
 				},
 				Build: build{
 					Plugins: []plugin{
 						{
-							GroupId:    "groupIdThree",
-							ArtifactId: "artifactIdThree",
+							GroupId:    "groupIdFour",
+							ArtifactId: "artifactIdFour",
 							Version:    "5.18.0",
 						},
 					},
@@ -658,6 +658,200 @@ func TestGetParentPomFilePath(t *testing.T) {
 			actual := getParentPomFilePath(tt.input)
 			if !reflect.DeepEqual(actual, tt.expected) {
 				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, actual)
+			}
+		})
+	}
+}
+
+func TestAbsorbPropertyMap(t *testing.T) {
+	var tests = []struct {
+		name            string
+		input           pom
+		toBeAbsorbedPom pom
+		expected        pom
+	}{
+		{
+			name: "relativePath not set",
+			input: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactId",
+				Version:    "1.0.0",
+				DependencyManagement: dependencyManagement{
+					Dependencies: []dependency{
+						{
+							GroupId:    "groupIdOne",
+							ArtifactId: "artifactIdOne",
+							Version:    "${version.spring.boot}",
+						},
+					},
+				},
+				Dependencies: []dependency{
+					{
+						GroupId:    "groupIdTwo",
+						ArtifactId: "artifactIdTwo",
+						Version:    "${version.spring.cloud}",
+					},
+					{
+						GroupId:    "groupIdThree",
+						ArtifactId: "artifactIdThree",
+						Version:    "${another.property}",
+					},
+				},
+				Build: build{
+					Plugins: []plugin{
+						{
+							GroupId:    "groupIdFour",
+							ArtifactId: "artifactIdFour",
+							Version:    "${version.spring.cloud.azure}",
+						},
+					},
+				},
+				propertyMap: map[string]string{
+					"another.property": "${version.spring.cloud.azure}",
+				},
+				dependencyManagementMap: map[string]string{
+					"groupIdOne:artifactIdOne:compile": "${version.spring.boot}",
+				},
+			},
+			toBeAbsorbedPom: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactId",
+				Version:    "1.0.0",
+				propertyMap: map[string]string{
+					"version.spring.boot":        "3.3.5",
+					"version.spring.cloud":       "2023.0.3",
+					"version.spring.cloud.azure": "5.18.0",
+				},
+			},
+			expected: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactId",
+				Version:    "1.0.0",
+				DependencyManagement: dependencyManagement{
+					Dependencies: []dependency{
+						{
+							GroupId:    "groupIdOne",
+							ArtifactId: "artifactIdOne",
+							Version:    "3.3.5",
+						},
+					},
+				},
+				Dependencies: []dependency{
+					{
+						GroupId:    "groupIdTwo",
+						ArtifactId: "artifactIdTwo",
+						Version:    "2023.0.3",
+					},
+					{
+						GroupId:    "groupIdThree",
+						ArtifactId: "artifactIdThree",
+						Version:    "5.18.0",
+					},
+				},
+				Build: build{
+					Plugins: []plugin{
+						{
+							GroupId:    "groupIdFour",
+							ArtifactId: "artifactIdFour",
+							Version:    "5.18.0",
+						},
+					},
+				},
+				propertyMap: map[string]string{
+					"version.spring.boot":        "3.3.5",
+					"version.spring.cloud":       "2023.0.3",
+					"version.spring.cloud.azure": "5.18.0",
+					"another.property":           "5.18.0",
+				},
+				dependencyManagementMap: map[string]string{
+					"groupIdOne:artifactIdOne:compile": "3.3.5",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			absorbPropertyMap(&tt.input, tt.toBeAbsorbedPom)
+			if !reflect.DeepEqual(tt.input, tt.expected) {
+				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.input)
+			}
+		})
+	}
+}
+
+func TestAbsorbDependencyManagement(t *testing.T) {
+	var tests = []struct {
+		name            string
+		input           pom
+		toBeAbsorbedPom pom
+		expected        pom
+	}{
+		{
+			name: "relativePath not set",
+			input: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactId",
+				Version:    "1.0.0",
+				Dependencies: []dependency{
+					{
+						GroupId:    "groupIdOne",
+						ArtifactId: "artifactIdOne",
+						Scope:      "compile",
+					},
+				},
+				dependencyManagementMap: map[string]string{},
+			},
+			toBeAbsorbedPom: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactId",
+				Version:    "1.0.0",
+				DependencyManagement: dependencyManagement{
+					Dependencies: []dependency{
+						{
+							GroupId:    "groupIdOne",
+							ArtifactId: "artifactIdOne",
+							Version:    "1.0.0",
+							Scope:      "compile",
+						},
+					},
+				},
+				dependencyManagementMap: map[string]string{
+					"groupIdOne:artifactIdOne:compile": "1.0.0",
+				},
+			},
+			expected: pom{
+				GroupId:    "sampleGroupId",
+				ArtifactId: "sampleArtifactId",
+				Version:    "1.0.0",
+				DependencyManagement: dependencyManagement{
+					Dependencies: []dependency{
+						{
+							GroupId:    "groupIdOne",
+							ArtifactId: "artifactIdOne",
+							Version:    "1.0.0",
+							Scope:      "compile",
+						},
+					},
+				},
+				Dependencies: []dependency{
+					{
+						GroupId:    "groupIdOne",
+						ArtifactId: "artifactIdOne",
+						Version:    "1.0.0",
+						Scope:      "compile",
+					},
+				},
+				dependencyManagementMap: map[string]string{
+					"groupIdOne:artifactIdOne:compile": "1.0.0",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			absorbDependencyManagement(&tt.input, tt.toBeAbsorbedPom)
+			if !reflect.DeepEqual(tt.input, tt.expected) {
+				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.input)
 			}
 		})
 	}

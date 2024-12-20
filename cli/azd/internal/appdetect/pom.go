@@ -2,10 +2,12 @@ package appdetect
 
 import (
 	"bufio"
+	"context"
 	"encoding/xml"
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -104,7 +106,7 @@ func updateVersionAccordingToPropertiesAndDependencyManagement(pom *pom) {
 
 func absorbInformationFromParentAndImportedDependenciesInDependencyManagement(pom *pom) {
 	absorbInformationFromParent(pom)
-	absorbInformationFromImportedDependenciesInDependencyManagement(pom)
+	absorbImportedBomInDependencyManagement(pom)
 }
 
 func absorbInformationFromParent(pom *pom) {
@@ -112,11 +114,27 @@ func absorbInformationFromParent(pom *pom) {
 	absorbInformationFromParentInRemoteMavenRepository(pom)
 }
 
-func absorbInformationFromParentInLocalFileSystem(pom *pom) {
+func absorbInformationFromParentInLocalFileSystem(pom *pom) bool {
 	if !parentExists(*pom) {
-		return
+		slog.DebugContext(context.TODO(), "Skip analyze parent pom because parent not set.",
+			"pomFilePath", pom.pomFilePath)
+		return false
 	}
-	// todo finish this
+	parentPomFilePath := getParentPomFilePath(*pom)
+	if !fileExists(parentPomFilePath) {
+		slog.DebugContext(context.TODO(), "Skip analyze parent pom because parent pom file not set.",
+			"pomFilePath", pom.pomFilePath)
+		return false
+	}
+	parentEffectivePom, err := createSimulatedEffectivePomFromFilePath(parentPomFilePath)
+	if err != nil {
+		slog.DebugContext(context.TODO(), "Skip analyze parent pom because analyze parent pom failed.",
+			"pomFilePath", pom.pomFilePath)
+		return false
+	}
+	absorbDependencyManagement(pom, *parentEffectivePom)
+	// todo: add dependencies from parent
+	return true
 }
 
 func parentExists(pom pom) bool {
@@ -147,28 +165,44 @@ func absorbInformationFromParentInRemoteMavenRepository(pom *pom) {
 	if p.Version == "" {
 		return
 	}
-	absorbInformationFromRemoteMavenRepository(pom, p.GroupId, p.ArtifactId, p.Version)
+	toBeAbsorbedPom, err := getSimulatedEffectivePomFromRemoteMavenRepository(
+		p.GroupId, p.ArtifactId, p.Version)
+	if err != nil {
+		slog.InfoContext(context.TODO(), "Skip absorb parent from remote maven repository.",
+			"pomFilePath", pom.pomFilePath, "err", err)
+	}
+	absorbDependencyManagement(pom, toBeAbsorbedPom)
+	absorbPropertyMap(pom, toBeAbsorbedPom)
+	// todo absorb, dependency, build plugin from parent
 }
 
-func absorbInformationFromImportedDependenciesInDependencyManagement(pom *pom) {
+func absorbImportedBomInDependencyManagement(pom *pom) {
 	for _, dep := range pom.DependencyManagement.Dependencies {
 		if dep.Scope != "import" {
 			continue
 		}
-		absorbInformationFromRemoteMavenRepository(pom, dep.GroupId, dep.ArtifactId, dep.Version)
+		toBeAbsorbedPom, err := getSimulatedEffectivePomFromRemoteMavenRepository(
+			dep.GroupId, dep.ArtifactId, dep.Version)
+		if err != nil {
+			slog.InfoContext(context.TODO(), "Skip absorb imported bom from remote maven repository.",
+				"pomFilePath", pom.pomFilePath, "err", err)
+		}
+		absorbDependencyManagement(pom, toBeAbsorbedPom)
 	}
 }
 
-func absorbInformationFromRemoteMavenRepository(pom *pom, groupId string, artifactId string, version string) {
-	importedPom, _ := getSimulatedEffectivePomFromRemoteMavenRepository(groupId, artifactId, version)
-	// ignore error, because we want to get as more information as possible
-	for key, value := range importedPom.propertyMap {
+func absorbPropertyMap(pom *pom, toBeAbsorbedPom pom) {
+	for key, value := range toBeAbsorbedPom.propertyMap {
 		addToPropertyMapIfKeyIsNew(pom, key, value)
 	}
 	replacePropertyPlaceHolderInPropertyMap(pom)
 	replacePropertyPlaceHolderInGroupId(pom)
 	replacePropertyPlaceHolderInVersion(pom)
-	for key, value := range importedPom.dependencyManagementMap {
+	updateDependencyVersionAccordingToDependencyManagement(pom)
+}
+
+func absorbDependencyManagement(pom *pom, toBeAbsorbedPom pom) {
+	for key, value := range toBeAbsorbedPom.dependencyManagementMap {
 		addNewDependencyInDependencyManagementIfDependencyIsNew(pom, key, value)
 	}
 	updateDependencyVersionAccordingToDependencyManagement(pom)
