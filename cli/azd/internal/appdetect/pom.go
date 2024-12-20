@@ -107,16 +107,18 @@ func absorbInformationFromParentAndImportedDependenciesInDependencyManagement(po
 }
 
 func absorbInformationFromParent(pom *pom) {
-	absorbInformationFromParentInLocalFileSystem(pom)
+	if !parentExists(*pom) {
+		slog.DebugContext(context.TODO(), "Skip analyze parent pom because parent not set.",
+			"pomFilePath", pom.pomFilePath)
+		return
+	}
+	if absorbInformationFromParentInLocalFileSystem(pom) {
+		return
+	}
 	absorbInformationFromParentInRemoteMavenRepository(pom)
 }
 
 func absorbInformationFromParentInLocalFileSystem(pom *pom) bool {
-	if !parentExists(*pom) {
-		slog.DebugContext(context.TODO(), "Skip analyze parent pom because parent not set.",
-			"pomFilePath", pom.pomFilePath)
-		return false
-	}
 	parentPomFilePath := getParentPomFilePath(*pom)
 	if !fileExists(parentPomFilePath) {
 		slog.DebugContext(context.TODO(), "Skip analyze parent pom because parent pom file not set.",
@@ -129,8 +131,14 @@ func absorbInformationFromParentInLocalFileSystem(pom *pom) bool {
 			"pomFilePath", pom.pomFilePath)
 		return false
 	}
-	absorbDependencyManagement(pom, *parentEffectivePom)
-	// todo: add dependencies from parent
+	if pom.Parent.GroupId != parentEffectivePom.GroupId ||
+		pom.Parent.ArtifactId != parentEffectivePom.ArtifactId ||
+		pom.Parent.Version != parentEffectivePom.Version {
+		slog.DebugContext(context.TODO(), "Skip analyze parent pom because groupId/artifactId/version not the same.",
+			"pomFilePath", pom.pomFilePath)
+		return false
+	}
+	absorbInformationFromParentPom(pom, *parentEffectivePom)
 	return true
 }
 
@@ -159,19 +167,20 @@ func makePathFitCurrentOs(filePath string) string {
 
 func absorbInformationFromParentInRemoteMavenRepository(pom *pom) {
 	p := pom.Parent
-	if p.Version == "" {
-		return
-	}
-	toBeAbsorbedPom, err := getSimulatedEffectivePomFromRemoteMavenRepository(
+	parent, err := getSimulatedEffectivePomFromRemoteMavenRepository(
 		p.GroupId, p.ArtifactId, p.Version)
 	if err != nil {
 		slog.InfoContext(context.TODO(), "Skip absorb parent from remote maven repository.",
 			"pomFilePath", pom.pomFilePath, "err", err)
 	}
-	absorbDependencyManagement(pom, toBeAbsorbedPom)
-	absorbPropertyMap(pom, toBeAbsorbedPom)
-	absorbDependency(pom, toBeAbsorbedPom)
-	absorbBuildPlugin(pom, toBeAbsorbedPom)
+	absorbInformationFromParentPom(pom, parent)
+}
+
+func absorbInformationFromParentPom(pom *pom, parent pom) {
+	absorbDependencyManagement(pom, parent)
+	absorbPropertyMap(pom, parent)
+	absorbDependency(pom, parent)
+	absorbBuildPlugin(pom, parent)
 }
 
 func absorbDependency(pom *pom, toBeAbsorbedPom pom) {
