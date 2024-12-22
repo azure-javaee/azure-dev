@@ -1146,6 +1146,68 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 			},
 		},
 		{
+			name: "self-defined parent in grandparent folder",
+			testPoms: []testPom{
+				{
+					pomFilePath: "./pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+							<groupId>com.example</groupId>
+							<artifactId>example-project-parent</artifactId>
+							<version>1.0.0</version>
+							<packaging>pom</packaging>
+							<dependencyManagement>
+								<dependencies>
+									<dependency>
+										<groupId>org.springframework</groupId>
+										<artifactId>spring-core</artifactId>
+										<version>5.3.8</version>
+										<scope>compile</scope>
+									</dependency>
+									<dependency>
+										<groupId>junit</groupId>
+										<artifactId>junit</artifactId>
+										<version>4.13.2</version>
+										<scope>test</scope>
+									</dependency>
+								</dependencies>
+							</dependencyManagement>
+						</project>
+						`,
+				},
+				{
+					pomFilePath: "./modules/module-one/pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+							<groupId>com.example</groupId>
+							<artifactId>example-project-module-one</artifactId>
+							<version>1.0.0</version>
+							<parent>
+								<groupId>com.example</groupId>
+								<artifactId>example-project-parent</artifactId>
+								<version>1.0.0</version>
+							    <relativePath>../../pom.xml</relativePath>
+							</parent>
+							<dependencies>
+								<dependency>
+									<groupId>org.springframework</groupId>
+									<artifactId>spring-core</artifactId>
+									<scope>compile</scope>
+								</dependency>
+								<dependency>
+									<groupId>junit</groupId>
+									<artifactId>junit</artifactId>
+									<scope>test</scope>
+								</dependency>
+							</dependencies>
+						</project>
+						`,
+				},
+			},
+		},
+		{
 			name: "self-defined parent",
 			testPoms: []testPom{
 				{
