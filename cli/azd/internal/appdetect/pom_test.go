@@ -1324,7 +1324,7 @@ func prepareTestPomFiles(testPoms []testPom) (string, error) {
 	}
 	for _, testPom := range testPoms {
 		pomPath := filepath.Join(tempDir, testPom.pomFilePath)
-		err := os.MkdirAll(filepath.Dir(pomPath), 0600)
+		err := os.MkdirAll(filepath.Dir(pomPath), 0755)
 		if err != nil {
 			return "", err
 		}
