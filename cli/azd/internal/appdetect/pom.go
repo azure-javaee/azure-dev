@@ -80,11 +80,11 @@ func createEffectivePomOrSimulatedEffectivePom(pomPath string) (pom, error) {
 	return createSimulatedEffectivePom(pomPath)
 }
 
-// Simulated effective pom means not strictly equal to effective pom.
-// Just try best to make sure these item are same to the real effective pom:
-//  1. pom.Dependencies. Only make sure the groupId/artifactId/version.
+// Simulated effective pom not strictly equal to effective pom,
+// it just tries best to make sure these item are same to the real effective pom:
+//  1. pom.Dependencies. Only care about the groupId/artifactId/version.
 //  2. pom.Build.Plugins.
-//     2.1. Only make sure the groupId/artifactId/version.
+//     2.1. Only care about the groupId/artifactId/version.
 //     2.2. Not include the default maven plugins (name with this patten: "maven-xxx-plugin").
 func createSimulatedEffectivePom(pomFilePath string) (pom, error) {
 	pom, err := unmarshalPomFromFilePath(pomFilePath)
