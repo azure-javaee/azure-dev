@@ -10,7 +10,6 @@ import (
 )
 
 type SpringBootProject struct {
-	springBootVersion     string // todo: delete this, because it's only used once.
 	applicationProperties map[string]string
 	pom                   pom
 }
@@ -98,7 +97,6 @@ func detectAzureDependenciesByAnalyzingSpringBootProject(mavenProject mavenProje
 		return
 	}
 	var springBootProject = SpringBootProject{
-		springBootVersion:     detectSpringBootVersion(pom),
 		applicationProperties: readProperties(azdProject.Path),
 		pom:                   pom,
 	}
@@ -235,7 +233,7 @@ func detectEventHubsAccordingToSpringCloudStreamKafkaMavenDependency(
 		newDep := AzureDepEventHubs{
 			EventHubsNamePropertyMap: bindingDestinations,
 			UseKafka:                 true,
-			SpringBootVersion:        springBootProject.springBootVersion,
+			SpringBootVersion:        detectSpringBootVersion(springBootProject.pom),
 		}
 		azdProject.AzureDeps = append(azdProject.AzureDeps, newDep)
 		logServiceAddedAccordingToMavenDependency(newDep.ResourceDisplay(), targetGroupId, targetArtifactId)
