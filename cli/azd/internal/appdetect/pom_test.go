@@ -11,34 +11,39 @@ import (
 
 func TestToEffectivePom(t *testing.T) {
 	tests := []struct {
-		name      string
-		pomString string
-		expected  []dependency
+		name     string
+		testPoms []testPom
+		expected []dependency
 	}{
 		{
 			name: "Test with two dependencies",
-			pomString: `
-				<project>
-					<modelVersion>4.0.0</modelVersion>
-					<groupId>com.example</groupId>
-					<artifactId>example-project</artifactId>
-					<version>1.0.0</version>
-					<dependencies>
-						<dependency>
-							<groupId>org.springframework</groupId>
-							<artifactId>spring-core</artifactId>
-							<version>5.3.8</version>
-							<scope>compile</scope>
-						</dependency>
-						<dependency>
-							<groupId>junit</groupId>
-							<artifactId>junit</artifactId>
-							<version>4.13.2</version>
-							<scope>test</scope>
-						</dependency>
-					</dependencies>
-				</project>
-				`,
+			testPoms: []testPom{
+				{
+					pomFilePath: "pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+							<groupId>com.example</groupId>
+							<artifactId>example-project</artifactId>
+							<version>1.0.0</version>
+							<dependencies>
+								<dependency>
+									<groupId>org.springframework</groupId>
+									<artifactId>spring-core</artifactId>
+									<version>5.3.8</version>
+									<scope>compile</scope>
+								</dependency>
+								<dependency>
+									<groupId>junit</groupId>
+									<artifactId>junit</artifactId>
+									<version>4.13.2</version>
+									<scope>test</scope>
+								</dependency>
+							</dependencies>
+						</project>
+						`,
+				},
+			},
 			expected: []dependency{
 				{
 					GroupId:    "org.springframework",
@@ -56,45 +61,55 @@ func TestToEffectivePom(t *testing.T) {
 		},
 		{
 			name: "Test with no dependencies",
-			pomString: `
-				<project>
-					<modelVersion>4.0.0</modelVersion>
-					<groupId>com.example</groupId>
-					<artifactId>example-project</artifactId>
-					<version>1.0.0</version>
-					<dependencies>
-					</dependencies>
-				</project>
-				`,
+			testPoms: []testPom{
+				{
+					pomFilePath: "pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+							<groupId>com.example</groupId>
+							<artifactId>example-project</artifactId>
+							<version>1.0.0</version>
+							<dependencies>
+							</dependencies>
+						</project>
+						`,
+				},
+			},
 			expected: []dependency{},
 		},
 		{
 			name: "Test with one dependency which version is decided by dependencyManagement",
-			pomString: `
-				<project>
-					<modelVersion>4.0.0</modelVersion>
-					<groupId>com.example</groupId>
-					<artifactId>example-project</artifactId>
-					<version>1.0.0</version>
-					<dependencies>
-						<dependency>
-							<groupId>org.slf4j</groupId>
-							<artifactId>slf4j-api</artifactId>
-						</dependency>
-					</dependencies>
-					<dependencyManagement>
-						<dependencies>
-							<dependency>
-								<groupId>org.springframework.boot</groupId>
-								<artifactId>spring-boot-dependencies</artifactId>
-								<version>3.0.0</version>
-								<type>pom</type>
-								<scope>import</scope>
-							</dependency>
-						</dependencies>
-					</dependencyManagement>
-				</project>
-				`,
+			testPoms: []testPom{
+				{
+					pomFilePath: "pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+							<groupId>com.example</groupId>
+							<artifactId>example-project</artifactId>
+							<version>1.0.0</version>
+							<dependencies>
+								<dependency>
+									<groupId>org.slf4j</groupId>
+									<artifactId>slf4j-api</artifactId>
+								</dependency>
+							</dependencies>
+							<dependencyManagement>
+								<dependencies>
+									<dependency>
+										<groupId>org.springframework.boot</groupId>
+										<artifactId>spring-boot-dependencies</artifactId>
+										<version>3.0.0</version>
+										<type>pom</type>
+										<scope>import</scope>
+									</dependency>
+								</dependencies>
+							</dependencyManagement>
+						</project>
+						`,
+				},
+			},
 			expected: []dependency{
 				{
 					GroupId:    "org.slf4j",
@@ -106,26 +121,31 @@ func TestToEffectivePom(t *testing.T) {
 		},
 		{
 			name: "Test with one dependency which version is decided by parent",
-			pomString: `
-				<project>
-					<parent>
-						<groupId>org.springframework.boot</groupId>
-						<artifactId>spring-boot-starter-parent</artifactId>
-						<version>3.0.0</version>
-						<relativePath/> <!-- lookup parent from repository -->
-					</parent>
-					<modelVersion>4.0.0</modelVersion>
-					<groupId>com.example</groupId>
-					<artifactId>example-project</artifactId>
-					<version>1.0.0</version>
-					<dependencies>
-						<dependency>
-							<groupId>org.slf4j</groupId>
-							<artifactId>slf4j-api</artifactId>
-						</dependency>
-					</dependencies>
-				</project>
-				`,
+			testPoms: []testPom{
+				{
+					pomFilePath: "pom.xml",
+					pomContentString: `
+						<project>
+							<parent>
+								<groupId>org.springframework.boot</groupId>
+								<artifactId>spring-boot-starter-parent</artifactId>
+								<version>3.0.0</version>
+								<relativePath/> <!-- lookup parent from repository -->
+							</parent>
+							<modelVersion>4.0.0</modelVersion>
+							<groupId>com.example</groupId>
+							<artifactId>example-project</artifactId>
+							<version>1.0.0</version>
+							<dependencies>
+								<dependency>
+									<groupId>org.slf4j</groupId>
+									<artifactId>slf4j-api</artifactId>
+								</dependency>
+							</dependencies>
+						</project>
+						`,
+				},
+			},
 			expected: []dependency{
 				{
 					GroupId:    "org.slf4j",
@@ -139,35 +159,26 @@ func TestToEffectivePom(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tempDir, err := os.MkdirTemp("", "TestToEffectivePom")
-			if err != nil {
-				t.Fatalf("Failed to create temp directory: %v", err)
-			}
-			defer func(path string) {
-				err := os.RemoveAll(path)
+			for _, testPom := range tt.testPoms {
+				path, err := prepareTestPomFiles(testPom)
 				if err != nil {
-					t.Fatalf("Failed to remove all in directory: %v", err)
+					t.Fatalf("%v", err)
 				}
-			}(tempDir)
+				pomFilePath := filepath.Join(path, testPom.pomFilePath)
 
-			pomPath := filepath.Join(tempDir, "pom.xml")
-			err = os.WriteFile(pomPath, []byte(tt.pomString), 0600)
-			if err != nil {
-				t.Fatalf("Failed to write temp POM file: %v", err)
-			}
+				effectivePom, err := createEffectivePom(pomFilePath)
+				if err != nil {
+					t.Fatalf("createEffectivePom failed: %v", err)
+				}
 
-			effectivePom, err := createEffectivePom(pomPath)
-			if err != nil {
-				t.Fatalf("createEffectivePom failed: %v", err)
-			}
+				if len(effectivePom.Dependencies) != len(tt.expected) {
+					t.Fatalf("Expected: %d\nActual: %d", len(tt.expected), len(effectivePom.Dependencies))
+				}
 
-			if len(effectivePom.Dependencies) != len(tt.expected) {
-				t.Fatalf("Expected: %d\nActual: %d", len(tt.expected), len(effectivePom.Dependencies))
-			}
-
-			for i, dep := range effectivePom.Dependencies {
-				if dep != tt.expected[i] {
-					t.Errorf("\nExpected: %s\nActual:   %s", tt.expected[i], dep)
+				for i, dep := range effectivePom.Dependencies {
+					if dep != tt.expected[i] {
+						t.Errorf("\nExpected: %s\nActual:   %s", tt.expected[i], dep)
+					}
 				}
 			}
 		})
