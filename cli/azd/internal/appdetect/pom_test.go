@@ -246,6 +246,7 @@ func TestReplacePropertyPlaceHolder(t *testing.T) {
 							GroupId:    "groupIdOne",
 							ArtifactId: "artifactIdOne",
 							Version:    "${version.spring.boot}",
+							Scope:      DependencyScopeCompile,
 						},
 					},
 				},
@@ -254,11 +255,13 @@ func TestReplacePropertyPlaceHolder(t *testing.T) {
 						GroupId:    "groupIdTwo",
 						ArtifactId: "artifactIdTwo",
 						Version:    "${version.spring.cloud}",
+						Scope:      DependencyScopeCompile,
 					},
 					{
 						GroupId:    "${project.groupId}",
 						ArtifactId: "artifactIdThree",
 						Version:    "${project.version}",
+						Scope:      DependencyScopeCompile,
 					},
 				},
 				Build: build{
@@ -290,6 +293,7 @@ func TestReplacePropertyPlaceHolder(t *testing.T) {
 							GroupId:    "groupIdOne",
 							ArtifactId: "artifactIdOne",
 							Version:    "3.3.5",
+							Scope:      DependencyScopeCompile,
 						},
 					},
 				},
@@ -298,11 +302,13 @@ func TestReplacePropertyPlaceHolder(t *testing.T) {
 						GroupId:    "groupIdTwo",
 						ArtifactId: "artifactIdTwo",
 						Version:    "2023.0.3",
+						Scope:      DependencyScopeCompile,
 					},
 					{
 						GroupId:    "sampleGroupId",
 						ArtifactId: "artifactIdThree",
 						Version:    "1.0.0",
+						Scope:      DependencyScopeCompile,
 					},
 				},
 				Build: build{
