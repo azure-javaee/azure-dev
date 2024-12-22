@@ -72,20 +72,28 @@ type plugin struct {
 	Version    string `xml:"version"`
 }
 
+func createEffectivePomOrSimulatedEffectivePom(pomPath string) (pom, error) {
+	pom, err := createEffectivePom(pomPath)
+	if err == nil {
+		return pom, nil
+	}
+	return createSimulatedEffectivePom(pomPath)
+}
+
 // Simulated effective pom means not strictly equal to effective pom.
 // Just try best to make sure these item are same to the real effective pom:
 //  1. pom.Dependencies. Only make sure the groupId/artifactId/version.
 //  2. pom.Build.Plugins.
 //     2.1. Only make sure the groupId/artifactId/version.
 //     2.2. Not include the default maven plugins (name with this patten: "maven-xxx-plugin").
-func createSimulatedEffectivePom(pomFilePath string) (*pom, error) {
+func createSimulatedEffectivePom(pomFilePath string) (pom, error) {
 	pom, err := unmarshalPomFromFilePath(pomFilePath)
 	if err != nil {
-		return nil, err
+		return pom, err
 	}
 	pom.pomFilePath = pomFilePath
 	convertToSimulatedEffectivePom(&pom)
-	return &pom, nil
+	return pom, nil
 }
 
 func convertToSimulatedEffectivePom(pom *pom) {
@@ -143,7 +151,7 @@ func absorbInformationFromParentInLocalFileSystem(pom *pom) bool {
 			"pomFilePath", pom.pomFilePath)
 		return false
 	}
-	absorbInformationFromParentPom(pom, *parentEffectivePom)
+	absorbInformationFromParentPom(pom, parentEffectivePom)
 	return true
 }
 
