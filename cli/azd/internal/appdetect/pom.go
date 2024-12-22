@@ -96,13 +96,12 @@ func createSimulatedEffectivePom(pomFilePath string) (pom, error) {
 	if err != nil {
 		return pom, err
 	}
-	setDefaultScopeForDependenciesAndDependencyManagement(&pom)
-	pom.pomFilePath = pomFilePath
 	convertToSimulatedEffectivePom(&pom)
 	return pom, nil
 }
 
 func convertToSimulatedEffectivePom(pom *pom) {
+	setDefaultScopeForDependenciesAndDependencyManagement(pom)
 	updateVersionAccordingToPropertiesAndDependencyManagement(pom)
 	absorbInformationFromParentAndImportedDependenciesInDependencyManagement(pom)
 }
@@ -297,7 +296,12 @@ func unmarshalPomFromFilePath(pomFilePath string) (pom, error) {
 	if err != nil {
 		return pom{}, err
 	}
-	return unmarshalPomFromBytes(bytes)
+	result, err := unmarshalPomFromBytes(bytes)
+	if err != nil {
+		return pom{}, err
+	}
+	result.pomFilePath = pomFilePath
+	return result, nil
 }
 
 func setDefaultScopeForDependenciesAndDependencyManagement(pom *pom) {
@@ -308,7 +312,7 @@ func setDefaultScopeForDependenciesAndDependencyManagement(pom *pom) {
 	}
 	for i, dep := range pom.DependencyManagement.Dependencies {
 		if dep.Scope == "" {
-			pom.Dependencies[i].Scope = DependencyScopeCompile
+			pom.DependencyManagement.Dependencies[i].Scope = DependencyScopeCompile
 		}
 	}
 }

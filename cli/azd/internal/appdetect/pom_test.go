@@ -1779,6 +1779,99 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Set spring-boot-maven-plugin in grandparent",
+			testPoms: []testPom{
+				{
+					pomFilePath: "./pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+							<groupId>com.example</groupId>
+							<artifactId>example-project-grandparent</artifactId>
+							<version>1.0.0</version>
+							<packaging>pom</packaging>
+							<properties>
+								<version.spring.boot>3.3.5</version.spring.boot>
+							</properties>
+							<dependencyManagement>
+								<dependencies>
+									<dependency>
+										<groupId>org.springframework.boot</groupId>
+										<artifactId>spring-boot-dependencies</artifactId>
+										<version>${version.spring.boot}</version>
+										<type>pom</type>
+										<scope>import</scope>
+									</dependency>
+								</dependencies>
+							</dependencyManagement>
+							<build>
+								<plugins>
+									<plugin>
+										<groupId>org.springframework.boot</groupId>
+										<artifactId>spring-boot-maven-plugin</artifactId>
+										<version>${version.spring.boot}</version>
+										<executions>
+											<execution>
+												<goals>
+													<goal>repackage</goal>
+												</goals>
+											</execution>
+										</executions>
+									</plugin>
+								</plugins>
+							</build>
+						</project>
+						`,
+				},
+				{
+					pomFilePath: "./modules/pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+							<groupId>com.example</groupId>
+							<artifactId>example-project-parent</artifactId>
+							<version>1.0.0</version>
+							<packaging>pom</packaging>
+							<parent>
+								<groupId>com.example</groupId>
+								<artifactId>example-project-grandparent</artifactId>
+								<version>1.0.0</version>
+							    <relativePath>../pom.xml</relativePath>
+							</parent>
+						</project>
+						`,
+				},
+				{
+					pomFilePath: "./modules/module-one/pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+							<groupId>com.example</groupId>
+							<artifactId>example-project-module-one</artifactId>
+							<version>1.0.0</version>
+							<parent>
+								<groupId>com.example</groupId>
+								<artifactId>example-project-parent</artifactId>
+								<version>1.0.0</version>
+							    <relativePath>../pom.xml</relativePath>
+							</parent>
+							<dependencies>
+								<dependency>
+									<groupId>org.springframework</groupId>
+									<artifactId>spring-core</artifactId>
+								</dependency>
+								<dependency>
+									<groupId>junit</groupId>
+									<artifactId>junit</artifactId>
+									<scope>test</scope>
+								</dependency>
+							</dependencies>
+						</project>
+						`,
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
