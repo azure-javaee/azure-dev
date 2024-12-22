@@ -1221,6 +1221,9 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 					t.Fatalf("%v", err)
 				}
 				simulatedEffectivePom, err := createSimulatedEffectivePom(pomFilePath)
+				if err != nil {
+					t.Fatalf("%v", err)
+				}
 				if !reflect.DeepEqual(effectivePom.Dependencies, simulatedEffectivePom.Dependencies) {
 					t.Fatalf("\neffectivePom.Dependencies:          %s\nsimulatedEffectivePom.Dependencies:   %s",
 						effectivePom.Dependencies, simulatedEffectivePom)
