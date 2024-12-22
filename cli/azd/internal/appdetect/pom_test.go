@@ -1611,7 +1611,7 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 			},
 		},
 		{
-			name: "Version different in dependencyManagement of grandparent & parent & current pom",
+			name: "Version different in dependencyManagement of grandparent & parent & leaf pom",
 			testPoms: []testPom{
 				{
 					pomFilePath: "./pom.xml",
@@ -1693,6 +1693,80 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 									<groupId>org.springframework</groupId>
 									<artifactId>spring-core</artifactId>
 									<scope>compile</scope>
+								</dependency>
+								<dependency>
+									<groupId>junit</groupId>
+									<artifactId>junit</artifactId>
+									<scope>test</scope>
+								</dependency>
+							</dependencies>
+						</project>
+						`,
+				},
+			},
+		},
+		{
+			name: "scope not set in leaf pom",
+			testPoms: []testPom{
+				{
+					pomFilePath: "./pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+							<groupId>com.example</groupId>
+							<artifactId>example-project-grandparent</artifactId>
+							<version>1.0.0</version>
+							<packaging>pom</packaging>
+							<dependencyManagement>
+								<dependencies>
+									<dependency>
+										<groupId>org.springframework.boot</groupId>
+										<artifactId>spring-boot-dependencies</artifactId>
+										<version>3.0.0</version>
+										<type>pom</type>
+										<scope>import</scope>
+									</dependency>
+								</dependencies>
+							</dependencyManagement>
+						</project>
+						`,
+				},
+				{
+					pomFilePath: "./modules/pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+							<groupId>com.example</groupId>
+							<artifactId>example-project-parent</artifactId>
+							<version>1.0.0</version>
+							<packaging>pom</packaging>
+							<parent>
+								<groupId>com.example</groupId>
+								<artifactId>example-project-grandparent</artifactId>
+								<version>1.0.0</version>
+							    <relativePath>../pom.xml</relativePath>
+							</parent>
+						</project>
+						`,
+				},
+				{
+					pomFilePath: "./modules/module-one/pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+							<groupId>com.example</groupId>
+							<artifactId>example-project-module-one</artifactId>
+							<version>1.0.0</version>
+							<parent>
+								<groupId>com.example</groupId>
+								<artifactId>example-project-parent</artifactId>
+								<version>1.0.0</version>
+							    <relativePath>../pom.xml</relativePath>
+							</parent>
+							<dependencies>
+								<dependency>
+									<groupId>org.springframework</groupId>
+									<artifactId>spring-core</artifactId>
 								</dependency>
 								<dependency>
 									<groupId>junit</groupId>

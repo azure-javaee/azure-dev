@@ -72,6 +72,11 @@ type plugin struct {
 	Version    string `xml:"version"`
 }
 
+const (
+	DependencyScopeCompile string = "compile"
+	DependencyScopeTest    string = "test"
+)
+
 func createEffectivePomOrSimulatedEffectivePom(pomPath string) (pom, error) {
 	pom, err := createEffectivePom(pomPath)
 	if err == nil {
@@ -91,6 +96,7 @@ func createSimulatedEffectivePom(pomFilePath string) (pom, error) {
 	if err != nil {
 		return pom, err
 	}
+	setDefaultScopeForDependenciesAndDependencyManagement(&pom)
 	pom.pomFilePath = pomFilePath
 	convertToSimulatedEffectivePom(&pom)
 	return pom, nil
@@ -294,6 +300,19 @@ func unmarshalPomFromFilePath(pomFilePath string) (pom, error) {
 	return unmarshalPomFromBytes(bytes)
 }
 
+func setDefaultScopeForDependenciesAndDependencyManagement(pom *pom) {
+	for i, dep := range pom.Dependencies {
+		if dep.Scope == "" {
+			pom.Dependencies[i].Scope = DependencyScopeCompile
+		}
+	}
+	for i, dep := range pom.DependencyManagement.Dependencies {
+		if dep.Scope == "" {
+			pom.Dependencies[i].Scope = DependencyScopeCompile
+		}
+	}
+}
+
 func unmarshalPomFromString(pomString string) (pom, error) {
 	return unmarshalPomFromBytes([]byte(pomString))
 }
@@ -406,11 +425,7 @@ func getVariableName(value string) string {
 }
 
 func toDependencyManagementMapKey(dependency dependency) string {
-	scope := dependency.Scope
-	if scope == "" {
-		scope = "compile"
-	}
-	return fmt.Sprintf("%s:%s:%s", dependency.GroupId, dependency.ArtifactId, scope)
+	return fmt.Sprintf("%s:%s:%s", dependency.GroupId, dependency.ArtifactId, dependency.Scope)
 }
 
 func createDependencyFromDependencyManagementMapKeyAndVersion(key string, version string) dependency {
@@ -461,8 +476,8 @@ func updateDependencyVersionAccordingToDependencyManagement(pom *pom) {
 		key := toDependencyManagementMapKey(dep)
 		if managedVersion, ok := pom.dependencyManagementMap[key]; ok {
 			pom.Dependencies[i].Version = managedVersion
-		} else if dep.Scope == "test" {
-			dep.Scope = "compile"
+		} else if dep.Scope == DependencyScopeTest {
+			dep.Scope = DependencyScopeCompile
 			key = toDependencyManagementMapKey(dep)
 			if managedVersion, ok = pom.dependencyManagementMap[key]; ok {
 				pom.Dependencies[i].Version = managedVersion
