@@ -453,6 +453,12 @@ func updateDependencyVersionAccordingToDependencyManagement(pom *pom) {
 		key := toDependencyManagementMapKey(dep)
 		if managedVersion, ok := pom.dependencyManagementMap[key]; ok {
 			pom.Dependencies[i].Version = managedVersion
+		} else if dep.Scope == "test" {
+			dep.Scope = "compile"
+			key = toDependencyManagementMapKey(dep)
+			if managedVersion, ok = pom.dependencyManagementMap[key]; ok {
+				pom.Dependencies[i].Version = managedVersion
+			}
 		}
 	}
 }
