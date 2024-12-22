@@ -357,6 +357,7 @@ func TestCreateDependencyManagementMap(t *testing.T) {
 							GroupId:    "groupIdOne",
 							ArtifactId: "artifactIdOne",
 							Version:    "1.0.0",
+							Scope:      DependencyScopeCompile,
 						},
 					},
 				},
@@ -364,6 +365,7 @@ func TestCreateDependencyManagementMap(t *testing.T) {
 					{
 						GroupId:    "groupIdOne",
 						ArtifactId: "artifactIdOne",
+						Scope:      DependencyScopeCompile,
 					},
 				},
 			},
@@ -374,6 +376,7 @@ func TestCreateDependencyManagementMap(t *testing.T) {
 							GroupId:    "groupIdOne",
 							ArtifactId: "artifactIdOne",
 							Version:    "1.0.0",
+							Scope:      DependencyScopeCompile,
 						},
 					},
 				},
@@ -381,6 +384,7 @@ func TestCreateDependencyManagementMap(t *testing.T) {
 					{
 						GroupId:    "groupIdOne",
 						ArtifactId: "artifactIdOne",
+						Scope:      DependencyScopeCompile,
 					},
 				},
 				dependencyManagementMap: map[string]string{
@@ -412,6 +416,7 @@ func TestUpdateDependencyVersionAccordingToDependencyManagement(t *testing.T) {
 					{
 						GroupId:    "groupIdOne",
 						ArtifactId: "artifactIdOne",
+						Scope:      DependencyScopeCompile,
 					},
 				},
 				dependencyManagementMap: map[string]string{
@@ -424,6 +429,7 @@ func TestUpdateDependencyVersionAccordingToDependencyManagement(t *testing.T) {
 						GroupId:    "groupIdOne",
 						ArtifactId: "artifactIdOne",
 						Version:    "1.0.0",
+						Scope:      DependencyScopeCompile,
 					},
 				},
 				dependencyManagementMap: map[string]string{
@@ -694,6 +700,7 @@ func TestAbsorbPropertyMap(t *testing.T) {
 							GroupId:    "groupIdOne",
 							ArtifactId: "artifactIdOne",
 							Version:    "${version.spring.boot}",
+							Scope:      DependencyScopeCompile,
 						},
 					},
 				},
@@ -702,11 +709,13 @@ func TestAbsorbPropertyMap(t *testing.T) {
 						GroupId:    "groupIdTwo",
 						ArtifactId: "artifactIdTwo",
 						Version:    "${version.spring.cloud}",
+						Scope:      DependencyScopeCompile,
 					},
 					{
 						GroupId:    "groupIdThree",
 						ArtifactId: "artifactIdThree",
 						Version:    "${another.property}",
+						Scope:      DependencyScopeCompile,
 					},
 				},
 				Build: build{
@@ -745,6 +754,7 @@ func TestAbsorbPropertyMap(t *testing.T) {
 							GroupId:    "groupIdOne",
 							ArtifactId: "artifactIdOne",
 							Version:    "3.3.5",
+							Scope:      DependencyScopeCompile,
 						},
 					},
 				},
@@ -753,11 +763,13 @@ func TestAbsorbPropertyMap(t *testing.T) {
 						GroupId:    "groupIdTwo",
 						ArtifactId: "artifactIdTwo",
 						Version:    "2023.0.3",
+						Scope:      DependencyScopeCompile,
 					},
 					{
 						GroupId:    "groupIdThree",
 						ArtifactId: "artifactIdThree",
 						Version:    "5.18.0",
+						Scope:      DependencyScopeCompile,
 					},
 				},
 				Build: build{
