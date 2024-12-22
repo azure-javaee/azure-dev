@@ -36,10 +36,10 @@ func (jd *javaDetector) Language() Language {
 
 func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries []fs.DirEntry) (*Project, error) {
 	for _, entry := range entries {
-		if strings.ToLower(entry.Name()) == "pom.xml" {
+		if strings.ToLower(entry.Name()) == "pom.xml" { // todo: support file names like backend-pom.xml
 			tracing.SetUsageAttributes(fields.AppInitJavaDetect.String("start"))
 			pomFile := filepath.Join(path, entry.Name())
-			mavenProject, err := toMavenProject(pomFile)
+			mavenProject, err := createMavenProject(pomFile)
 			if err != nil {
 				log.Printf("Please edit azure.yaml manually to satisfy your requirement. azd can not help you "+
 					"to that by detect your java project because error happened when reading pom.xml: %s. ", err)
@@ -72,7 +72,7 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 				Path:          path,
 				DetectionRule: "Inferred by presence of: pom.xml",
 			}
-			detectAzureDependenciesByAnalyzingSpringBootProject(parentPom, &mavenProject.pom, &project)
+			detectAzureDependenciesByAnalyzingSpringBootProject(mavenProject, &project)
 			if parentPom != nil {
 				project.Options = map[string]interface{}{
 					JavaProjectOptionMavenParentPath:       filepath.Dir(parentPom.pomFilePath),

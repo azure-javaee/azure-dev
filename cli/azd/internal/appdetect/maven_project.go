@@ -4,12 +4,12 @@ type mavenProject struct {
 	pom pom
 }
 
-func toMavenProject(pomFilePath string) (*mavenProject, error) {
+func createMavenProject(pomFilePath string) (mavenProject, error) {
 	pom, err := createEffectivePomOrSimulatedEffectivePom(pomFilePath)
 	if err != nil {
-		return nil, err
+		return mavenProject{}, err
 	}
-	return &mavenProject{
+	return mavenProject{
 		pom: pom,
 	}, nil
 }

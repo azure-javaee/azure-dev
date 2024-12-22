@@ -15,6 +15,8 @@ type SpringBootProject struct {
 	pom                   pom
 }
 
+const UnknownSpringBootVersion string = "unknownSpringBootVersion"
+
 type DatabaseDependencyRule struct {
 	databaseDep       DatabaseDep
 	mavenDependencies []MavenDependency
@@ -89,20 +91,16 @@ var databaseDependencyRules = []DatabaseDependencyRule{
 	},
 }
 
-// todo: remove parentPom, when passed in the pom is the effective pom.
-func detectAzureDependenciesByAnalyzingSpringBootProject(parentPom *pom, currentPom *pom, azdProject *Project) {
-	effectivePom, err := createEffectivePom(currentPom.pomFilePath)
-	if err == nil {
-		currentPom = &effectivePom
-	}
-	if !isSpringBootApplication(currentPom) {
-		log.Printf("Skip analyzing spring boot project. pomFilePath = %s.", currentPom.pomFilePath)
+func detectAzureDependenciesByAnalyzingSpringBootProject(mavenProject mavenProject, azdProject *Project) {
+	pom := mavenProject.pom
+	if !isSpringBootApplication(pom) {
+		log.Printf("Skip analyzing spring boot project. pomFilePath = %s.", pom.pomFilePath)
 		return
 	}
 	var springBootProject = SpringBootProject{
-		springBootVersion:     detectSpringBootVersion(parentPom, currentPom),
+		springBootVersion:     detectSpringBootVersion(pom),
 		applicationProperties: readProperties(azdProject.Path),
-		pom:                   *currentPom,
+		pom:                   pom,
 	}
 	detectDatabases(azdProject, &springBootProject)
 	detectServiceBus(azdProject, &springBootProject)
@@ -493,58 +491,28 @@ func logMetadataUpdated(info string) {
 	log.Printf("Metadata updated. %s.", info)
 }
 
-func detectSpringBootVersion(parentPom *pom, currentPom *pom) string {
-	// currentPom prioritize than parentPom
-	if currentPom != nil {
-		if version := detectSpringBootVersionFromPom(currentPom); version != UnknownSpringBootVersion {
-			return version
+func detectSpringBootVersion(pom pom) string {
+	for _, dep := range pom.Dependencies {
+		if dep.GroupId == "org.springframework.boot" {
+			return dep.Version
 		}
 	}
-	// fallback to detect parentPom
-	if parentPom != nil {
-		return detectSpringBootVersionFromPom(parentPom)
-	}
-	return UnknownSpringBootVersion
-}
-
-func detectSpringBootVersionFromPom(pom *pom) string {
-	if pom.Parent.ArtifactId == "spring-boot-starter-parent" {
-		return pom.Parent.Version
-	} else {
-		for _, dep := range pom.DependencyManagement.Dependencies {
-			if dep.ArtifactId == "spring-boot-dependencies" {
-				return dep.Version
-			}
-		}
-		for _, dep := range pom.Dependencies {
-			if dep.GroupId == "org.springframework.boot" {
-				return dep.Version
-			}
+	for _, dep := range pom.Build.Plugins {
+		if dep.GroupId == "org.springframework.boot" {
+			return dep.Version
 		}
 	}
 	return UnknownSpringBootVersion
 }
 
-func isSpringBootApplication(pom *pom) bool {
-	// how can we tell it's a Spring Boot project?
-	// 1. It has a parent with a groupId of org.springframework.boot and an artifactId of spring-boot-starter-parent
-	// 2. It has a dependency management with a groupId of org.springframework.boot and an artifactId of
-	// spring-boot-dependencies
-	// 3. It has a dependency with a groupId of org.springframework.boot and an artifactId that starts with
-	// spring-boot-starter
-	if pom.Parent.GroupId == "org.springframework.boot" &&
-		pom.Parent.ArtifactId == "spring-boot-starter-parent" {
-		return true
-	}
-	for _, dep := range pom.DependencyManagement.Dependencies {
-		if dep.GroupId == "org.springframework.boot" &&
-			dep.ArtifactId == "spring-boot-dependencies" {
+func isSpringBootApplication(pom pom) bool {
+	for _, dep := range pom.Dependencies {
+		if dep.GroupId == "org.springframework.boot" {
 			return true
 		}
 	}
-	for _, dep := range pom.Dependencies {
-		if dep.GroupId == "org.springframework.boot" &&
-			strings.HasPrefix(dep.ArtifactId, "spring-boot-starter") { // maybe delete condition of this line
+	for _, dep := range pom.Build.Plugins {
+		if dep.GroupId == "org.springframework.boot" {
 			return true
 		}
 	}
