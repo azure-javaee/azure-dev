@@ -159,12 +159,12 @@ func TestToEffectivePom(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			workingDir, err := prepareTestPomFiles(tt.testPoms)
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
 			for _, testPom := range tt.testPoms {
-				path, err := prepareTestPomFiles(testPom)
-				if err != nil {
-					t.Fatalf("%v", err)
-				}
-				pomFilePath := filepath.Join(path, testPom.pomFilePath)
+				pomFilePath := filepath.Join(workingDir, testPom.pomFilePath)
 
 				effectivePom, err := createEffectivePom(pomFilePath)
 				if err != nil {
@@ -1143,18 +1143,79 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 						</project>
 						`,
 				},
-				// todo add more cases
+			},
+		},
+		{
+			name: "self-defined parent",
+			testPoms: []testPom{
+				{
+					pomFilePath: "./pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+							<groupId>com.example</groupId>
+							<artifactId>example-project-parent</artifactId>
+							<version>1.0.0</version>
+							<packaging>pom</packaging>
+							<dependencyManagement>
+								<dependencies>
+									<dependency>
+										<groupId>org.springframework</groupId>
+										<artifactId>spring-core</artifactId>
+										<version>5.3.8</version>
+										<scope>compile</scope>
+									</dependency>
+									<dependency>
+										<groupId>junit</groupId>
+										<artifactId>junit</artifactId>
+										<version>4.13.2</version>
+										<scope>test</scope>
+									</dependency>
+								</dependencies>
+							</dependencyManagement>
+						</project>
+						`,
+				},
+				{
+					pomFilePath: "./module-one/pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+							<groupId>com.example</groupId>
+							<artifactId>example-project-module-one</artifactId>
+							<version>1.0.0</version>
+							<parent>
+								<groupId>com.example</groupId>
+								<artifactId>example-project-parent</artifactId>
+								<version>1.0.0</version>
+							    <relativePath>../pom.xml</relativePath>
+							</parent>
+							<dependencies>
+								<dependency>
+									<groupId>org.springframework</groupId>
+									<artifactId>spring-core</artifactId>
+									<scope>compile</scope>
+								</dependency>
+								<dependency>
+									<groupId>junit</groupId>
+									<artifactId>junit</artifactId>
+									<scope>test</scope>
+								</dependency>
+							</dependencies>
+						</project>
+						`,
+				},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			workingDir, err := prepareTestPomFiles(tt.testPoms)
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
 			for _, testPom := range tt.testPoms {
-				path, err := prepareTestPomFiles(testPom)
-				if err != nil {
-					t.Fatalf("%v", err)
-				}
-				pomFilePath := filepath.Join(path, testPom.pomFilePath)
+				pomFilePath := filepath.Join(workingDir, testPom.pomFilePath)
 				effectivePom, err := createEffectivePom(pomFilePath)
 				if err != nil {
 					t.Fatalf("%v", err)
@@ -1191,16 +1252,21 @@ type testPom struct {
 	pomContentString string
 }
 
-func prepareTestPomFiles(testPom testPom) (string, error) {
+func prepareTestPomFiles(testPoms []testPom) (string, error) {
 	tempDir, err := os.MkdirTemp("", "prepareTestPomFiles")
 	if err != nil {
 		return "", err
 	}
-
-	pomPath := filepath.Join(tempDir, testPom.pomFilePath)
-	err = os.WriteFile(pomPath, []byte(testPom.pomContentString), 0600)
-	if err != nil {
-		return "", err
+	for _, testPom := range testPoms {
+		pomPath := filepath.Join(tempDir, testPom.pomFilePath)
+		err := os.MkdirAll(filepath.Dir(pomPath), 0600)
+		if err != nil {
+			return "", err
+		}
+		err = os.WriteFile(pomPath, []byte(testPom.pomContentString), 0600)
+		if err != nil {
+			return "", err
+		}
 	}
 	return tempDir, nil
 }
