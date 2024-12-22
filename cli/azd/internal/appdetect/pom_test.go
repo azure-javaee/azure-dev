@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestToEffectivePom(t *testing.T) {
+func TestCreateEffectivePom(t *testing.T) {
 	tests := []struct {
 		name     string
 		testPoms []testPom
@@ -399,7 +399,7 @@ func TestCreateDependencyManagementMap(t *testing.T) {
 	}
 }
 
-func TestUpdateVersionAccordingToDependencyManagementMap(t *testing.T) {
+func TestUpdateDependencyVersionAccordingToDependencyManagement(t *testing.T) {
 	var tests = []struct {
 		name     string
 		inputPom pom
@@ -513,7 +513,7 @@ func TestUpdateVersionAccordingToPropertiesAndDependencyManagement(t *testing.T)
 	}
 }
 
-func TestGetMavenRepositoryUrl(t *testing.T) {
+func TestGetRemoteMavenRepositoryUrl(t *testing.T) {
 	var tests = []struct {
 		name       string
 		groupId    string
@@ -548,7 +548,7 @@ func TestGetMavenRepositoryUrl(t *testing.T) {
 	}
 }
 
-func TestGetSimulatedEffectivePom(t *testing.T) {
+func TestGetSimulatedEffectivePomFromRemoteMavenRepository(t *testing.T) {
 	var tests = []struct {
 		name       string
 		groupId    string
