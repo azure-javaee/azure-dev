@@ -1007,6 +1007,10 @@ func ServiceFromDetect(
 
 	svc.Language = language
 
+	if parentPath, exists := prj.Options[appdetect.JavaProjectOptionMavenParentPath]; exists {
+		svc.ParentPath = parentPath.(string)
+	}
+
 	if prj.Docker != nil {
 		relDocker, err := filepath.Rel(prj.Path, prj.Docker.Path)
 		if err != nil {
