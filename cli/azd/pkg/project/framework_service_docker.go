@@ -459,17 +459,18 @@ func (p *dockerProject) packBuild(
 		// Always default to port 80 for consistency across languages
 		environ = append(environ, "ORYX_RUNTIME_PORT=80")
 
+		// For multi-module project, specify parent directory and submodule for pack build
+		if svc.ParentPath != "" {
+			buildContext = svc.ParentPath
+			svcRelPath, err := filepath.Rel(buildContext, svc.Path())
+			if err != nil {
+				return nil, err
+			}
+			environ = append(environ, fmt.Sprintf("BP_MAVEN_BUILT_MODULE=%s", filepath.ToSlash(svcRelPath)))
+		}
+
 		if svc.Language == ServiceLanguageJava {
 			environ = append(environ, "ORYX_RUNTIME_PORT=8080")
-			// For multi-module project, specify parent directory and submodule for pack build
-			if svc.ParentPath != "" {
-				buildContext = svc.ParentPath
-				svcRelPath, err := filepath.Rel(buildContext, svc.Path())
-				if err != nil {
-					return nil, err
-				}
-				environ = append(environ, fmt.Sprintf("BP_MAVEN_BUILT_MODULE=%s", filepath.ToSlash(svcRelPath)))
-			}
 		}
 
 		if svc.OutputPath != "" && (svc.Language == ServiceLanguageTypeScript || svc.Language == ServiceLanguageJavaScript) {
