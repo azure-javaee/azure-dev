@@ -275,6 +275,9 @@ func PromptPort(
 	ctx context.Context,
 	name string,
 	svc appdetect.Project) (int, error) {
+	if svc.Metadata.ServerPort != "" {
+		return strconv.Atoi(svc.Metadata.ServerPort)
+	}
 	if svc.Docker == nil || svc.Docker.Path == "" { // using default builder from azd
 		if svc.Language == appdetect.Java || svc.Language == appdetect.DotNet {
 			if svc.Metadata.ContainsDependencySpringCloudEurekaServer {
