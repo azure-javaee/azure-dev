@@ -1984,6 +1984,54 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Add build section in profile",
+			testPoms: []testPom{
+				{
+					pomFilePath: "./pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+
+							<parent>
+								<groupId>org.springframework.boot</groupId>
+								<artifactId>spring-boot-starter-parent</artifactId>
+								<version>3.3.5</version>
+							</parent>
+
+							<groupId>com.example</groupId>
+							<artifactId>example-project</artifactId>
+							<version>1.0.0</version>
+
+							<profiles>
+								<profile>
+									<id>default</id>
+									<activation>
+										<activeByDefault>true</activeByDefault>
+									</activation>
+									<build>
+										<plugins>
+											<plugin>
+												<groupId>org.springframework.boot</groupId>
+												<artifactId>spring-boot-maven-plugin</artifactId>
+												<version>3.3.5</version>
+												<executions>
+													<execution>
+														<goals>
+															<goal>repackage</goal>
+														</goals>
+													</execution>
+												</executions>
+											</plugin>
+										</plugins>
+									</build>
+								</profile>
+							</profiles>
+						</project>
+						`,
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
