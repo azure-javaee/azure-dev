@@ -1063,7 +1063,7 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 		testPoms []testPom
 	}{
 		{
-			name: "no parent",
+			name: "No parent",
 			testPoms: []testPom{
 				{
 					pomFilePath: "pom.xml",
@@ -1093,7 +1093,7 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 			},
 		},
 		{
-			name: "self-defined parent",
+			name: "Self-defined parent",
 			testPoms: []testPom{
 				{
 					pomFilePath: "./pom.xml",
@@ -1155,7 +1155,7 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 			},
 		},
 		{
-			name: "self-defined parent in grandparent folder",
+			name: "S-defined parent in grandparent folder",
 			testPoms: []testPom{
 				{
 					pomFilePath: "./pom.xml",
@@ -1653,7 +1653,7 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 			},
 		},
 		{
-			name: "scope not set in leaf pom",
+			name: "Scope not set in leaf pom",
 			testPoms: []testPom{
 				{
 					pomFilePath: "./pom.xml",
@@ -2035,6 +2035,7 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			workingDir, err := prepareTestPomFiles(tt.testPoms)
 			if err != nil {
 				t.Fatalf("%v", err)
