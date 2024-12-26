@@ -746,7 +746,7 @@ func TestAbsorbDependencyManagement(t *testing.T) {
 		expected        pom
 	}{
 		{
-			name: "relativePath not set",
+			name: "test absorbDependencyManagement",
 			input: pom{
 				GroupId:    "sampleGroupId",
 				ArtifactId: "sampleArtifactId",
@@ -796,7 +796,6 @@ func TestAbsorbDependencyManagement(t *testing.T) {
 					{
 						GroupId:    "groupIdOne",
 						ArtifactId: "artifactIdOne",
-						Version:    "1.0.0",
 						Scope:      "compile",
 					},
 				},
@@ -2025,6 +2024,72 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 											</plugin>
 										</plugins>
 									</build>
+								</profile>
+							</profiles>
+						</project>
+						`,
+				},
+			},
+		},
+		{
+			name: "Add dependencyManagement section in profile",
+			testPoms: []testPom{
+				{
+					pomFilePath: "./pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+
+							<groupId>com.example</groupId>
+							<artifactId>example-project</artifactId>
+							<version>1.0.0</version>
+
+							<dependencyManagement>
+								<dependencies>
+									<dependency>
+										<groupId>org.springframework.boot</groupId>
+										<artifactId>spring-boot-dependencies</artifactId>
+										<version>3.0.0</version>
+										<type>pom</type>
+										<scope>import</scope>
+									</dependency>
+								</dependencies>
+							</dependencyManagement>
+							<dependencies>
+								<dependency>
+									<groupId>org.springframework</groupId>
+									<artifactId>spring-core</artifactId>
+									<scope>compile</scope>
+								</dependency>
+								<dependency>
+									<groupId>junit</groupId>
+									<artifactId>junit</artifactId>
+									<scope>test</scope>
+								</dependency>
+							</dependencies>
+
+							<profiles>
+								<profile>
+									<id>default</id>
+									<activation>
+										<activeByDefault>true</activeByDefault>
+									</activation>
+									<dependencyManagement>
+										<dependencies>
+											<dependency>
+												<groupId>org.springframework</groupId>
+												<artifactId>spring-core</artifactId>
+												<version>5.3.8</version>
+												<scope>compile</scope>
+											</dependency>
+											<dependency>
+												<groupId>junit</groupId>
+												<artifactId>junit</artifactId>
+												<version>4.13.2</version>
+												<scope>test</scope>
+											</dependency>
+										</dependencies>
+									</dependencyManagement>
 								</profile>
 							</profiles>
 						</project>
