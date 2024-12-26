@@ -1053,9 +1053,12 @@ func TestAbsorbBuildPlugin(t *testing.T) {
 	}
 }
 
-func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
+func TestCreateSimulatedEffectivePom(t *testing.T) {
 	if !commandExistsInPath("java") {
-		slog.Debug("Skip TestCreateSimulatedEffectivePomFromFilePath because java command not found.")
+		slog.Debug("Skip createSimulatedEffectivePom because java command not found.")
+	}
+	if os.Getenv("GITHUB_ACTIONS") == "true" {
+		slog.Debug("Skip createSimulatedEffectivePom in GitHub Actions because it will time out.")
 	}
 	var tests = []struct {
 		name     string
