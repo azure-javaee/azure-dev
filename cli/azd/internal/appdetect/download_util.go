@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
 )
 
@@ -18,12 +17,8 @@ func download(requestUrl string) ([]byte, error) {
 	if !isAllowedHost(parsedUrl.Host) {
 		return nil, fmt.Errorf("invalid host")
 	}
-	timeOut := 30 * time.Second
-	if os.Getenv("GITHUB_ACTIONS") == "true" {
-		timeOut = 60 * time.Second
-	}
 	client := &http.Client{
-		Timeout: timeOut,
+		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 		},
