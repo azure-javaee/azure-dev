@@ -1890,6 +1890,124 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Set profiles and set activeByDefault = true",
+			testPoms: []testPom{
+				{
+					pomFilePath: "./pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+
+							<parent>
+								<groupId>org.springframework.boot</groupId>
+								<artifactId>spring-boot-starter-parent</artifactId>
+								<version>3.2.3</version>
+							</parent>
+
+							<groupId>com.example</groupId>
+							<artifactId>example-project</artifactId>
+							<version>1.0.0</version>
+							<packaging>pom</packaging>
+
+							<properties>
+								<java.version>17</java.version>
+								<maven.compiler.source>17</maven.compiler.source>
+								<maven.compiler.target>17</maven.compiler.target>
+								<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+								<spring-cloud.version>2023.0.0</spring-cloud.version>
+							</properties>
+
+							<dependencyManagement>
+								<dependencies>
+									<dependency>
+										<groupId>org.springframework.cloud</groupId>
+										<artifactId>spring-cloud-dependencies</artifactId>
+										<version>${spring-cloud.version}</version>
+										<type>pom</type>
+										<scope>import</scope>
+									</dependency>
+								</dependencies>
+							</dependencyManagement>
+
+							<profiles>
+								<profile>
+									<id>default</id>
+									<activation>
+										<activeByDefault>true</activeByDefault>
+									</activation>
+									<dependencies>
+										<dependency>
+											<groupId>org.springframework.cloud</groupId>
+											<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+										</dependency>
+									</dependencies>
+								</profile>
+							</profiles>
+						</project>
+						`,
+				},
+			},
+		},
+		{
+			name: "Set profiles and set activeByDefault = false",
+			testPoms: []testPom{
+				{
+					pomFilePath: "./pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+
+							<parent>
+								<groupId>org.springframework.boot</groupId>
+								<artifactId>spring-boot-starter-parent</artifactId>
+								<version>3.2.3</version>
+							</parent>
+
+							<groupId>com.example</groupId>
+							<artifactId>example-project</artifactId>
+							<version>1.0.0</version>
+							<packaging>pom</packaging>
+
+							<properties>
+								<java.version>17</java.version>
+								<maven.compiler.source>17</maven.compiler.source>
+								<maven.compiler.target>17</maven.compiler.target>
+								<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+								<spring-cloud.version>2023.0.0</spring-cloud.version>
+							</properties>
+
+							<dependencyManagement>
+								<dependencies>
+									<dependency>
+										<groupId>org.springframework.cloud</groupId>
+										<artifactId>spring-cloud-dependencies</artifactId>
+										<version>${spring-cloud.version}</version>
+										<type>pom</type>
+										<scope>import</scope>
+									</dependency>
+								</dependencies>
+							</dependencyManagement>
+
+							<profiles>
+								<profile>
+									<id>default</id>
+									<activation>
+										<activeByDefault>false</activeByDefault>
+									</activation>
+									<dependencies>
+										<dependency>
+											<groupId>org.springframework.cloud</groupId>
+											<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+										</dependency>
+									</dependencies>
+								</profile>
+							</profiles>
+						</project>
+						`,
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
