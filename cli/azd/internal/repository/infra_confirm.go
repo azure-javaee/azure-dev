@@ -120,7 +120,7 @@ func (i *Initializer) infraSpecFromDetect(
 			Port: -1,
 		}
 
-		port, err := PromptPort(i.console, ctx, name, svc)
+		port, err := GetOrPromptPort(i.console, ctx, name, svc)
 		if err != nil {
 			return scaffold.InfraSpec{}, err
 		}
@@ -269,8 +269,8 @@ func promptPortNumber(console input.Console, ctx context.Context, promptMessage 
 	return port, nil
 }
 
-// PromptPort prompts for port selection from an appdetect project.
-func PromptPort(
+// GetOrPromptPort prompts for port selection from an appdetect project.
+func GetOrPromptPort(
 	console input.Console,
 	ctx context.Context,
 	name string,
