@@ -1,7 +1,6 @@
 package appdetect
 
 import (
-	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -1054,11 +1053,8 @@ func TestAbsorbBuildPlugin(t *testing.T) {
 }
 
 func TestCreateSimulatedEffectivePom(t *testing.T) {
-	if !commandExistsInPath("java") {
-		slog.Debug("Skip createSimulatedEffectivePom because java command not found.")
-	}
 	if os.Getenv("GITHUB_ACTIONS") == "true" {
-		slog.Debug("Skip createSimulatedEffectivePom in GitHub Actions because it will time out.")
+		t.Skip("Skip TestCreateSimulatedEffectivePom in GitHub Actions because it will time out.")
 	}
 	var tests = []struct {
 		name     string
