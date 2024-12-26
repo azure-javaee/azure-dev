@@ -115,12 +115,7 @@ func createSimulatedEffectivePom(pomFilePath string) (pom, error) {
 
 func convertToSimulatedEffectivePom(pom *pom) {
 	setDefaultScopeForDependenciesInAllPlaces(pom)
-	updateVersionAccordingToPropertiesAndDependencyManagement(pom)
-	absorbInformationFromActiveProfile(pom)
-	absorbInformationFromParentAndImportedDependenciesInDependencyManagement(pom)
-}
 
-func updateVersionAccordingToPropertiesAndDependencyManagement(pom *pom) {
 	createPropertyMapAccordingToProjectProperty(pom)
 	addCommonPropertiesLikeProjectGroupIdAndProjectVersionToPropertyMap(pom)
 	// replacePropertyPlaceHolderInPropertyMap should run before other replacePropertyPlaceHolderInXxx
@@ -129,7 +124,13 @@ func updateVersionAccordingToPropertiesAndDependencyManagement(pom *pom) {
 	replacePropertyPlaceHolderInGroupId(pom)
 	// createDependencyManagementMap run before replacePropertyPlaceHolderInVersion
 	createDependencyManagementMap(pom)
+
+	// active profile has higher priority than parent and imported bom in dependency management
+	absorbInformationFromActiveProfile(pom)
+	// replacePropertyPlaceHolderInVersion should run after absorbInformationFromActiveProfile
 	replacePropertyPlaceHolderInVersion(pom)
+	absorbInformationFromParentAndImportedDependenciesInDependencyManagement(pom)
+	// updateDependencyVersionAccordingToDependencyManagement should run after absorbInformationFromActiveProfile
 	updateDependencyVersionAccordingToDependencyManagement(pom)
 }
 
@@ -138,8 +139,8 @@ func absorbInformationFromActiveProfile(pom *pom) {
 		if pom.Profiles[i].ActiveByDefault != "true" {
 			continue
 		}
-		absorbPropertyMap(pom, pom.Profiles[i].propertyMap)
-		absorbDependencyManagement(pom, pom.Profiles[i].dependencyManagementMap)
+		absorbPropertyMap(pom, pom.Profiles[i].propertyMap, true)
+		absorbDependencyManagement(pom, pom.Profiles[i].dependencyManagementMap, true)
 		absorbDependencies(pom, pom.Profiles[i].Dependencies)
 		absorbBuildPlugins(pom, pom.Profiles[i].Build.Plugins)
 	}
@@ -215,14 +216,14 @@ func absorbInformationFromParentInRemoteMavenRepository(pom *pom) {
 		p.GroupId, p.ArtifactId, p.Version)
 	if err != nil {
 		slog.InfoContext(context.TODO(), "Skip absorb parent from remote maven repository.",
-			"pomFilePath", pom.pomFilePath, "err", err)
+			"ArtifactId", pom.ArtifactId, "err", err)
 	}
 	absorbInformationFromParentPom(pom, parent)
 }
 
 func absorbInformationFromParentPom(pom *pom, parent pom) {
-	absorbPropertyMap(pom, parent.propertyMap)
-	absorbDependencyManagement(pom, parent.dependencyManagementMap)
+	absorbPropertyMap(pom, parent.propertyMap, false)
+	absorbDependencyManagement(pom, parent.dependencyManagementMap, false)
 	absorbDependencies(pom, parent.Dependencies)
 	absorbBuildPlugins(pom, parent.Build.Plugins)
 }
@@ -270,27 +271,25 @@ func absorbImportedBomInDependencyManagement(pom *pom) {
 			dep.GroupId, dep.ArtifactId, dep.Version)
 		if err != nil {
 			slog.InfoContext(context.TODO(), "Skip absorb imported bom from remote maven repository.",
-				"pomFilePath", pom.pomFilePath, "err", err)
+				"ArtifactId", pom.ArtifactId, "err", err)
 		}
-		absorbDependencyManagement(pom, toBeAbsorbedPom.dependencyManagementMap)
+		absorbDependencyManagement(pom, toBeAbsorbedPom.dependencyManagementMap, false)
 	}
 }
 
-func absorbPropertyMap(pom *pom, propertyMap map[string]string) {
+func absorbPropertyMap(pom *pom, propertyMap map[string]string, override bool) {
 	for key, value := range propertyMap {
-		addToPropertyMapIfKeyIsNew(pom.propertyMap, key, value)
+		updatePropertyMap(pom.propertyMap, key, value, override)
 	}
 	replacePropertyPlaceHolderInPropertyMap(pom)
 	replacePropertyPlaceHolderInGroupId(pom)
 	replacePropertyPlaceHolderInVersion(pom)
-	updateDependencyVersionAccordingToDependencyManagement(pom)
 }
 
-func absorbDependencyManagement(pom *pom, dependencyManagementMap map[string]string) {
+func absorbDependencyManagement(pom *pom, dependencyManagementMap map[string]string, override bool) {
 	for key, value := range dependencyManagementMap {
-		addNewDependencyInDependencyManagementIfDependencyIsNew(pom, key, value)
+		updateDependencyManagement(pom, key, value, override)
 	}
-	updateDependencyVersionAccordingToDependencyManagement(pom)
 }
 
 func getSimulatedEffectivePomFromRemoteMavenRepository(groupId string, artifactId string, version string) (pom, error) {
@@ -360,29 +359,29 @@ func unmarshalPomFromBytes(pomBytes []byte) (pom, error) {
 }
 
 func addCommonPropertiesLikeProjectGroupIdAndProjectVersionToPropertyMap(pom *pom) {
-	addToPropertyMapIfKeyIsNew(pom.propertyMap, "project.groupId", pom.GroupId)
+	updatePropertyMap(pom.propertyMap, "project.groupId", pom.GroupId, false)
 	pomVersion := pom.Version
 	if pomVersion == "" {
 		pomVersion = pom.Parent.Version
 	}
-	addToPropertyMapIfKeyIsNew(pom.propertyMap, "project.version", pomVersion)
+	updatePropertyMap(pom.propertyMap, "project.version", pomVersion, false)
 }
 
 func createPropertyMapAccordingToProjectProperty(pom *pom) {
 	pom.propertyMap = make(map[string]string) // propertyMap only create once
 	for _, entry := range pom.Properties.Entries {
-		addToPropertyMapIfKeyIsNew(pom.propertyMap, entry.XMLName.Local, entry.Value)
+		updatePropertyMap(pom.propertyMap, entry.XMLName.Local, entry.Value, false)
 	}
 	for i := range pom.Profiles {
 		pom.Profiles[i].propertyMap = make(map[string]string)
 		for _, entry := range pom.Profiles[i].Properties.Entries {
-			addToPropertyMapIfKeyIsNew(pom.Profiles[i].propertyMap, entry.XMLName.Local, entry.Value)
+			updatePropertyMap(pom.Profiles[i].propertyMap, entry.XMLName.Local, entry.Value, false)
 		}
 	}
 }
 
-func addToPropertyMapIfKeyIsNew(propertyMap map[string]string, key string, value string) {
-	if _, ok := propertyMap[key]; ok {
+func updatePropertyMap(propertyMap map[string]string, key string, value string, override bool) {
+	if _, ok := propertyMap[key]; !override && ok {
 		return
 	}
 	propertyMap[key] = value
@@ -517,12 +516,12 @@ func createDependencyManagementMap(pom *pom) {
 	}
 }
 
-func addNewDependencyInDependencyManagementIfDependencyIsNew(pom *pom, key string, value string) {
+func updateDependencyManagement(pom *pom, key string, value string, override bool) {
 	if value == "" {
 		log.Printf("error: add dependency management without version")
 		return
 	}
-	if _, ok := pom.dependencyManagementMap[key]; ok {
+	if _, alreadyExist := pom.dependencyManagementMap[key]; !override && alreadyExist {
 		return
 	}
 	// always make sure DependencyManagement and dependencyManagementMap synced

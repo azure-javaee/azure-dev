@@ -454,77 +454,6 @@ func TestUpdateDependencyVersionAccordingToDependencyManagement(t *testing.T) {
 	}
 }
 
-func TestUpdateVersionAccordingToPropertiesAndDependencyManagement(t *testing.T) {
-	var tests = []struct {
-		name      string
-		pomString string
-		expected  []dependency
-	}{
-		{
-			name: "Test updateVersionAccordingToPropertiesAndDependencyManagement",
-			pomString: `
-				<project>
-					<modelVersion>4.0.0</modelVersion>
-					<groupId>com.example</groupId>
-					<artifactId>example-project</artifactId>
-					<version>1.0.0</version>
-					<properties>
-						<version.slf4j>1.0.0</version.slf4j>
-						<version.junit>2.0.0</version.junit>
-					</properties>
-					<dependencyManagement>
-						<dependencies>
-							<dependency>
-								<groupId>org.slf4j</groupId>
-								<artifactId>slf4j-api</artifactId>
-								<version>${version.slf4j}</version>
-							</dependency>
-						</dependencies>
-					</dependencyManagement>
-					<dependencies>
-						<dependency>
-							<groupId>org.slf4j</groupId>
-							<artifactId>slf4j-api</artifactId>
-						</dependency>
-						<dependency>
-							<groupId>junit</groupId>
-							<artifactId>junit</artifactId>
-							<version>${version.junit}</version>
-							<scope>test</scope>
-						</dependency>
-					</dependencies>
-				</project>
-				`,
-			expected: []dependency{
-				{
-					GroupId:    "org.slf4j",
-					ArtifactId: "slf4j-api",
-					Version:    "1.0.0",
-				},
-				{
-					GroupId:    "junit",
-					ArtifactId: "junit",
-					Version:    "2.0.0",
-					Scope:      "test",
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			pom, err := unmarshalPomFromString(tt.pomString)
-			if err != nil {
-				t.Fatalf("Failed to unmarshal POM string: %v", err)
-			}
-
-			updateVersionAccordingToPropertiesAndDependencyManagement(&pom)
-			if !reflect.DeepEqual(pom.Dependencies, tt.expected) {
-				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, pom.Dependencies)
-			}
-		})
-	}
-}
-
 func TestGetRemoteMavenRepositoryUrl(t *testing.T) {
 	var tests = []struct {
 		name       string
@@ -801,7 +730,7 @@ func TestAbsorbPropertyMap(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			absorbPropertyMap(&tt.input, tt.toBeAbsorbedPom.propertyMap)
+			absorbPropertyMap(&tt.input, tt.toBeAbsorbedPom.propertyMap, false)
 			if !reflect.DeepEqual(tt.input, tt.expected) {
 				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.input)
 			}
@@ -879,7 +808,7 @@ func TestAbsorbDependencyManagement(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			absorbDependencyManagement(&tt.input, tt.toBeAbsorbedPom.dependencyManagementMap)
+			absorbDependencyManagement(&tt.input, tt.toBeAbsorbedPom.dependencyManagementMap, false)
 			if !reflect.DeepEqual(tt.input, tt.expected) {
 				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.input)
 			}
@@ -1908,13 +1837,8 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 							<groupId>com.example</groupId>
 							<artifactId>example-project</artifactId>
 							<version>1.0.0</version>
-							<packaging>pom</packaging>
 
 							<properties>
-								<java.version>17</java.version>
-								<maven.compiler.source>17</maven.compiler.source>
-								<maven.compiler.target>17</maven.compiler.target>
-								<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 								<spring-cloud.version>2023.0.0</spring-cloud.version>
 							</properties>
 
@@ -1967,13 +1891,8 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 							<groupId>com.example</groupId>
 							<artifactId>example-project</artifactId>
 							<version>1.0.0</version>
-							<packaging>pom</packaging>
 
 							<properties>
-								<java.version>17</java.version>
-								<maven.compiler.source>17</maven.compiler.source>
-								<maven.compiler.target>17</maven.compiler.target>
-								<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 								<spring-cloud.version>2023.0.0</spring-cloud.version>
 							</properties>
 
@@ -1995,6 +1914,63 @@ func TestCreateSimulatedEffectivePomFromFilePath(t *testing.T) {
 									<activation>
 										<activeByDefault>false</activeByDefault>
 									</activation>
+									<dependencies>
+										<dependency>
+											<groupId>org.springframework.cloud</groupId>
+											<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+										</dependency>
+									</dependencies>
+								</profile>
+							</profiles>
+						</project>
+						`,
+				},
+			},
+		},
+		{
+			name: "Override properties in profile",
+			testPoms: []testPom{
+				{
+					pomFilePath: "./pom.xml",
+					pomContentString: `
+						<project>
+							<modelVersion>4.0.0</modelVersion>
+
+							<parent>
+								<groupId>org.springframework.boot</groupId>
+								<artifactId>spring-boot-starter-parent</artifactId>
+								<version>3.2.3</version>
+							</parent>
+
+							<groupId>com.example</groupId>
+							<artifactId>example-project</artifactId>
+							<version>1.0.0</version>
+
+							<properties>
+								<spring-cloud.version>2023.0.0</spring-cloud.version>
+							</properties>
+
+							<dependencyManagement>
+								<dependencies>
+									<dependency>
+										<groupId>org.springframework.cloud</groupId>
+										<artifactId>spring-cloud-dependencies</artifactId>
+										<version>${spring-cloud.version}</version>
+										<type>pom</type>
+										<scope>import</scope>
+									</dependency>
+								</dependencies>
+							</dependencyManagement>
+
+							<profiles>
+								<profile>
+									<id>default</id>
+									<activation>
+										<activeByDefault>true</activeByDefault>
+									</activation>
+									<properties>
+										<spring-cloud.version>2023.0.4</spring-cloud.version>
+									</properties>
 									<dependencies>
 										<dependency>
 											<groupId>org.springframework.cloud</groupId>
