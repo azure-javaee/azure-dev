@@ -20,10 +20,11 @@ type pom struct {
 	GroupId                 string               `xml:"groupId"`
 	ArtifactId              string               `xml:"artifactId"`
 	Version                 string               `xml:"version"`
-	Modules                 []string             `xml:"modules>module"` // Capture the modules
 	Properties              Properties           `xml:"properties"`
+	Modules                 []string             `xml:"modules>module"`
 	Dependencies            []dependency         `xml:"dependencies>dependency"`
 	DependencyManagement    dependencyManagement `xml:"dependencyManagement"`
+	Profiles                []profile            `xml:"profiles>profile"`
 	Build                   build                `xml:"build"`
 	pomFilePath             string
 	propertyMap             map[string]string
@@ -53,6 +54,18 @@ type dependency struct {
 	ArtifactId string `xml:"artifactId"`
 	Version    string `xml:"version"`
 	Scope      string `xml:"scope,omitempty"`
+}
+
+type profile struct {
+	Id                      string               `xml:"id"`
+	ActiveByDefault         string               `xml:"activation>activeByDefault"`
+	Properties              Properties           `xml:"properties"`
+	Modules                 []string             `xml:"modules>module"` // Capture the modules
+	Dependencies            []dependency         `xml:"dependencies>dependency"`
+	DependencyManagement    dependencyManagement `xml:"dependencyManagement"`
+	Build                   build                `xml:"build"`
+	propertyMap             map[string]string
+	dependencyManagementMap map[string]string
 }
 
 // DependencyManagement includes a list of dependencies that are managed.
@@ -101,8 +114,9 @@ func createSimulatedEffectivePom(pomFilePath string) (pom, error) {
 }
 
 func convertToSimulatedEffectivePom(pom *pom) {
-	setDefaultScopeForDependenciesAndDependencyManagement(pom)
+	setDefaultScopeForDependenciesInAllPlaces(pom)
 	updateVersionAccordingToPropertiesAndDependencyManagement(pom)
+	absorbInformationFromActiveProfile(pom)
 	absorbInformationFromParentAndImportedDependenciesInDependencyManagement(pom)
 }
 
@@ -117,6 +131,18 @@ func updateVersionAccordingToPropertiesAndDependencyManagement(pom *pom) {
 	createDependencyManagementMap(pom)
 	replacePropertyPlaceHolderInVersion(pom)
 	updateDependencyVersionAccordingToDependencyManagement(pom)
+}
+
+func absorbInformationFromActiveProfile(pom *pom) {
+	for i := range pom.Profiles {
+		if pom.Profiles[i].ActiveByDefault != "true" {
+			continue
+		}
+		absorbPropertyMap(pom, pom.Profiles[i].propertyMap)
+		absorbDependencyManagement(pom, pom.Profiles[i].dependencyManagementMap)
+		absorbDependencies(pom, pom.Profiles[i].Dependencies)
+		absorbBuildPlugins(pom, pom.Profiles[i].Build.Plugins)
+	}
 }
 
 func absorbInformationFromParentAndImportedDependenciesInDependencyManagement(pom *pom) {
@@ -195,14 +221,14 @@ func absorbInformationFromParentInRemoteMavenRepository(pom *pom) {
 }
 
 func absorbInformationFromParentPom(pom *pom, parent pom) {
-	absorbDependencyManagement(pom, parent)
-	absorbPropertyMap(pom, parent)
-	absorbDependency(pom, parent)
-	absorbBuildPlugin(pom, parent)
+	absorbPropertyMap(pom, parent.propertyMap)
+	absorbDependencyManagement(pom, parent.dependencyManagementMap)
+	absorbDependencies(pom, parent.Dependencies)
+	absorbBuildPlugins(pom, parent.Build.Plugins)
 }
 
-func absorbDependency(pom *pom, toBeAbsorbedPom pom) {
-	for _, dep := range toBeAbsorbedPom.Dependencies {
+func absorbDependencies(pom *pom, dependencies []dependency) {
+	for _, dep := range dependencies {
 		if !containsDependency(pom.Dependencies, dep) {
 			pom.Dependencies = append(pom.Dependencies, dep)
 		}
@@ -218,8 +244,8 @@ func containsDependency(deps []dependency, targetDep dependency) bool {
 	return false
 }
 
-func absorbBuildPlugin(pom *pom, toBeAbsorbedPom pom) {
-	for _, p := range toBeAbsorbedPom.Build.Plugins {
+func absorbBuildPlugins(pom *pom, plugins []plugin) {
+	for _, p := range plugins {
 		if !containsBuildPlugin(pom.Build.Plugins, p) {
 			pom.Build.Plugins = append(pom.Build.Plugins, p)
 		}
@@ -246,13 +272,13 @@ func absorbImportedBomInDependencyManagement(pom *pom) {
 			slog.InfoContext(context.TODO(), "Skip absorb imported bom from remote maven repository.",
 				"pomFilePath", pom.pomFilePath, "err", err)
 		}
-		absorbDependencyManagement(pom, toBeAbsorbedPom)
+		absorbDependencyManagement(pom, toBeAbsorbedPom.dependencyManagementMap)
 	}
 }
 
-func absorbPropertyMap(pom *pom, toBeAbsorbedPom pom) {
-	for key, value := range toBeAbsorbedPom.propertyMap {
-		addToPropertyMapIfKeyIsNew(pom, key, value)
+func absorbPropertyMap(pom *pom, propertyMap map[string]string) {
+	for key, value := range propertyMap {
+		addToPropertyMapIfKeyIsNew(pom.propertyMap, key, value)
 	}
 	replacePropertyPlaceHolderInPropertyMap(pom)
 	replacePropertyPlaceHolderInGroupId(pom)
@@ -260,8 +286,8 @@ func absorbPropertyMap(pom *pom, toBeAbsorbedPom pom) {
 	updateDependencyVersionAccordingToDependencyManagement(pom)
 }
 
-func absorbDependencyManagement(pom *pom, toBeAbsorbedPom pom) {
-	for key, value := range toBeAbsorbedPom.dependencyManagementMap {
+func absorbDependencyManagement(pom *pom, dependencyManagementMap map[string]string) {
+	for key, value := range dependencyManagementMap {
 		addNewDependencyInDependencyManagementIfDependencyIsNew(pom, key, value)
 	}
 	updateDependencyVersionAccordingToDependencyManagement(pom)
@@ -304,15 +330,19 @@ func unmarshalPomFromFilePath(pomFilePath string) (pom, error) {
 	return result, nil
 }
 
-func setDefaultScopeForDependenciesAndDependencyManagement(pom *pom) {
-	for i, dep := range pom.Dependencies {
-		if dep.Scope == "" {
-			pom.Dependencies[i].Scope = DependencyScopeCompile
-		}
+func setDefaultScopeForDependenciesInAllPlaces(pom *pom) {
+	setDefaultScopeForDependencies(pom.Dependencies)
+	setDefaultScopeForDependencies(pom.DependencyManagement.Dependencies)
+	for i := range pom.Profiles {
+		setDefaultScopeForDependencies(pom.Profiles[i].Dependencies)
+		setDefaultScopeForDependencies(pom.Profiles[i].DependencyManagement.Dependencies)
 	}
-	for i, dep := range pom.DependencyManagement.Dependencies {
-		if dep.Scope == "" {
-			pom.DependencyManagement.Dependencies[i].Scope = DependencyScopeCompile
+}
+
+func setDefaultScopeForDependencies(dependencies []dependency) {
+	for i := range dependencies {
+		if dependencies[i].Scope == "" {
+			dependencies[i].Scope = DependencyScopeCompile
 		}
 	}
 }
@@ -330,26 +360,32 @@ func unmarshalPomFromBytes(pomBytes []byte) (pom, error) {
 }
 
 func addCommonPropertiesLikeProjectGroupIdAndProjectVersionToPropertyMap(pom *pom) {
-	addToPropertyMapIfKeyIsNew(pom, "project.groupId", pom.GroupId)
+	addToPropertyMapIfKeyIsNew(pom.propertyMap, "project.groupId", pom.GroupId)
 	pomVersion := pom.Version
 	if pomVersion == "" {
 		pomVersion = pom.Parent.Version
 	}
-	addToPropertyMapIfKeyIsNew(pom, "project.version", pomVersion)
+	addToPropertyMapIfKeyIsNew(pom.propertyMap, "project.version", pomVersion)
 }
 
 func createPropertyMapAccordingToProjectProperty(pom *pom) {
 	pom.propertyMap = make(map[string]string) // propertyMap only create once
 	for _, entry := range pom.Properties.Entries {
-		addToPropertyMapIfKeyIsNew(pom, entry.XMLName.Local, entry.Value)
+		addToPropertyMapIfKeyIsNew(pom.propertyMap, entry.XMLName.Local, entry.Value)
+	}
+	for i := range pom.Profiles {
+		pom.Profiles[i].propertyMap = make(map[string]string)
+		for _, entry := range pom.Profiles[i].Properties.Entries {
+			addToPropertyMapIfKeyIsNew(pom.Profiles[i].propertyMap, entry.XMLName.Local, entry.Value)
+		}
 	}
 }
 
-func addToPropertyMapIfKeyIsNew(pom *pom, key string, value string) {
-	if _, ok := pom.propertyMap[key]; ok {
+func addToPropertyMapIfKeyIsNew(propertyMap map[string]string, key string, value string) {
+	if _, ok := propertyMap[key]; ok {
 		return
 	}
-	pom.propertyMap[key] = value
+	propertyMap[key] = value
 }
 
 func replacePropertyPlaceHolderInPropertyMap(pom *pom) {
@@ -364,54 +400,82 @@ func replacePropertyPlaceHolderInPropertyMap(pom *pom) {
 }
 
 func replacePropertyPlaceHolderInGroupId(pom *pom) {
-	for i, dep := range pom.DependencyManagement.Dependencies {
+	replacePropertyPlaceHolderInDependenciesGroupId(pom.DependencyManagement.Dependencies, pom.propertyMap)
+	replacePropertyPlaceHolderInDependenciesGroupId(pom.Dependencies, pom.propertyMap)
+	replacePropertyPlaceHolderInPluginsGroupId(pom.Build.Plugins, pom.propertyMap)
+	for i := range pom.Profiles {
+		replacePropertyPlaceHolderInDependenciesGroupId(pom.Profiles[i].DependencyManagement.Dependencies,
+			pom.propertyMap)
+		replacePropertyPlaceHolderInDependenciesGroupId(pom.Profiles[i].Dependencies, pom.propertyMap)
+		replacePropertyPlaceHolderInPluginsGroupId(pom.Profiles[i].Build.Plugins, pom.propertyMap)
+	}
+}
+
+func replacePropertyPlaceHolderInDependenciesGroupId(dependencies []dependency, propertyMap map[string]string) {
+	for i, dep := range dependencies {
 		if isVariable(dep.GroupId) {
 			variableName := getVariableName(dep.GroupId)
-			if variableValue, ok := pom.propertyMap[variableName]; ok {
-				pom.DependencyManagement.Dependencies[i].GroupId = variableValue
+			if variableValue, ok := propertyMap[variableName]; ok {
+				dependencies[i].GroupId = variableValue
 			}
 		}
 	}
-	for i, dep := range pom.Dependencies {
+}
+
+func replacePropertyPlaceHolderInPluginsGroupId(plugins []plugin, propertyMap map[string]string) {
+	for i, dep := range plugins {
 		if isVariable(dep.GroupId) {
 			variableName := getVariableName(dep.GroupId)
-			if variableValue, ok := pom.propertyMap[variableName]; ok {
-				pom.Dependencies[i].GroupId = variableValue
-			}
-		}
-	}
-	for i, dep := range pom.Build.Plugins {
-		if isVariable(dep.GroupId) {
-			variableName := getVariableName(dep.GroupId)
-			if variableValue, ok := pom.propertyMap[variableName]; ok {
-				pom.Build.Plugins[i].GroupId = variableValue
+			if variableValue, ok := propertyMap[variableName]; ok {
+				plugins[i].GroupId = variableValue
 			}
 		}
 	}
 }
 
 func replacePropertyPlaceHolderInVersion(pom *pom) {
-	for key, value := range pom.dependencyManagementMap {
+	replacePropertyPlaceHolderInDependencyManagementVersion(pom.dependencyManagementMap,
+		pom.DependencyManagement.Dependencies, pom.propertyMap)
+	replacePropertyPlaceHolderInDependenciesVersion(pom.Dependencies, pom.propertyMap)
+	replacePropertyPlaceHolderInBuildPluginsVersion(pom.Build.Plugins, pom.propertyMap)
+	for i := range pom.Profiles {
+		replacePropertyPlaceHolderInDependencyManagementVersion(pom.Profiles[i].dependencyManagementMap,
+			pom.Profiles[i].DependencyManagement.Dependencies, pom.propertyMap)
+		replacePropertyPlaceHolderInDependenciesVersion(pom.Profiles[i].Dependencies, pom.propertyMap)
+		replacePropertyPlaceHolderInBuildPluginsVersion(pom.Profiles[i].Build.Plugins, pom.propertyMap)
+	}
+}
+
+func replacePropertyPlaceHolderInDependencyManagementVersion(dependencyManagementMap map[string]string,
+	dependencies []dependency, propertyMap map[string]string) {
+	for key, value := range dependencyManagementMap {
 		if isVariable(value) {
 			variableName := getVariableName(value)
-			if variableValue, ok := pom.propertyMap[variableName]; ok {
-				updateDependencyVersionInDependencyManagement(pom, key, variableValue)
+			if variableValue, ok := propertyMap[variableName]; ok {
+				updateDependencyVersionInDependencyManagement(dependencyManagementMap,
+					dependencies, key, variableValue)
 			}
 		}
 	}
-	for i, dep := range pom.Dependencies {
+}
+
+func replacePropertyPlaceHolderInDependenciesVersion(dependencies []dependency, propertyMap map[string]string) {
+	for i, dep := range dependencies {
 		if isVariable(dep.Version) {
 			variableName := getVariableName(dep.Version)
-			if variableValue, ok := pom.propertyMap[variableName]; ok {
-				pom.Dependencies[i].Version = variableValue
+			if variableValue, ok := propertyMap[variableName]; ok {
+				dependencies[i].Version = variableValue
 			}
 		}
 	}
-	for i, dep := range pom.Build.Plugins {
+}
+
+func replacePropertyPlaceHolderInBuildPluginsVersion(plugins []plugin, propertyMap map[string]string) {
+	for i, dep := range plugins {
 		if isVariable(dep.Version) {
 			variableName := getVariableName(dep.Version)
-			if variableValue, ok := pom.propertyMap[variableName]; ok {
-				pom.Build.Plugins[i].Version = variableValue
+			if variableValue, ok := propertyMap[variableName]; ok {
+				plugins[i].Version = variableValue
 			}
 		}
 	}
@@ -445,6 +509,12 @@ func createDependencyManagementMap(pom *pom) {
 	for _, dep := range pom.DependencyManagement.Dependencies {
 		pom.dependencyManagementMap[toDependencyManagementMapKey(dep)] = dep.Version
 	}
+	for i := range pom.Profiles {
+		pom.Profiles[i].dependencyManagementMap = make(map[string]string)
+		for _, dep := range pom.Profiles[i].DependencyManagement.Dependencies {
+			pom.Profiles[i].dependencyManagementMap[toDependencyManagementMapKey(dep)] = dep.Version
+		}
+	}
 }
 
 func addNewDependencyInDependencyManagementIfDependencyIsNew(pom *pom, key string, value string) {
@@ -462,12 +532,13 @@ func addNewDependencyInDependencyManagementIfDependencyIsNew(pom *pom, key strin
 }
 
 // always make sure DependencyManagement and dependencyManagementMap synced
-func updateDependencyVersionInDependencyManagement(pom *pom, key string, value string) {
-	pom.dependencyManagementMap[key] = value
-	for i, dep := range pom.DependencyManagement.Dependencies {
+func updateDependencyVersionInDependencyManagement(dependencyManagementMap map[string]string,
+	dependencies []dependency, key string, value string) {
+	dependencyManagementMap[key] = value
+	for i, dep := range dependencies {
 		currentKey := toDependencyManagementMapKey(dep)
 		if currentKey == key {
-			pom.DependencyManagement.Dependencies[i].Version = value
+			dependencies[i].Version = value
 		}
 	}
 }

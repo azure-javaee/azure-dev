@@ -801,7 +801,7 @@ func TestAbsorbPropertyMap(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			absorbPropertyMap(&tt.input, tt.toBeAbsorbedPom)
+			absorbPropertyMap(&tt.input, tt.toBeAbsorbedPom.propertyMap)
 			if !reflect.DeepEqual(tt.input, tt.expected) {
 				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.input)
 			}
@@ -879,7 +879,7 @@ func TestAbsorbDependencyManagement(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			absorbDependencyManagement(&tt.input, tt.toBeAbsorbedPom)
+			absorbDependencyManagement(&tt.input, tt.toBeAbsorbedPom.dependencyManagementMap)
 			if !reflect.DeepEqual(tt.input, tt.expected) {
 				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.input)
 			}
@@ -998,7 +998,7 @@ func TestAbsorbDependency(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			absorbDependency(&tt.input, tt.toBeAbsorbedPom)
+			absorbDependencies(&tt.input, tt.toBeAbsorbedPom.Dependencies)
 			if !reflect.DeepEqual(tt.input, tt.expected) {
 				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.input)
 			}
@@ -1117,7 +1117,7 @@ func TestAbsorbBuildPlugin(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			absorbBuildPlugin(&tt.input, tt.toBeAbsorbedPom)
+			absorbBuildPlugins(&tt.input, tt.toBeAbsorbedPom.Build.Plugins)
 			if !reflect.DeepEqual(tt.input, tt.expected) {
 				t.Fatalf("\nExpected: %s\nActual:   %s", tt.expected, tt.input)
 			}
