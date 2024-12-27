@@ -1,7 +1,9 @@
 package appdetect
 
 import (
+	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -9,6 +11,12 @@ import (
 )
 
 func TestCreateEffectivePom(t *testing.T) {
+	if !commandExistsInPath("java") {
+		t.Skip("Skip TestCreateEffectivePom because java command doesn't exist.")
+	} else {
+		path, _ := exec.LookPath("java")
+		slog.Info("Java command found.", "path", path)
+	}
 	tests := []struct {
 		name     string
 		testPoms []testPom
@@ -1055,6 +1063,9 @@ func TestAbsorbBuildPlugin(t *testing.T) {
 func TestCreateSimulatedEffectivePom(t *testing.T) {
 	if !commandExistsInPath("java") {
 		t.Skip("Skip TestCreateSimulatedEffectivePom because java command doesn't exist.")
+	} else {
+		path, _ := exec.LookPath("java")
+		slog.Info("Java command found.", "path", path)
 	}
 	var tests = []struct {
 		name     string
