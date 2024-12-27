@@ -330,7 +330,7 @@ func savePomFileToLocalMavenRepository(groupId string, artifactId string, versio
 			"groupId", groupId, "artifactId", artifactId, "version", version, "err", err)
 		return
 	}
-	err = os.WriteFile(pomPath, bytes, 0644)
+	err = os.WriteFile(pomPath, bytes, 0600)
 	if err != nil {
 		slog.DebugContext(context.TODO(), "Failed to write file.", "pomPath", pomPath, "err", err)
 	}
