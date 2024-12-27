@@ -2183,11 +2183,11 @@ func TestCreateSimulatedEffectivePom(t *testing.T) {
 			}
 			for _, testPom := range tt.testPoms {
 				pomFilePath := filepath.Join(workingDir, testPom.pomFilePath)
-				effectivePom, err := createEffectivePom(pomFilePath)
+				simulatedEffectivePom, err := createSimulatedEffectivePom(pomFilePath)
 				if err != nil {
 					t.Fatalf("%v", err)
 				}
-				simulatedEffectivePom, err := createSimulatedEffectivePom(pomFilePath)
+				effectivePom, err := createEffectivePom(pomFilePath)
 				if err != nil {
 					t.Fatalf("%v", err)
 				}
