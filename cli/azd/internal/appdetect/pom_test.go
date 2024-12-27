@@ -1053,8 +1053,8 @@ func TestAbsorbBuildPlugin(t *testing.T) {
 }
 
 func TestCreateSimulatedEffectivePom(t *testing.T) {
-	if os.Getenv("GITHUB_ACTIONS") == "true" {
-		t.Skip("Skip TestCreateSimulatedEffectivePom in GitHub Actions because it will time out.")
+	if !commandExistsInPath("java") {
+		t.Skip("Skip TestCreateSimulatedEffectivePom because java command not exist.")
 	}
 	var tests = []struct {
 		name     string
