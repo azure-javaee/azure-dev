@@ -1054,7 +1054,7 @@ func TestAbsorbBuildPlugin(t *testing.T) {
 
 func TestCreateSimulatedEffectivePom(t *testing.T) {
 	if !commandExistsInPath("java") {
-		t.Skip("Skip TestCreateSimulatedEffectivePom because java command not exist.")
+		t.Skip("Skip TestCreateSimulatedEffectivePom because java command doesn't exist.")
 	}
 	var tests = []struct {
 		name     string
