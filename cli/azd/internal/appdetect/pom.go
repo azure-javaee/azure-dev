@@ -569,7 +569,7 @@ func createEffectivePom(ctx context.Context, mvnCli *maven.Cli, pomPath string) 
 	}
 	var resultPom pom
 	err = xml.Unmarshal([]byte(effectivePom), &resultPom)
-	return resultPom, err
+	return resultPom, nil
 }
 
 func fileExists(path string) bool {
