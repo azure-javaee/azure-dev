@@ -77,6 +77,8 @@ func (m *Cli) mvnCmd() (string, error) {
 	return m.mvnCmdStr, nil
 }
 
+const downloadedMavenVersion = "3.9.9"
+
 func getMavenPath(projectPath string, rootProjectPath string) (string, error) {
 	mvnw, err := getMavenWrapperPath(projectPath, rootProjectPath)
 	if mvnw != "" {
@@ -96,7 +98,7 @@ func getMavenPath(projectPath string, rootProjectPath string) (string, error) {
 		return "", fmt.Errorf("failed looking up mvn in PATH: %w", err)
 	}
 
-	return getDownloadedMvnCommand("3.9.9")
+	return getDownloadedMvnCommand(downloadedMavenVersion)
 }
 
 // getMavenWrapperPath finds the path to mvnw in the project directory, up to the root project directory.
