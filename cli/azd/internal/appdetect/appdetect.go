@@ -174,7 +174,7 @@ func (a AzureDepStorageAccount) ResourceDisplay() string {
 
 type Metadata struct {
 	ApplicationName                                         string
-	ServerPort                                              string
+	ServerPort                                              int
 	DatabaseNameInPropertySpringDatasourceUrl               map[DatabaseDep]string
 	ContainsDependencySpringCloudAzureStarter               bool
 	ContainsDependencySpringCloudAzureStarterJdbcPostgresql bool
@@ -183,6 +183,7 @@ type Metadata struct {
 	ContainsDependencySpringCloudEurekaClient               bool
 	ContainsDependencySpringCloudConfigServer               bool
 	ContainsDependencySpringCloudConfigClient               bool
+	ContainsDependencyAboutEmbeddedWebServer                bool
 }
 
 type Project struct {

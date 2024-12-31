@@ -397,8 +397,9 @@ func handleContainerAppProps(
 	}
 
 	port := props.Port
-	if port < 1 || port > 65535 {
-		return fmt.Errorf("port value %d for host %s must be between 1 and 65535", port, resourceConfig.Name)
+	if port < 0 || port > 65535 {
+		return fmt.Errorf("port value for '%s' must be between 0 and 65535 (0 means not expost port), "+
+			"but it's %d ", resourceConfig.Name, port)
 	}
 
 	serviceSpec.Port = port

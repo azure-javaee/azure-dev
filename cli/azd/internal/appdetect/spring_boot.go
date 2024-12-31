@@ -6,6 +6,7 @@ import (
 	"maps"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -296,6 +297,7 @@ func detectMetadata(azdProject *Project, springBootProject *SpringBootProject) {
 	detectDependencySpringCloudAzureStarterJdbcPostgresql(azdProject, springBootProject)
 	detectDependencySpringCloudConfig(azdProject, springBootProject)
 	detectDependencySpringCloudEureka(azdProject, springBootProject)
+	detectDependencyAboutEmbeddedWebServer(azdProject, springBootProject)
 }
 
 func detectPropertySpringCloudAzureCosmosDatabase(azdProject *Project, springBootProject *SpringBootProject) {
@@ -442,7 +444,9 @@ func detectPropertySpringApplicationName(azdProject *Project, springBootProject 
 func detectPropertyServerPort(azdProject *Project, springBootProject *SpringBootProject) {
 	var targetPropertyName = "server.port"
 	if serverPort, ok := springBootProject.applicationProperties[targetPropertyName]; ok {
-		azdProject.Metadata.ServerPort = serverPort
+		if port, err := strconv.Atoi(serverPort); err == nil {
+			azdProject.Metadata.ServerPort = port
+		}
 	}
 }
 
@@ -475,6 +479,23 @@ func detectDependencySpringCloudConfig(azdProject *Project, springBootProject *S
 	if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
 		azdProject.Metadata.ContainsDependencySpringCloudConfigClient = true
 		logMetadataUpdated("ContainsDependencySpringCloudConfigClient = true")
+	}
+}
+
+func detectDependencyAboutEmbeddedWebServer(azdProject *Project, springBootProject *SpringBootProject) {
+	var targetGroupId = "org.springframework.boot"
+	var targetArtifactIds = []string{
+		"spring-boot-starter-tomcat",
+		"spring-boot-starter-jetty",
+		"spring-boot-starter-undertow",
+		"spring-boot-starter-reactor-netty",
+	}
+	for _, targetArtifactId := range targetArtifactIds {
+		if hasDependency(springBootProject, targetGroupId, targetArtifactId) {
+			azdProject.Metadata.ContainsDependencyAboutEmbeddedWebServer = true
+			logMetadataUpdated("ContainsDependencyAboutEmbeddedWebServer = true")
+			return
+		}
 	}
 }
 
