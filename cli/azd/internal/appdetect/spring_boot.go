@@ -446,6 +446,8 @@ func detectPropertyServerPort(azdProject *Project, springBootProject *SpringBoot
 	if serverPort, ok := springBootProject.applicationProperties[targetPropertyName]; ok {
 		if port, err := strconv.Atoi(serverPort); err == nil {
 			azdProject.Metadata.ServerPort = port
+		} else {
+			log.Printf("Failed to convert the value of server.port to int. %v.", err)
 		}
 	}
 }
