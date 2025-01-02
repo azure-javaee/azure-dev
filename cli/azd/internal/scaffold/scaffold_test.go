@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"context"
+	"github.com/azure/azure-dev/cli/azd/internal"
 	"os"
 	"path/filepath"
 	"strings"
@@ -164,6 +165,136 @@ func TestExecInfra(t *testing.T) {
 						Name:    "api",
 						Port:    3100,
 						DbRedis: &DatabaseRedis{},
+					},
+				},
+			},
+		},
+		{
+			"API with Storage Account",
+			InfraSpec{
+				AzureStorageAccount: &AzureDepStorageAccount{
+					ContainerNames: []string{"container1"},
+				},
+				Services: []ServiceSpec{
+					{
+						Name:                "api",
+						Port:                3100,
+						AzureStorageAccount: &AzureDepStorageAccount{},
+					},
+				},
+			},
+		},
+		{
+			"API with Service Bus",
+			InfraSpec{
+				AzureServiceBus: &AzureDepServiceBus{
+					Queues:   []string{"queue1"},
+					AuthType: internal.AuthTypeUserAssignedManagedIdentity,
+					IsJms:    true,
+				},
+				Services: []ServiceSpec{
+					{
+						Name: "api",
+						Port: 3100,
+						AzureServiceBus: &AzureDepServiceBus{
+							Queues:   []string{"queue1"},
+							AuthType: internal.AuthTypeUserAssignedManagedIdentity,
+							IsJms:    true,
+						},
+					},
+				},
+			},
+		},
+		{
+			"API with Event Hubs",
+			InfraSpec{
+				AzureEventHubs: &AzureDepEventHubs{
+					EventHubNames:     []string{"eventhub1"},
+					AuthType:          internal.AuthTypeUserAssignedManagedIdentity,
+					UseKafka:          true,
+					SpringBootVersion: "3.4.0",
+				},
+				Services: []ServiceSpec{
+					{
+						Name: "api",
+						Port: 3100,
+						AzureEventHubs: &AzureDepEventHubs{
+							EventHubNames:     []string{"eventhub1"},
+							AuthType:          internal.AuthTypeUserAssignedManagedIdentity,
+							UseKafka:          true,
+							SpringBootVersion: "3.4.0",
+						},
+					},
+				},
+			},
+		},
+		{
+			"API with Cosmos DB",
+			InfraSpec{
+				DbCosmos: &DatabaseCosmosAccount{
+					DatabaseName: "cosmos-db",
+					Containers: []CosmosSqlDatabaseContainer{
+						{
+							ContainerName:     "container1",
+							PartitionKeyPaths: []string{"/partitionKey"},
+						},
+					},
+				},
+				Services: []ServiceSpec{
+					{
+						Name: "api",
+						Port: 3100,
+						DbCosmos: &DatabaseCosmosAccount{
+							DatabaseName: "cosmos-db",
+							Containers: []CosmosSqlDatabaseContainer{
+								{
+									ContainerName:     "container1",
+									PartitionKeyPaths: []string{"/partitionKey"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"API with MySQL password",
+			InfraSpec{
+				DbMySql: &DatabaseMySql{
+					DatabaseName: "appdb",
+					DatabaseUser: "appuser",
+					AuthType:     internal.AuthTypePassword,
+				},
+				Services: []ServiceSpec{
+					{
+						Name: "api",
+						Port: 3100,
+						DbMySql: &DatabaseMySql{
+							DatabaseName: "appdb",
+							DatabaseUser: "appuser",
+							AuthType:     internal.AuthTypePassword,
+						},
+					},
+				},
+			},
+		},
+		{
+			"API with MySQL umi",
+			InfraSpec{
+				DbMySql: &DatabaseMySql{
+					DatabaseName: "appdb",
+					DatabaseUser: "appuser",
+					AuthType:     internal.AuthTypeUserAssignedManagedIdentity,
+				},
+				Services: []ServiceSpec{
+					{
+						Name: "api",
+						Port: 3100,
+						DbMySql: &DatabaseMySql{
+							DatabaseName: "appdb",
+							DatabaseUser: "appuser",
+							AuthType:     internal.AuthTypeUserAssignedManagedIdentity,
+						},
 					},
 				},
 			},

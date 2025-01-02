@@ -917,7 +917,7 @@ func (i *Initializer) addMavenBuildHook(
 	wrapperPathMap := map[string][]string{}
 
 	for _, prj := range detect.Services {
-		if prj.Language == appdetect.Java {
+		if prj.Language == appdetect.Java && prj.Options != nil {
 			if prj.Options[appdetect.JavaProjectOptionParentPomDir] != nil {
 				parentPath := prj.Options[appdetect.JavaProjectOptionParentPomDir].(string)
 				posixMavenWrapperPath := prj.Options[appdetect.JavaProjectOptionPosixMavenWrapperPath].(string)

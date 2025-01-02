@@ -108,7 +108,6 @@ module cosmos 'br/public:avm/res/document-db/database-account:0.8.1' = {
 }
 {{- end}}
 {{- if .DbCosmos }}
-var cosmosDatabaseName = '{{ .DbCosmos.DatabaseName }}'
 module cosmos 'br/public:avm/res/document-db/database-account:0.8.1' = {
   name: 'cosmos'
   params: {
