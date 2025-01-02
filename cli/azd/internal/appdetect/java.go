@@ -9,9 +9,11 @@ import (
 
 	"github.com/azure/azure-dev/cli/azd/internal/tracing"
 	"github.com/azure/azure-dev/cli/azd/internal/tracing/fields"
+	"github.com/azure/azure-dev/cli/azd/pkg/tools/maven"
 )
 
 type javaDetector struct {
+	mvnCli            *maven.Cli
 	parentPoms        []pom
 	mavenWrapperPaths []mavenWrapper
 }
@@ -21,8 +23,11 @@ type mavenWrapper struct {
 	winPath   string
 }
 
-// JavaProjectOptionMavenParentPath The parent module path of the maven multi-module project
-const JavaProjectOptionMavenParentPath = "parentPath"
+// JavaProjectOptionCurrentPomDir The project path of the maven single-module project
+const JavaProjectOptionCurrentPomDir = "path"
+
+// JavaProjectOptionParentPomDir The parent module path of the maven multi-module project
+const JavaProjectOptionParentPomDir = "parentPath"
 
 // JavaProjectOptionPosixMavenWrapperPath The path to the maven wrapper script for POSIX systems
 const JavaProjectOptionPosixMavenWrapperPath = "posixMavenWrapperPath"
@@ -38,8 +43,8 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 	for _, entry := range entries {
 		if strings.ToLower(entry.Name()) == "pom.xml" { // todo: support file names like backend-pom.xml
 			tracing.SetUsageAttributes(fields.AppInitJavaDetect.String("start"))
-			pomFile := filepath.Join(path, entry.Name())
-			mavenProject, err := createMavenProject(pomFile)
+			pomPath := filepath.Join(path, entry.Name())
+			mavenProject, err := createMavenProject(ctx, jd.mvnCli, pomPath)
 			if err != nil {
 				log.Printf("Please edit azure.yaml manually to satisfy your requirement. azd can not help you "+
 					"to that by detect your java project because error happened when reading pom.xml: %s. ", err)
@@ -61,7 +66,7 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 			var currentWrapper mavenWrapper
 			for i, parentPomItem := range jd.parentPoms {
 				// we can say that the project is in the root project if the path is under the project
-				if inRoot := strings.HasPrefix(pomFile, filepath.Dir(parentPomItem.pomFilePath)); inRoot {
+				if inRoot := strings.HasPrefix(pomPath, filepath.Dir(parentPomItem.pomFilePath)); inRoot {
 					parentPom = &parentPomItem
 					currentWrapper = jd.mavenWrapperPaths[i]
 					break
@@ -76,9 +81,15 @@ func (jd *javaDetector) DetectProject(ctx context.Context, path string, entries 
 			detectAzureDependenciesByAnalyzingSpringBootProject(mavenProject, &project)
 			if parentPom != nil {
 				project.Options = map[string]interface{}{
-					JavaProjectOptionMavenParentPath:       filepath.Dir(parentPom.pomFilePath),
+					JavaProjectOptionParentPomDir:          filepath.Dir(parentPom.pomFilePath),
 					JavaProjectOptionPosixMavenWrapperPath: currentWrapper.posixPath,
 					JavaProjectOptionWinMavenWrapperPath:   currentWrapper.winPath,
+				}
+			} else {
+				project.Options = map[string]interface{}{
+					JavaProjectOptionCurrentPomDir:         path,
+					JavaProjectOptionPosixMavenWrapperPath: detectMavenWrapper(path, "mvnw"),
+					JavaProjectOptionWinMavenWrapperPath:   detectMavenWrapper(path, "mvnw.cmd"),
 				}
 			}
 
