@@ -85,19 +85,11 @@ func TestInitializer_infraSpecFromDetect(t *testing.T) {
 					},
 				},
 			},
-			interactions: []string{
-				// prompt for port -- hit multiple validation cases
-				"notAnInteger",
-				"-2",
-				"65536",
-				"1234",
-			},
+			interactions: []string{},
 			want: scaffold.InfraSpec{
 				Services: []scaffold.ServiceSpec{
 					{
-						Name:    "dotnet",
-						Port:    1234,
-						Backend: &scaffold.Backend{},
+						Name: "dotnet",
 					},
 				},
 			},
