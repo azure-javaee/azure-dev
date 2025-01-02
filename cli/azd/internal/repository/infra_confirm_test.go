@@ -308,3 +308,83 @@ func TestDetectCosmosSqlDatabaseContainerInFile(t *testing.T) {
 		})
 	}
 }
+
+func Test_getJavaApplicationPort(t *testing.T) {
+	tests := []struct {
+		name     string
+		svc      appdetect.Project
+		expected int
+	}{
+		{
+			name: "not configure anything",
+			svc: appdetect.Project{
+				Metadata: appdetect.Metadata{},
+			},
+			expected: 0,
+		},
+		{
+			name: "only configure ServerPort",
+			svc: appdetect.Project{
+				Metadata: appdetect.Metadata{
+					ServerPort: 8888,
+				},
+			},
+			expected: 0,
+		},
+		{
+			name: "only configure ContainsDependencySpringCloudEurekaServer",
+			svc: appdetect.Project{
+				Metadata: appdetect.Metadata{
+					ContainsDependencySpringCloudEurekaServer: true,
+				},
+			},
+			expected: 8080,
+		},
+		{
+			name: "only configure ContainsDependencySpringCloudConfigServer",
+			svc: appdetect.Project{
+				Metadata: appdetect.Metadata{
+					ContainsDependencySpringCloudConfigServer: true,
+				},
+			},
+			expected: 8080,
+		},
+		{
+			name: "only configure ContainsDependencyAboutEmbeddedWebServer",
+			svc: appdetect.Project{
+				Metadata: appdetect.Metadata{
+					ContainsDependencyAboutEmbeddedWebServer: true,
+				},
+			},
+			expected: 8080,
+		},
+		{
+			name: "configure multiple dependencies",
+			svc: appdetect.Project{
+				Metadata: appdetect.Metadata{
+					ContainsDependencySpringCloudEurekaServer: true,
+					ContainsDependencySpringCloudConfigServer: true,
+					ContainsDependencyAboutEmbeddedWebServer:  true,
+				},
+			},
+			expected: 8080,
+		},
+		{
+			name: "configure ServerPort and multiple dependencies",
+			svc: appdetect.Project{
+				Metadata: appdetect.Metadata{
+					ServerPort: 8888,
+					ContainsDependencySpringCloudEurekaServer: true,
+					ContainsDependencySpringCloudConfigServer: true,
+					ContainsDependencyAboutEmbeddedWebServer:  true,
+				},
+			},
+			expected: 8888,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, getJavaApplicationPort(tt.svc))
+		})
+	}
+}

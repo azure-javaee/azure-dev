@@ -322,20 +322,20 @@ func GetOrPromptPort(
 }
 
 func getJavaApplicationPort(svc appdetect.Project) int {
-	if svc.Metadata.ContainsDependencySpringCloudEurekaServer {
-		return 8761
+	if !shouldExposePort(svc) {
+		return 0
 	}
-	if svc.Metadata.ContainsDependencySpringCloudConfigServer {
-		return 8888
+	if svc.Metadata.ServerPort != 0 {
+		return svc.Metadata.ServerPort
+	} else {
+		return 8080
 	}
-	if svc.Metadata.ContainsDependencyAboutEmbeddedWebServer {
-		if svc.Metadata.ServerPort != 0 {
-			return svc.Metadata.ServerPort
-		} else {
-			return 8080
-		}
-	}
-	return 0
+}
+
+func shouldExposePort(svc appdetect.Project) bool {
+	return svc.Metadata.ContainsDependencySpringCloudEurekaServer ||
+		svc.Metadata.ContainsDependencySpringCloudConfigServer ||
+		svc.Metadata.ContainsDependencyAboutEmbeddedWebServer
 }
 
 func (i *Initializer) buildInfraSpecByAzureDep(
