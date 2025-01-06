@@ -487,6 +487,8 @@ func detectDependencySpringCloudConfig(azdProject *Project, springBootProject *S
 func detectDependencyAboutEmbeddedWebServer(azdProject *Project, springBootProject *SpringBootProject) {
 	var targetGroupId = "org.springframework.boot"
 	var targetArtifactIds = []string{
+		"spring-boot-starter-web",
+		"spring-boot-starter-webflux",
 		"spring-boot-starter-tomcat",
 		"spring-boot-starter-jetty",
 		"spring-boot-starter-undertow",
