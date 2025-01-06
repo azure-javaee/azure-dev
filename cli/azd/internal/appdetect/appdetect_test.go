@@ -87,6 +87,9 @@ func TestDetect(t *testing.T) {
 						JavaProjectOptionPosixMavenWrapperPath: filepath.Join(dir, "java-multimodules", "mvnw"),
 						JavaProjectOptionWinMavenWrapperPath:   filepath.Join(dir, "java-multimodules", "mvnw.cmd"),
 					},
+					Metadata: Metadata{
+						ContainsDependencyAboutEmbeddedWebServer: true,
+					},
 				},
 				{
 					Language:      Java,
@@ -214,6 +217,9 @@ func TestDetect(t *testing.T) {
 						JavaProjectOptionPosixMavenWrapperPath: filepath.Join(dir, "java-multimodules", "mvnw"),
 						JavaProjectOptionWinMavenWrapperPath:   filepath.Join(dir, "java-multimodules", "mvnw.cmd"),
 					},
+					Metadata: Metadata{
+						ContainsDependencyAboutEmbeddedWebServer: true,
+					},
 				},
 				{
 					Language:      Java,
@@ -289,6 +295,9 @@ func TestDetect(t *testing.T) {
 						JavaProjectOptionParentPomDir:          filepath.Join(dir, "java-multimodules"),
 						JavaProjectOptionPosixMavenWrapperPath: filepath.Join(dir, "java-multimodules", "mvnw"),
 						JavaProjectOptionWinMavenWrapperPath:   filepath.Join(dir, "java-multimodules", "mvnw.cmd"),
+					},
+					Metadata: Metadata{
+						ContainsDependencyAboutEmbeddedWebServer: true,
 					},
 				},
 				{
@@ -368,6 +377,9 @@ func TestDetect(t *testing.T) {
 						JavaProjectOptionParentPomDir:          filepath.Join(dir, "java-multimodules"),
 						JavaProjectOptionPosixMavenWrapperPath: filepath.Join(dir, "java-multimodules", "mvnw"),
 						JavaProjectOptionWinMavenWrapperPath:   filepath.Join(dir, "java-multimodules", "mvnw.cmd"),
+					},
+					Metadata: Metadata{
+						ContainsDependencyAboutEmbeddedWebServer: true,
 					},
 				},
 				{
