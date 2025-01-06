@@ -1,8 +1,12 @@
 package appdetect
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
+
+	"github.com/azure/azure-dev/cli/azd/pkg/exec"
+	"github.com/azure/azure-dev/cli/azd/pkg/tools/maven"
 )
 
 func TestGetDatabaseName(t *testing.T) {
@@ -145,7 +149,8 @@ func TestDetectDependencyAboutEmbeddedWebServer(t *testing.T) {
 			}
 			for _, testPom := range tt.testPoms {
 				pomFilePath := filepath.Join(workingDir, testPom.pomFilePath)
-				mavenProject, err := createMavenProject(pomFilePath)
+				mavenProject, err := createMavenProject(context.TODO(), maven.NewCli(exec.NewCommandRunner(nil)),
+					pomFilePath)
 				if err != nil {
 					t.Fatalf("%v", err)
 				}
