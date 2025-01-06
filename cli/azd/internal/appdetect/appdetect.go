@@ -14,6 +14,7 @@ import (
 
 	"github.com/azure/azure-dev/cli/azd/pkg/exec"
 	"github.com/azure/azure-dev/cli/azd/pkg/tools/dotnet"
+	"github.com/azure/azure-dev/cli/azd/pkg/tools/maven"
 	"github.com/bmatcuk/doublestar/v4"
 )
 
@@ -156,8 +157,28 @@ func (a AzureDepServiceBus) ResourceDisplay() string {
 
 type AzureDepEventHubs struct {
 	EventHubsNamePropertyMap map[string]string
-	UseKafka                 bool
+	DependencyTypes          []DependencyType
 	SpringBootVersion        string
+}
+
+type DependencyType string
+
+const (
+	SpringCloudStreamEventHubs  DependencyType = "spring-cloud-azure-stream-binder-eventhubs"
+	SpringCloudEventHubsStarter DependencyType = "spring-cloud-azure-starter-eventhubs"
+	SpringIntegrationEventHubs  DependencyType = "spring-cloud-azure-starter-integration-eventhubs"
+	SpringMessagingEventHubs    DependencyType = "spring-messaging-azure-eventhubs"
+	SpringCloudStreamKafka      DependencyType = "spring-cloud-starter-stream-kafka"
+	SpringKafka                 DependencyType = "spring-kafka"
+)
+
+func (a AzureDepEventHubs) UseKafka() bool {
+	for _, dependencyType := range a.DependencyTypes {
+		if dependencyType == SpringCloudStreamKafka || dependencyType == SpringKafka {
+			return true
+		}
+	}
+	return false
 }
 
 func (a AzureDepEventHubs) ResourceDisplay() string {
@@ -242,7 +263,9 @@ type projectDetector interface {
 var allDetectors = []projectDetector{
 	// Order here determines precedence when two projects are in the same directory.
 	// This is unlikely to occur in practice, but reordering could help to break the tie in these cases.
-	&javaDetector{},
+	&javaDetector{
+		mvnCli: maven.NewCli(exec.NewCommandRunner(nil)),
+	},
 	&dotNetAppHostDetector{
 		// TODO(ellismg): Remove ambient authority.
 		dotnetCli: dotnet.NewCli(exec.NewCommandRunner(nil)),
