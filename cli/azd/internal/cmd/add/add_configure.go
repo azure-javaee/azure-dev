@@ -114,7 +114,8 @@ func fillDatabaseNameAndAuthType(
 	if r.Type == project.ResourceTypeDbPostgres {
 		modelProps, ok := r.Props.(project.PostgresProps)
 		if ok {
-			authType, err := chooseAuthTypeByPrompt(r.Name, []internal.AuthType{internal.AuthTypePassword, internal.AuthTypeUserAssignedManagedIdentity}, ctx, console)
+			authType, err := chooseAuthTypeByPrompt(r.Name, []internal.AuthType{
+				internal.AuthTypePassword, internal.AuthTypeUserAssignedManagedIdentity}, ctx, console)
 			if err != nil {
 				return r, err
 			}
