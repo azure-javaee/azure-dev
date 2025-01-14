@@ -92,9 +92,10 @@ func TestToBicepEnv(t *testing.T) {
 				Name: "config-server-name",
 			}, binding.InfoTypeHost)),
 			want: BicepEnv{
-				BicepEnvType:   BicepEnvTypePlainText,
-				Name:           "spring.config.import",
-				PlainTextValue: "'optional:configserver:https://configServerName.${containerAppsEnvironment.outputs.defaultDomain}?fail-fast=true'",
+				BicepEnvType: BicepEnvTypePlainText,
+				Name:         "spring.config.import",
+				PlainTextValue: "'optional:configserver:" +
+					"https://configServerName.${containerAppsEnvironment.outputs.defaultDomain}?fail-fast=true'",
 			},
 		},
 	}
