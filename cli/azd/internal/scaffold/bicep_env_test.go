@@ -27,7 +27,7 @@ func TestToBicepEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "Plain text which is a binding env, value not change",
+			name: "Plain text which is used for binding, but it's not a binding env",
 			in: Env{
 				Name:  "spring.jms.servicebus.pricing-tier",
 				Value: "premium",
@@ -39,7 +39,7 @@ func TestToBicepEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "Plain text which is a binding env, value updated",
+			name: "Plain text which is a binding env",
 			in: Env{
 				Name: "POSTGRES_PORT",
 				Value: binding.ToBindingEnv(binding.Target{Type: binding.AzureDatabaseForPostgresql},
