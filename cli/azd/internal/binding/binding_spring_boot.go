@@ -268,7 +268,6 @@ func GetServiceBindingEnvsForEurekaServer(eurekaServerName string) map[string]st
 		"eureka.instance.prefer-ip-address":  "true",
 		"eureka.client.serviceUrl.defaultZone": fmt.Sprintf("%s/eureka",
 			ToBindingEnv(Target{Type: AzureContainerApp, Name: eurekaServerName}, InfoTypeHost)),
-		// todo: Make sure it can be used in resource.bicep
 	}
 }
 
@@ -281,5 +280,4 @@ func GetServiceBindingEnvsForConfigServer(configServerName string) map[string]st
 
 func unsupportedAuthTypeError(targetType TargetType, authType internal.AuthType) error {
 	return fmt.Errorf("unsupported auth type, serviceType = %s, authType = %s", targetType, authType)
-	// todo: Make sure it can be used in resource.bicep
 }

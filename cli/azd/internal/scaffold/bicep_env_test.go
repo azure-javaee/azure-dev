@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/azure/azure-dev/cli/azd/internal"
@@ -68,6 +69,32 @@ func TestToBicepEnv(t *testing.T) {
 				Name:         "REDIS_PASSWORD",
 				SecretName:   "azure-db-redis-password",
 				SecretValue:  "redisConn.outputs.keyVaultUrlForPass",
+			},
+		},
+		{
+			name:    "Eureka server",
+			envName: "eureka.client.serviceUrl.defaultZone",
+			envValue: fmt.Sprintf("%s/eureka", binding.ToBindingEnv(binding.Target{
+				Type: binding.AzureContainerApp,
+				Name: "eurekaServerName",
+			}, binding.InfoTypeHost)),
+			want: BicepEnv{
+				BicepEnvType:   BicepEnvTypePlainText,
+				Name:           "eureka.client.serviceUrl.defaultZone",
+				PlainTextValue: "'https://eurekaServerName.${containerAppsEnvironment.outputs.defaultDomain}/eureka'",
+			},
+		},
+		{
+			name:    "Config server",
+			envName: "spring.config.import",
+			envValue: fmt.Sprintf("optional:configserver:%s?fail-fast=true", binding.ToBindingEnv(binding.Target{
+				Type: binding.AzureContainerApp,
+				Name: "configServerName",
+			}, binding.InfoTypeHost)),
+			want: BicepEnv{
+				BicepEnvType:   BicepEnvTypePlainText,
+				Name:           "spring.config.import",
+				PlainTextValue: "'optional:configserver:https://configServerName.${containerAppsEnvironment.outputs.defaultDomain}?fail-fast=true'",
 			},
 		},
 	}

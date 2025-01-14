@@ -75,8 +75,8 @@ const bindingEnvValuePrefix = "binding"
 const bindingEnvFormat = bindingEnvPrefix + "%s:%s:%s" + bindingEnvSuffix
 const EnvManagedIdentityClientId = "${binding:source::managedIdentityClientId}"
 
-func IsBindingEnvValue(env string) bool {
-	target, infoType := ToTargetAndInfoType(env)
+func IsBindingEnv(value string) bool {
+	target, infoType := ToTargetAndInfoType(value)
 	return target.Type != "" && infoType != ""
 }
 
@@ -84,19 +84,34 @@ func ToBindingEnv(target Target, infoType InfoType) string {
 	return fmt.Sprintf(bindingEnvFormat, target.Type, target.Name, infoType)
 }
 
-func ToTargetAndInfoType(env string) (target Target, infoType InfoType) {
-	prefixIndex := strings.Index(env, bindingEnvPrefix)
+func ReplaceBindingEnv(value string, substr string) string {
+	prefixIndex := strings.Index(value, bindingEnvPrefix)
+	if prefixIndex == -1 {
+		return value
+	}
+	suffixIndex := strings.Index(value, bindingEnvSuffix)
+	if suffixIndex == -1 {
+		return value
+	}
+	if prefixIndex >= suffixIndex {
+		return value
+	}
+	return value[0:prefixIndex] + substr + value[suffixIndex+1:]
+}
+
+func ToTargetAndInfoType(value string) (target Target, infoType InfoType) {
+	prefixIndex := strings.Index(value, bindingEnvPrefix)
 	if prefixIndex == -1 {
 		return Target{}, ""
 	}
-	suffixIndex := strings.Index(env, bindingEnvSuffix)
+	suffixIndex := strings.Index(value, bindingEnvSuffix)
 	if suffixIndex == -1 {
 		return Target{}, ""
 	}
 	if prefixIndex >= suffixIndex {
 		return Target{}, ""
 	}
-	bindingEnv := env[prefixIndex:suffixIndex]
+	bindingEnv := value[prefixIndex:suffixIndex]
 	a := strings.Split(bindingEnv, ":")
 	if len(a) != 4 {
 		return Target{}, ""

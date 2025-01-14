@@ -9,7 +9,7 @@ import (
 )
 
 func ToBicepEnv(name string, value string) BicepEnv {
-	if binding.IsBindingEnvValue(value) {
+	if binding.IsBindingEnv(value) {
 		target, infoType := binding.ToTargetAndInfoType(value)
 		bicepEnvValue, ok := bicepEnv[target.Type][infoType]
 		if !ok {
@@ -21,6 +21,12 @@ func ToBicepEnv(name string, value string) BicepEnv {
 				}
 			}
 			panic(unsupportedType(target.Type, infoType))
+		}
+		if strings.HasPrefix(bicepEnvValue, "'") && strings.HasSuffix(bicepEnvValue, "'") {
+			bicepEnvValue = bicepEnvValue[1 : len(bicepEnvValue)-1]
+			bicepEnvValue = "'" + binding.ReplaceBindingEnv(value, bicepEnvValue) + "'"
+		} else {
+			bicepEnvValue = binding.ReplaceBindingEnv(value, bicepEnvValue)
 		}
 		if isSecret(infoType) {
 			if isKeyVaultSecret(bicepEnvValue) {
@@ -39,6 +45,9 @@ func ToBicepEnv(name string, value string) BicepEnv {
 				}
 			}
 		} else {
+			if target.Type == binding.AzureContainerApp && target.Name != "" {
+				bicepEnvValue = strings.ReplaceAll(bicepEnvValue, "{{BackendName}}", target.Name)
+			}
 			return BicepEnv{
 				BicepEnvType:   BicepEnvTypePlainText,
 				Name:           name,
@@ -194,7 +203,7 @@ var bicepEnv = map[binding.TargetType]map[binding.InfoType]string{
 		binding.InfoTypeEndpoint: "account.outputs.endpoint",
 	},
 	binding.AzureContainerApp: {
-		binding.InfoTypeHost: "https://{{BackendName}}.${containerAppsEnvironment.outputs.defaultDomain}",
+		binding.InfoTypeHost: "'https://{{BackendName}}.${containerAppsEnvironment.outputs.defaultDomain}'",
 	},
 }
 
