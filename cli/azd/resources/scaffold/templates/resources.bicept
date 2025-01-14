@@ -600,7 +600,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
         }
         env: union([
           {{- range $name, $value := .Envs }}
-          {{- if (shouldAddToBicepFile $service$name) }}
+          {{- if (shouldAddToBicepFile $service $name) }}
           {{- if (or (eq (toBicepEnv $name $value).BicepEnvType "keyVaultSecret") (eq (toBicepEnv $name $value).BicepEnvType "secret")) }}
           {
             name: '{{ (toBicepEnv $name $value).Name }}'
