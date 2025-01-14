@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/azure/azure-dev/cli/azd/internal"
+	"github.com/azure/azure-dev/cli/azd/internal/binding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +27,7 @@ func TestToBicepEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "Plain text from EnvTypeResourceConnectionPlainText",
+			name: "Plain text which is a binding env, value not change",
 			in: Env{
 				Name:  "spring.jms.servicebus.pricing-tier",
 				Value: "premium",
@@ -38,10 +39,11 @@ func TestToBicepEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "Plain text from EnvTypeResourceConnectionResourceInfo",
+			name: "Plain text which is a binding env, value updated",
 			in: Env{
-				Name:  "POSTGRES_PORT",
-				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypePort),
+				Name: "POSTGRES_PORT",
+				Value: binding.ToBindingEnv(binding.Target{Type: binding.AzureDatabaseForPostgresql},
+					binding.InfoTypePort),
 			},
 			want: BicepEnv{
 				BicepEnvType:   BicepEnvTypePlainText,
@@ -52,26 +54,28 @@ func TestToBicepEnv(t *testing.T) {
 		{
 			name: "Secret",
 			in: Env{
-				Name:  "POSTGRES_PASSWORD",
-				Value: ToServiceBindingEnvValue(ServiceTypeDbPostgres, ServiceBindingInfoTypePassword),
+				Name: "POSTGRES_PASSWORD",
+				Value: binding.ToBindingEnv(binding.Target{Type: binding.AzureDatabaseForPostgresql},
+					binding.InfoTypePassword),
 			},
 			want: BicepEnv{
 				BicepEnvType: BicepEnvTypeSecret,
 				Name:         "POSTGRES_PASSWORD",
-				SecretName:   "db-postgres-password",
+				SecretName:   "azure-db-postgresql-password",
 				SecretValue:  "postgreSqlDatabasePassword",
 			},
 		},
 		{
 			name: "KeuVault Secret",
 			in: Env{
-				Name:  "REDIS_PASSWORD",
-				Value: ToServiceBindingEnvValue(ServiceTypeDbRedis, ServiceBindingInfoTypePassword),
+				Name: "REDIS_PASSWORD",
+				Value: binding.ToBindingEnv(binding.Target{Type: binding.AzureCacheForRedis},
+					binding.InfoTypePassword),
 			},
 			want: BicepEnv{
 				BicepEnvType: BicepEnvTypeKeyVaultSecret,
 				Name:         "REDIS_PASSWORD",
-				SecretName:   "db-redis-password",
+				SecretName:   "azure-db-redis-password",
 				SecretValue:  "redisConn.outputs.keyVaultUrlForPass",
 			},
 		},

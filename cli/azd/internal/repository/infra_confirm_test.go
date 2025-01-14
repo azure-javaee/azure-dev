@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/azure/azure-dev/cli/azd/internal"
+	"github.com/azure/azure-dev/cli/azd/internal/binding"
 	"github.com/azure/azure-dev/cli/azd/pkg/osutil"
 	"github.com/stretchr/testify/assert"
 
@@ -22,7 +24,7 @@ func TestInitializer_infraSpecFromDetect(t *testing.T) {
 		DatabaseName: "myappdb",
 		AuthType:     "userAssignedManagedIdentity",
 	}
-	envs, _ := scaffold.GetServiceBindingEnvsForPostgres(*dbPostgres)
+	envs, _ := binding.GetBindingEnvsForSpringBootToPostgresql(internal.AuthTypeUserAssignedManagedIdentity)
 	tests := []struct {
 		name         string
 		detect       detectConfirm
