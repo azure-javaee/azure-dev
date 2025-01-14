@@ -46,7 +46,7 @@ func ToBicepEnv(name string, value string) BicepEnv {
 			}
 		} else {
 			if target.Type == binding.AzureContainerApp && target.Name != "" {
-				bicepEnvValue = strings.ReplaceAll(bicepEnvValue, "{{BackendName}}", target.Name)
+				bicepEnvValue = strings.ReplaceAll(bicepEnvValue, "{{BackendName}}", BicepName(target.Name))
 			}
 			return BicepEnv{
 				BicepEnvType:   BicepEnvTypePlainText,

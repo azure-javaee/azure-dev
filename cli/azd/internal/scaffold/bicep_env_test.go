@@ -89,7 +89,7 @@ func TestToBicepEnv(t *testing.T) {
 			envName: "spring.config.import",
 			envValue: fmt.Sprintf("optional:configserver:%s?fail-fast=true", binding.ToBindingEnv(binding.Target{
 				Type: binding.AzureContainerApp,
-				Name: "configServerName",
+				Name: "config-server-name",
 			}, binding.InfoTypeHost)),
 			want: BicepEnv{
 				BicepEnvType:   BicepEnvTypePlainText,
