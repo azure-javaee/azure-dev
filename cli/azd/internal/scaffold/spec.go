@@ -123,11 +123,6 @@ type ServiceSpec struct {
 	AzureStorageAccount *AzureDepStorageAccount
 }
 
-type Env struct {
-	Name  string
-	Value string
-}
-
 type Frontend struct {
 	Backends []ServiceReference
 }
