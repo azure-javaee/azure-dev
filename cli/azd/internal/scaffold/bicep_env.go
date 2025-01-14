@@ -8,48 +8,48 @@ import (
 	"github.com/azure/azure-dev/cli/azd/internal/binding"
 )
 
-func ToBicepEnv(env Env) BicepEnv {
-	if binding.IsBindingEnvValue(env.Value) {
-		target, infoType := binding.ToTargetAndInfoType(env.Value)
-		value, ok := bicepEnv[target.Type][infoType]
+func ToBicepEnv(name string, value string) BicepEnv {
+	if binding.IsBindingEnvValue(value) {
+		target, infoType := binding.ToTargetAndInfoType(value)
+		bicepEnvValue, ok := bicepEnv[target.Type][infoType]
 		if !ok {
-			if env.Value == binding.EnvManagedIdentityClientId {
+			if value == binding.EnvManagedIdentityClientId {
 				return BicepEnv{
 					BicepEnvType:   BicepEnvTypePlainText,
-					Name:           env.Name,
+					Name:           name,
 					PlainTextValue: "__PlaceHolderForBindingEnvManagedIdentityClientId",
 				}
 			}
-			panic(unsupportedType(env))
+			panic(unsupportedType(target.Type, infoType))
 		}
 		if isSecret(infoType) {
-			if isKeyVaultSecret(value) {
+			if isKeyVaultSecret(bicepEnvValue) {
 				return BicepEnv{
 					BicepEnvType: BicepEnvTypeKeyVaultSecret,
-					Name:         env.Name,
-					SecretName:   secretName(env),
-					SecretValue:  unwrapKeyVaultSecretValue(value),
+					Name:         name,
+					SecretName:   secretName(value),
+					SecretValue:  unwrapKeyVaultSecretValue(bicepEnvValue),
 				}
 			} else {
 				return BicepEnv{
 					BicepEnvType: BicepEnvTypeSecret,
-					Name:         env.Name,
-					SecretName:   secretName(env),
-					SecretValue:  value,
+					Name:         name,
+					SecretName:   secretName(value),
+					SecretValue:  bicepEnvValue,
 				}
 			}
 		} else {
 			return BicepEnv{
 				BicepEnvType:   BicepEnvTypePlainText,
-				Name:           env.Name,
-				PlainTextValue: value,
+				Name:           name,
+				PlainTextValue: bicepEnvValue,
 			}
 		}
 	} else {
 		return BicepEnv{
 			BicepEnvType:   BicepEnvTypePlainText,
-			Name:           env.Name,
-			PlainTextValue: toBicepEnvPlainTextValue(env.Value),
+			Name:           name,
+			PlainTextValue: toBicepEnvPlainTextValue(value),
 		}
 	}
 }
@@ -198,10 +198,10 @@ var bicepEnv = map[binding.TargetType]map[binding.InfoType]string{
 	},
 }
 
-func unsupportedType(env Env) string {
+func unsupportedType(targetType binding.TargetType, infoType binding.InfoType) string {
 	return fmt.Sprintf(
-		"unsupported connection info type for resource type. value = %s", env.Value,
-	)
+		"unsupported connection info type for resource type. targetType = %s, targetType = %s",
+		targetType, infoType)
 }
 
 func isSecret(info binding.InfoType) bool {
@@ -209,8 +209,8 @@ func isSecret(info binding.InfoType) bool {
 		info == binding.InfoTypeConnectionString
 }
 
-func secretName(env Env) string {
-	target, infoType := binding.ToTargetAndInfoType(env.Value)
+func secretName(envValue string) string {
+	target, infoType := binding.ToTargetAndInfoType(envValue)
 	name := fmt.Sprintf("%s-%s", target.Type, infoType)
 	lowerCaseName := strings.ToLower(name)
 	noDotName := strings.Replace(lowerCaseName, ".", "-", -1)

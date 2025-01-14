@@ -10,16 +10,15 @@ import (
 
 func TestToBicepEnv(t *testing.T) {
 	tests := []struct {
-		name string
-		in   Env
-		want BicepEnv
+		name     string
+		envName  string
+		envValue string
+		want     BicepEnv
 	}{
 		{
-			name: "Plain text",
-			in: Env{
-				Name:  "enable-customer-related-feature",
-				Value: "true",
-			},
+			name:     "Plain text",
+			envName:  "enable-customer-related-feature",
+			envValue: "true",
 			want: BicepEnv{
 				BicepEnvType:   BicepEnvTypePlainText,
 				Name:           "enable-customer-related-feature",
@@ -27,11 +26,9 @@ func TestToBicepEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "Plain text which is used for binding, but it's not a binding env",
-			in: Env{
-				Name:  "spring.jms.servicebus.pricing-tier",
-				Value: "premium",
-			},
+			name:     "Plain text which is used for binding, but it's not a binding env",
+			envName:  "spring.jms.servicebus.pricing-tier",
+			envValue: "premium",
 			want: BicepEnv{
 				BicepEnvType:   BicepEnvTypePlainText,
 				Name:           "spring.jms.servicebus.pricing-tier",
@@ -39,12 +36,10 @@ func TestToBicepEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "Plain text which is a binding env",
-			in: Env{
-				Name: "POSTGRES_PORT",
-				Value: binding.ToBindingEnv(binding.Target{Type: binding.AzureDatabaseForPostgresql},
-					binding.InfoTypePort),
-			},
+			name:    "Plain text which is a binding env",
+			envName: "POSTGRES_PORT",
+			envValue: binding.ToBindingEnv(binding.Target{Type: binding.AzureDatabaseForPostgresql},
+				binding.InfoTypePort),
 			want: BicepEnv{
 				BicepEnvType:   BicepEnvTypePlainText,
 				Name:           "POSTGRES_PORT",
@@ -52,12 +47,10 @@ func TestToBicepEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "Secret",
-			in: Env{
-				Name: "POSTGRES_PASSWORD",
-				Value: binding.ToBindingEnv(binding.Target{Type: binding.AzureDatabaseForPostgresql},
-					binding.InfoTypePassword),
-			},
+			name:    "Secret",
+			envName: "POSTGRES_PASSWORD",
+			envValue: binding.ToBindingEnv(binding.Target{Type: binding.AzureDatabaseForPostgresql},
+				binding.InfoTypePassword),
 			want: BicepEnv{
 				BicepEnvType: BicepEnvTypeSecret,
 				Name:         "POSTGRES_PASSWORD",
@@ -66,12 +59,10 @@ func TestToBicepEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "KeuVault Secret",
-			in: Env{
-				Name: "REDIS_PASSWORD",
-				Value: binding.ToBindingEnv(binding.Target{Type: binding.AzureCacheForRedis},
-					binding.InfoTypePassword),
-			},
+			name:    "KeuVault Secret",
+			envName: "REDIS_PASSWORD",
+			envValue: binding.ToBindingEnv(binding.Target{Type: binding.AzureCacheForRedis},
+				binding.InfoTypePassword),
 			want: BicepEnv{
 				BicepEnvType: BicepEnvTypeKeyVaultSecret,
 				Name:         "REDIS_PASSWORD",
@@ -82,7 +73,7 @@ func TestToBicepEnv(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual := ToBicepEnv(tt.in)
+			actual := ToBicepEnv(tt.envName, tt.envValue)
 			assert.Equal(t, tt.want, actual)
 		})
 	}
