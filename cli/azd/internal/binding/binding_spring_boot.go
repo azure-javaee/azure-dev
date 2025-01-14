@@ -178,7 +178,7 @@ func GetBindingEnvsForSpringBootToServiceBusNotJms(authType internal.AuthType) (
 func GetBindingEnvsForSpringBootToEventHubsKafka(springBootVersion string,
 	authType internal.AuthType) (map[string]string, error) {
 	target := Target{Type: AzureEventHubs}
-	var springBootVersionDecidedBindingEnv map[string]string
+	var springBootVersionDecidedBindingEnv = make(map[string]string)
 	if strings.HasPrefix(springBootVersion, "2.") {
 		springBootVersionDecidedBindingEnv["spring.cloud.stream.binders.kafka.environment.spring.main.sources"] =
 			"com.azure.spring.cloud.autoconfigure.eventhubs.kafka.AzureEventHubsKafkaAutoConfiguration"
