@@ -277,7 +277,3 @@ func GetServiceBindingEnvsForConfigServer(configServerName string) map[string]st
 			ToBindingEnv(Target{Type: AzureContainerApp, Name: configServerName}, InfoTypeHost)),
 	}
 }
-
-func unsupportedAuthTypeError(targetType TargetType, authType internal.AuthType) error {
-	return fmt.Errorf("unsupported auth type, serviceType = %s, authType = %s", targetType, authType)
-}

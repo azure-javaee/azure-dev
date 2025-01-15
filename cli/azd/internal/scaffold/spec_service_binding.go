@@ -36,7 +36,7 @@ func BindToMySql(sourceType binding.SourceType, serviceSpec *ServiceSpec, mysql 
 func BindToMongoDb(sourceType binding.SourceType, serviceSpec *ServiceSpec, mongo *DatabaseCosmosMongo) error {
 	serviceSpec.DbCosmosMongo = mongo
 	envs, err := binding.GetBindingEnvs(binding.Source{Type: sourceType},
-		binding.Target{Type: binding.AzureCosmosDBForMongoDB, AuthType: internal.AuthTypeUserAssignedManagedIdentity})
+		binding.Target{Type: binding.AzureCosmosDBForMongoDB, AuthType: internal.AuthTypeConnectionString})
 	if err != nil {
 		return err
 	}

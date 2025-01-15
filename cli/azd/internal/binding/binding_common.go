@@ -92,3 +92,7 @@ func GetServiceBindingEnvsForAIModel(authType internal.AuthType) (map[string]str
 		return nil, unsupportedAuthTypeError(AzureOpenAiModel, authType)
 	}
 }
+
+func unsupportedAuthTypeError(targetType TargetType, authType internal.AuthType) error {
+	return fmt.Errorf("unsupported auth type, serviceType = %s, authType = %s", targetType, authType)
+}

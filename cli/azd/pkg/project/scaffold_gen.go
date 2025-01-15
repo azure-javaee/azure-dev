@@ -209,10 +209,12 @@ func infraSpec(projectConfig *ProjectConfig,
 			if err != nil {
 				return nil, err
 			}
-			serviceSpec.Envs, err = binding.MergeMapWithDuplicationCheck(serviceSpec.Envs,
-				projectConfig.Services[resource.Name].Env)
-			if err != nil {
-				return nil, err
+			if _, ok := projectConfig.Services[resource.Name]; ok {
+				serviceSpec.Envs, err = binding.MergeMapWithDuplicationCheck(serviceSpec.Envs,
+					projectConfig.Services[resource.Name].Env)
+				if err != nil {
+					return nil, err
+				}
 			}
 			infraSpec.Services = append(infraSpec.Services, serviceSpec)
 		case ResourceTypeOpenAiModel:
@@ -261,12 +263,7 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 			return fmt.Errorf("service (%s) exist, but there isn't a resource with that name",
 				userResourceName)
 		}
-		userService, ok := projectConfig.Services[userResourceName]
-		if !ok {
-			return fmt.Errorf("can't find ProjectConfig.ServiceConfig named (%s)",
-				userResourceName)
-		}
-		sourceType := toSourceType(userService.Language)
+		sourceType := sourceType(projectConfig, userResourceName)
 		for _, usedResourceName := range userResource.Uses {
 			usedResource, ok := projectConfig.Resources[usedResourceName]
 			if !ok {
@@ -312,8 +309,12 @@ func mapUses(infraSpec *scaffold.InfraSpec, projectConfig *ProjectConfig) error 
 	return nil
 }
 
-func toSourceType(language ServiceLanguageKind) binding.SourceType {
-	switch language {
+func sourceType(projectConfig *ProjectConfig, userResourceName string) binding.SourceType {
+	userService := projectConfig.Services[userResourceName]
+	if userService == nil {
+		return binding.Unknown
+	}
+	switch userService.Language {
 	case ServiceLanguageJava:
 		return binding.Java
 	default:
@@ -331,12 +332,7 @@ func printEnvListAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *Project
 			return fmt.Errorf("service (%s) exist, but there isn't a resource with that name",
 				userResourceName)
 		}
-		userService, ok := projectConfig.Services[userResourceName]
-		if !ok {
-			return fmt.Errorf("can't find ProjectConfig.ServiceConfig named (%s)",
-				userResourceName)
-		}
-		sourceType := toSourceType(userService.Language)
+		sourceType := sourceType(projectConfig, userResourceName)
 		for _, usedResourceName := range userResource.Uses {
 			usedResource, ok := projectConfig.Resources[usedResourceName]
 			if !ok {
@@ -362,7 +358,7 @@ func printEnvListAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *Project
 				variables, err = binding.GetBindingEnvs(binding.Source{Type: sourceType},
 					binding.Target{
 						Type:     binding.AzureCosmosDBForMongoDB,
-						AuthType: internal.AuthTypeUserAssignedManagedIdentity,
+						AuthType: internal.AuthTypeConnectionString,
 					})
 			case ResourceTypeDbCosmos:
 				variables, err = binding.GetBindingEnvs(binding.Source{Type: sourceType},
