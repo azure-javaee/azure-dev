@@ -48,6 +48,16 @@ func TestToBicepEnv(t *testing.T) {
 			},
 		},
 		{
+			name:     "Plain text which is a binding env: SourceUserAssignedManagedIdentityClientId",
+			envName:  "spring.cloud.azure.credential.client-id",
+			envValue: binding.SourceUserAssignedManagedIdentityClientId,
+			want: BicepEnv{
+				BicepEnvType:   BicepEnvTypePlainText,
+				Name:           "spring.cloud.azure.credential.client-id",
+				PlainTextValue: "__PlaceHolderForBindingEnvManagedIdentityClientId",
+			},
+		},
+		{
 			name:    "Secret",
 			envName: "POSTGRES_PASSWORD",
 			envValue: binding.ToBindingEnv(binding.Target{Type: binding.AzureDatabaseForPostgresql},

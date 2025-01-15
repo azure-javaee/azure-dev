@@ -10,16 +10,16 @@ import (
 
 func ToBicepEnv(name string, value string) BicepEnv {
 	if binding.IsBindingEnv(value) {
+		if value == binding.SourceUserAssignedManagedIdentityClientId {
+			return BicepEnv{
+				BicepEnvType:   BicepEnvTypePlainText,
+				Name:           name,
+				PlainTextValue: "__PlaceHolderForBindingEnvManagedIdentityClientId",
+			}
+		}
 		target, infoType := binding.ToTargetAndInfoType(value)
 		bicepEnvValue, ok := bicepEnv[target.Type][infoType]
 		if !ok {
-			if value == binding.SourceUserAssignedManagedIdentityClientId {
-				return BicepEnv{
-					BicepEnvType:   BicepEnvTypePlainText,
-					Name:           name,
-					PlainTextValue: "__PlaceHolderForBindingEnvManagedIdentityClientId",
-				}
-			}
 			panic(unsupportedType(target.Type, infoType))
 		}
 		if strings.HasPrefix(bicepEnvValue, "'") && strings.HasSuffix(bicepEnvValue, "'") {
