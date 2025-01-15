@@ -73,18 +73,10 @@ func TestDetect(t *testing.T) {
 						DbRedis,
 					},
 					Options: map[string]interface{}{
-						JavaProjectOptionParentPomDir:          filepath.Join(dir, "java-multimodules"),
+						JavaProjectOptionParentPomDir: filepath.Join(dir, "java-multimodules"),
 					},
 					Metadata: Metadata{
 						ContainsDependencyAboutEmbeddedWebServer: true,
-					},
-				},
-				{
-					Language:      Java,
-					Path:          "java-multimodules/library",
-					DetectionRule: "Inferred by presence of: pom.xml",
-					Options: map[string]interface{}{
-						JavaProjectOptionParentPomDir:          filepath.Join(dir, "java-multimodules"),
 					},
 				},
 				{
@@ -189,18 +181,10 @@ func TestDetect(t *testing.T) {
 						DbRedis,
 					},
 					Options: map[string]interface{}{
-						JavaProjectOptionParentPomDir:          filepath.Join(dir, "java-multimodules"),
+						JavaProjectOptionParentPomDir: filepath.Join(dir, "java-multimodules"),
 					},
 					Metadata: Metadata{
 						ContainsDependencyAboutEmbeddedWebServer: true,
-					},
-				},
-				{
-					Language:      Java,
-					Path:          "java-multimodules/library",
-					DetectionRule: "Inferred by presence of: pom.xml",
-					Options: map[string]interface{}{
-						JavaProjectOptionParentPomDir:          filepath.Join(dir, "java-multimodules"),
 					},
 				},
 			},
@@ -254,18 +238,10 @@ func TestDetect(t *testing.T) {
 						DbRedis,
 					},
 					Options: map[string]interface{}{
-						JavaProjectOptionParentPomDir:          filepath.Join(dir, "java-multimodules"),
+						JavaProjectOptionParentPomDir: filepath.Join(dir, "java-multimodules"),
 					},
 					Metadata: Metadata{
 						ContainsDependencyAboutEmbeddedWebServer: true,
-					},
-				},
-				{
-					Language:      Java,
-					Path:          "java-multimodules/library",
-					DetectionRule: "Inferred by presence of: pom.xml",
-					Options: map[string]interface{}{
-						JavaProjectOptionParentPomDir:          filepath.Join(dir, "java-multimodules"),
 					},
 				},
 			},
@@ -322,18 +298,10 @@ func TestDetect(t *testing.T) {
 						DbRedis,
 					},
 					Options: map[string]interface{}{
-						JavaProjectOptionParentPomDir:          filepath.Join(dir, "java-multimodules"),
+						JavaProjectOptionParentPomDir: filepath.Join(dir, "java-multimodules"),
 					},
 					Metadata: Metadata{
 						ContainsDependencyAboutEmbeddedWebServer: true,
-					},
-				},
-				{
-					Language:      Java,
-					Path:          "java-multimodules/library",
-					DetectionRule: "Inferred by presence of: pom.xml",
-					Options: map[string]interface{}{
-						JavaProjectOptionParentPomDir:          filepath.Join(dir, "java-multimodules"),
 					},
 				},
 				{
