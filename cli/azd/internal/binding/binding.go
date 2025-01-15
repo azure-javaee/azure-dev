@@ -56,23 +56,25 @@ const (
 type InfoType string
 
 const (
-	InfoTypeHost             InfoType = "host"
-	InfoTypePort             InfoType = "port"
-	InfoTypeEndpoint         InfoType = "endpoint"
-	InfoTypeDatabaseName     InfoType = "databaseName"
-	InfoTypeNamespace        InfoType = "namespace"
-	InfoTypeAccountName      InfoType = "accountName"
-	InfoTypeUsername         InfoType = "username"
-	InfoTypePassword         InfoType = "password"
-	InfoTypeUrl              InfoType = "url"
-	InfoTypeJdbcUrl          InfoType = "jdbcUrl"
-	InfoTypeConnectionString InfoType = "connectionString"
+	InfoTypeHost                                      InfoType = "host"
+	InfoTypePort                                      InfoType = "port"
+	InfoTypeEndpoint                                  InfoType = "endpoint"
+	InfoTypeDatabaseName                              InfoType = "databaseName"
+	InfoTypeNamespace                                 InfoType = "namespace"
+	InfoTypeAccountName                               InfoType = "accountName"
+	InfoTypeUsername                                  InfoType = "username"
+	InfoTypePassword                                  InfoType = "password"
+	InfoTypeUrl                                       InfoType = "url"
+	InfoTypeJdbcUrl                                   InfoType = "jdbcUrl"
+	InfoTypeConnectionString                          InfoType = "connectionString"
+	InfoTypeSourceUserAssignedManagedIdentityClientId InfoType = "sourceUserAssignedManagedIdentityClientId"
 )
 
 const bindingEnvPrefix = "${binding:"
 const bindingEnvSuffix = "}"
 const bindingEnvFormat = bindingEnvPrefix + "%s:%s:%s" + bindingEnvSuffix
-const EnvManagedIdentityClientId = "${binding:source::managedIdentityClientId}"
+const SourceUserAssignedManagedIdentityClientId = bindingEnvPrefix +
+	"*:*:" + string(InfoTypeSourceUserAssignedManagedIdentityClientId)
 
 func IsBindingEnv(value string) bool {
 	target, infoType := ToTargetAndInfoType(value)

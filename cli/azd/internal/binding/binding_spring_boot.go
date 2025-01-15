@@ -54,7 +54,7 @@ func GetBindingEnvsForSpringBootToPostgresql(authType internal.AuthType) (map[st
 			"spring.datasource.username":                             ToBindingEnv(target, InfoTypeUsername),
 			"spring.datasource.password":                             "",
 			"spring.datasource.azure.passwordless-enabled":           "true",
-			"spring.cloud.azure.credential.client-id":                EnvManagedIdentityClientId,
+			"spring.cloud.azure.credential.client-id":                SourceUserAssignedManagedIdentityClientId,
 			"spring.cloud.azure.credential.managed-identity-enabled": "true",
 		}, nil
 	default:
@@ -77,7 +77,7 @@ func GetBindingEnvsForSpringBootToMysql(authType internal.AuthType) (map[string]
 			"spring.datasource.username":                             ToBindingEnv(target, InfoTypeUsername),
 			"spring.datasource.password":                             "",
 			"spring.datasource.azure.passwordless-enabled":           "true",
-			"spring.cloud.azure.credential.client-id":                EnvManagedIdentityClientId,
+			"spring.cloud.azure.credential.client-id":                SourceUserAssignedManagedIdentityClientId,
 			"spring.cloud.azure.credential.managed-identity-enabled": "true",
 		}, nil
 	default:
@@ -131,7 +131,7 @@ func GetBindingEnvsForSpringBootToServiceBusJms(authType internal.AuthType) (map
 			"spring.jms.servicebus.pricing-tier":                        "premium",
 			"spring.jms.servicebus.passwordless-enabled":                "true",
 			"spring.jms.servicebus.credential.managed-identity-enabled": "true",
-			"spring.jms.servicebus.credential.client-id":                EnvManagedIdentityClientId,
+			"spring.jms.servicebus.credential.client-id":                SourceUserAssignedManagedIdentityClientId,
 			"spring.jms.servicebus.namespace":                           ToBindingEnv(target, InfoTypeNamespace),
 			"spring.jms.servicebus.connection-string":                   "",
 		}, nil
@@ -157,7 +157,7 @@ func GetBindingEnvsForSpringBootToServiceBusNotJms(authType internal.AuthType) (
 			// Not add this: spring.cloud.azure.servicebus.connection-string = ""
 			// because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
 			"spring.cloud.azure.servicebus.credential.managed-identity-enabled": "true",
-			"spring.cloud.azure.servicebus.credential.client-id":                EnvManagedIdentityClientId,
+			"spring.cloud.azure.servicebus.credential.client-id":                SourceUserAssignedManagedIdentityClientId,
 			"spring.cloud.azure.servicebus.namespace": ToBindingEnv(target,
 				InfoTypeNamespace),
 		}, nil
@@ -195,7 +195,7 @@ func GetBindingEnvsForSpringBootToEventHubsKafka(springBootVersion string,
 			// because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
 			"spring.cloud.stream.kafka.binder.brokers":                         ToBindingEnv(target, InfoTypeEndpoint),
 			"spring.cloud.azure.eventhubs.credential.managed-identity-enabled": "true",
-			"spring.cloud.azure.eventhubs.credential.client-id":                EnvManagedIdentityClientId,
+			"spring.cloud.azure.eventhubs.credential.client-id":                SourceUserAssignedManagedIdentityClientId,
 		}
 	case internal.AuthTypeConnectionString:
 		commonInformation = map[string]string{
@@ -219,7 +219,7 @@ func GetServiceBindingEnvsForEventHubs(authType internal.AuthType) (map[string]s
 			// Not add this: spring.cloud.azure.eventhubs.connection-string = ""
 			// because of this: https://github.com/Azure/azure-sdk-for-java/issues/42880
 			"spring.cloud.azure.eventhubs.credential.managed-identity-enabled": "true",
-			"spring.cloud.azure.eventhubs.credential.client-id":                EnvManagedIdentityClientId,
+			"spring.cloud.azure.eventhubs.credential.client-id":                SourceUserAssignedManagedIdentityClientId,
 			"spring.cloud.azure.eventhubs.namespace":                           ToBindingEnv(target, InfoTypeNamespace),
 		}, nil
 	case internal.AuthTypeConnectionString:
@@ -244,7 +244,7 @@ func GetServiceBindingEnvsForStorageAccount(authType internal.AuthType) (map[str
 				target, InfoTypeAccountName),
 			"spring.cloud.azure.eventhubs.processor.checkpoint-store.credential.managed-identity-enabled": "true",
 			"spring.cloud.azure.eventhubs.processor.checkpoint-store.credential." +
-				"client-id": EnvManagedIdentityClientId,
+				"client-id": SourceUserAssignedManagedIdentityClientId,
 			"spring.cloud.azure.eventhubs.processor.checkpoint-store.connection-string": "",
 		}, nil
 	case internal.AuthTypeConnectionString:

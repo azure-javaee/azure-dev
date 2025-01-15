@@ -13,7 +13,7 @@ func ToBicepEnv(name string, value string) BicepEnv {
 		target, infoType := binding.ToTargetAndInfoType(value)
 		bicepEnvValue, ok := bicepEnv[target.Type][infoType]
 		if !ok {
-			if value == binding.EnvManagedIdentityClientId {
+			if value == binding.SourceUserAssignedManagedIdentityClientId {
 				return BicepEnv{
 					BicepEnvType:   BicepEnvTypePlainText,
 					Name:           name,
