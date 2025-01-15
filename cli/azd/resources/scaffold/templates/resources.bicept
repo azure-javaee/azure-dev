@@ -610,7 +610,7 @@ module {{bicepName .Name}} 'br/public:avm/res/app/container-app:0.8.0' = {
           {{- if (eq (toBicepEnv $name $value).BicepEnvType "plainText") }}
           {
             name: '{{ (toBicepEnv $name $value).Name }}'
-            {{- if (eq (toBicepEnv $name $value).PlainTextValue "'__PlaceHolder__SourceUserAssignedManagedIdentityClientId'")}}
+            {{- if (isPlaceholderOfSourceClientId (toBicepEnv $name $value).PlainTextValue)}}
             value: {{bicepName $service.Name}}Identity.outputs.clientId
             {{- else}}
             value: {{ (toBicepEnv $name $value).PlainTextValue }}

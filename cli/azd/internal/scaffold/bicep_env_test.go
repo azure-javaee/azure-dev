@@ -54,7 +54,7 @@ func TestToBicepEnv(t *testing.T) {
 			want: BicepEnv{
 				BicepEnvType:   BicepEnvTypePlainText,
 				Name:           "spring.cloud.azure.credential.client-id",
-				PlainTextValue: PlaceHolderSourceUserAssignedManagedIdentityClientId,
+				PlainTextValue: placeholderOfSourceClientId,
 			},
 		},
 		{

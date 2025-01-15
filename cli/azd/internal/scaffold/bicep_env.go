@@ -8,7 +8,7 @@ import (
 	"github.com/azure/azure-dev/cli/azd/internal/binding"
 )
 
-const PlaceHolderSourceUserAssignedManagedIdentityClientId = "__PlaceHolder__SourceUserAssignedManagedIdentityClientId"
+const placeholderOfSourceClientId = "__PlaceHolder__SourceClientId"
 
 func ToBicepEnv(name string, value string) BicepEnv {
 	if binding.IsBindingEnv(value) {
@@ -16,7 +16,7 @@ func ToBicepEnv(name string, value string) BicepEnv {
 			return BicepEnv{
 				BicepEnvType:   BicepEnvTypePlainText,
 				Name:           name,
-				PlainTextValue: PlaceHolderSourceUserAssignedManagedIdentityClientId,
+				PlainTextValue: placeholderOfSourceClientId,
 			}
 		}
 		target, infoType := binding.ToTargetAndInfoType(value)
@@ -63,6 +63,10 @@ func ToBicepEnv(name string, value string) BicepEnv {
 			PlainTextValue: toBicepEnvPlainTextValue(value),
 		}
 	}
+}
+
+func IsPlaceholderOfSourceClientId(value string) bool {
+	return value == placeholderOfSourceClientId
 }
 
 func ShouldAddToBicepFile(spec ServiceSpec, name string) bool {
