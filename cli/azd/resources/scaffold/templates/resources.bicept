@@ -198,7 +198,6 @@ module postgreServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.1.4
       }
       {
         principalId: principalId
-        principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
       }
     ]
