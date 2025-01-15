@@ -8,13 +8,15 @@ import (
 	"github.com/azure/azure-dev/cli/azd/internal/binding"
 )
 
+const PlaceHolderSourceUserAssignedManagedIdentityClientId = "__PlaceHolder__SourceUserAssignedManagedIdentityClientId"
+
 func ToBicepEnv(name string, value string) BicepEnv {
 	if binding.IsBindingEnv(value) {
 		if value == binding.SourceUserAssignedManagedIdentityClientId {
 			return BicepEnv{
 				BicepEnvType:   BicepEnvTypePlainText,
 				Name:           name,
-				PlainTextValue: "__PlaceHolderForBindingEnvManagedIdentityClientId",
+				PlainTextValue: PlaceHolderSourceUserAssignedManagedIdentityClientId,
 			}
 		}
 		target, infoType := binding.ToTargetAndInfoType(value)
