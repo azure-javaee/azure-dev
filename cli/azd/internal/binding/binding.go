@@ -69,9 +69,8 @@ const (
 	InfoTypeConnectionString InfoType = "connectionString"
 )
 
-const bindingEnvPrefix = "${" + bindingEnvValuePrefix + ":"
+const bindingEnvPrefix = "${binding:"
 const bindingEnvSuffix = "}"
-const bindingEnvValuePrefix = "binding"
 const bindingEnvFormat = bindingEnvPrefix + "%s:%s:%s" + bindingEnvSuffix
 const EnvManagedIdentityClientId = "${binding:source::managedIdentityClientId}"
 
