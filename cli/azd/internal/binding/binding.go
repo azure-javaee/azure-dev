@@ -74,11 +74,11 @@ const bindingEnvPrefix = "${binding:"
 const bindingEnvSuffix = "}"
 const bindingEnvFormat = bindingEnvPrefix + "%s:%s:%s" + bindingEnvSuffix
 const SourceUserAssignedManagedIdentityClientId = bindingEnvPrefix +
-	"*:*:" + string(InfoTypeSourceUserAssignedManagedIdentityClientId)
+	"*:*:" + string(InfoTypeSourceUserAssignedManagedIdentityClientId) + bindingEnvSuffix
 
 func IsBindingEnv(value string) bool {
-	target, infoType := ToTargetAndInfoType(value)
-	return target.Type != "" && infoType != ""
+	_, infoType := ToTargetAndInfoType(value)
+	return infoType != ""
 }
 
 func ToBindingEnv(target Target, infoType InfoType) string {

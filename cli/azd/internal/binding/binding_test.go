@@ -127,8 +127,18 @@ func TestIsBindingEnvValue(t *testing.T) {
 			want:  true,
 		},
 		{
-			name:  "invalid",
-			input: "${binding:db.postgres:}",
+			name:  "valid - SourceUserAssignedManagedIdentityClientId",
+			input: SourceUserAssignedManagedIdentityClientId,
+			want:  true,
+		},
+		{
+			name:  "invalid - no target info type",
+			input: "${binding:azure.db.postgres::}",
+			want:  false,
+		},
+		{
+			name:  "invalid - no required prefix and suffix.",
+			input: "binding:azure.db.postgresql::password",
 			want:  false,
 		},
 	}
