@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/azure/azure-dev/cli/azd/internal"
@@ -349,44 +350,56 @@ func printEnvListAboutUses(infraSpec *scaffold.InfraSpec, projectConfig *Project
 			var err error
 			switch usedResource.Type {
 			case ResourceTypeDbPostgres:
-				variables, err = binding.GetBindingEnvs(binding.Source{Type: sourceType},
+				variables, err = binding.GetBindingEnvs(
+					binding.Source{Type: sourceType},
 					binding.Target{Type: binding.AzureDatabaseForPostgresql, AuthType: infraSpec.DbPostgres.AuthType})
 			case ResourceTypeDbMySQL:
-				variables, err = binding.GetBindingEnvs(binding.Source{Type: sourceType},
+				variables, err = binding.GetBindingEnvs(
+					binding.Source{Type: sourceType},
 					binding.Target{Type: binding.AzureDatabaseForMysql, AuthType: infraSpec.DbMySql.AuthType})
 			case ResourceTypeDbMongo:
-				variables, err = binding.GetBindingEnvs(binding.Source{Type: sourceType},
+				variables, err = binding.GetBindingEnvs(
+					binding.Source{Type: sourceType},
 					binding.Target{
 						Type:     binding.AzureCosmosDBForMongoDB,
 						AuthType: internal.AuthTypeConnectionString,
 					})
 			case ResourceTypeDbCosmos:
-				variables, err = binding.GetBindingEnvs(binding.Source{Type: sourceType},
+				variables, err = binding.GetBindingEnvs(
+					binding.Source{Type: sourceType},
 					binding.Target{
 						Type:     binding.AzureCosmosDBForNoSQL,
 						AuthType: internal.AuthTypeUserAssignedManagedIdentity,
 					})
 			case ResourceTypeDbRedis:
-				variables, err = binding.GetBindingEnvs(binding.Source{Type: sourceType},
+				variables, err = binding.GetBindingEnvs(
+					binding.Source{Type: sourceType},
 					binding.Target{Type: binding.AzureCacheForRedis, AuthType: internal.AuthTypePassword})
 			case ResourceTypeMessagingServiceBus:
-				variables, err = binding.GetBindingEnvs(binding.Source{
-					Type:            sourceType,
-					IsSpringBootJms: infraSpec.AzureServiceBus.IsJms,
-				},
+				variables, err = binding.GetBindingEnvs(
+					binding.Source{
+						Type: sourceType,
+						Metadata: map[binding.MetadataType]string{
+							binding.IsSpringBootJms: strconv.FormatBool(infraSpec.AzureServiceBus.IsJms)}},
 					binding.Target{Type: binding.AzureServiceBus, AuthType: infraSpec.AzureServiceBus.AuthType})
 			case ResourceTypeMessagingKafka:
-				variables, err = binding.GetBindingEnvs(binding.Source{
-					Type:              sourceType,
-					IsSpringBootKafka: true,
-					SpringBootVersion: infraSpec.AzureEventHubs.SpringBootVersion,
-				},
+				variables, err = binding.GetBindingEnvs(
+					binding.Source{
+						Type: sourceType,
+						Metadata: map[binding.MetadataType]string{
+							binding.IsSpringBootKafka: strconv.FormatBool(true),
+							binding.SpringBootVersion: infraSpec.AzureEventHubs.SpringBootVersion}},
 					binding.Target{Type: binding.AzureEventHubs, AuthType: infraSpec.AzureEventHubs.AuthType})
 			case ResourceTypeMessagingEventHubs:
-				variables, err = binding.GetBindingEnvs(binding.Source{Type: sourceType, IsSpringBootKafka: false},
+				variables, err = binding.GetBindingEnvs(
+					binding.Source{
+						Type: sourceType,
+						Metadata: map[binding.MetadataType]string{
+							binding.IsSpringBootKafka: "false"}},
 					binding.Target{Type: binding.AzureEventHubs, AuthType: infraSpec.AzureEventHubs.AuthType})
 			case ResourceTypeStorage:
-				variables, err = binding.GetBindingEnvs(binding.Source{Type: sourceType},
+				variables, err = binding.GetBindingEnvs(
+					binding.Source{Type: sourceType},
 					binding.Target{Type: binding.AzureStorageAccount, AuthType: infraSpec.AzureStorageAccount.AuthType})
 			case ResourceTypeHostContainerApp:
 				printHintsAboutUseHostContainerApp(userResourceName, usedResourceName, console, ctx)

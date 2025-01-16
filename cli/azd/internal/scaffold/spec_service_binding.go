@@ -1,6 +1,8 @@
 package scaffold
 
 import (
+	"strconv"
+
 	"github.com/azure/azure-dev/cli/azd/internal"
 	"github.com/azure/azure-dev/cli/azd/internal/binding"
 )
@@ -43,7 +45,9 @@ func BindToRedis(sourceType binding.SourceType, serviceSpec *ServiceSpec, redis 
 func BindToServiceBus(sourceType binding.SourceType, serviceSpec *ServiceSpec, serviceBus *AzureDepServiceBus) error {
 	serviceSpec.AzureServiceBus = serviceBus
 	return addBindingEnvs(serviceSpec,
-		binding.Source{Type: sourceType, IsSpringBootJms: serviceBus.IsJms},
+		binding.Source{
+			Type:     sourceType,
+			Metadata: map[binding.MetadataType]string{binding.IsSpringBootJms: strconv.FormatBool(serviceBus.IsJms)}},
 		binding.Target{Type: binding.AzureServiceBus, AuthType: serviceBus.AuthType})
 }
 
@@ -51,9 +55,10 @@ func BindToEventHubs(sourceType binding.SourceType, serviceSpec *ServiceSpec, ev
 	serviceSpec.AzureEventHubs = eventHubs
 	return addBindingEnvs(serviceSpec,
 		binding.Source{
-			Type:              sourceType,
-			IsSpringBootKafka: eventHubs.UseKafka,
-			SpringBootVersion: eventHubs.SpringBootVersion},
+			Type: sourceType,
+			Metadata: map[binding.MetadataType]string{
+				binding.IsSpringBootKafka: strconv.FormatBool(eventHubs.UseKafka),
+				binding.SpringBootVersion: eventHubs.SpringBootVersion}},
 		binding.Target{Type: binding.AzureEventHubs, AuthType: eventHubs.AuthType})
 }
 

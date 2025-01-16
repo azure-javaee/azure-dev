@@ -7,6 +7,12 @@ import (
 	"github.com/azure/azure-dev/cli/azd/internal"
 )
 
+const (
+	IsSpringBootJms   MetadataType = "IsSpringBootJms"
+	IsSpringBootKafka MetadataType = "IsSpringBootKafka"
+	SpringBootVersion MetadataType = "SpringBootVersion"
+)
+
 func GetBindingEnvsForSpringBoot(source Source, target Target) (map[string]string, error) {
 	switch target.Type {
 	case AzureDatabaseForPostgresql:
@@ -20,14 +26,14 @@ func GetBindingEnvsForSpringBoot(source Source, target Target) (map[string]strin
 	case AzureCacheForRedis:
 		return GetBindingEnvsForSpringBootToRedis(target.AuthType)
 	case AzureServiceBus:
-		if source.IsSpringBootJms {
+		if source.Metadata[IsSpringBootJms] == "true" {
 			return GetBindingEnvsForSpringBootToServiceBusJms(target.AuthType)
 		} else {
 			return GetBindingEnvsForSpringBootToServiceBusNotJms(target.AuthType)
 		}
 	case AzureEventHubs:
-		if source.IsSpringBootKafka {
-			return GetBindingEnvsForSpringBootToEventHubsKafka(source.SpringBootVersion, target.AuthType)
+		if source.Metadata[IsSpringBootKafka] == "true" {
+			return GetBindingEnvsForSpringBootToEventHubsKafka(source.Metadata[SpringBootVersion], target.AuthType)
 		} else {
 			return GetServiceBindingEnvsForEventHubs(target.AuthType)
 		}

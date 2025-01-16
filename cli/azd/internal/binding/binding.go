@@ -18,13 +18,12 @@ func GetBindingEnvs(source Source, target Target) (map[string]string,
 }
 
 type Source struct {
-	Type              SourceType
-	IsSpringBootJms   bool
-	IsSpringBootKafka bool
-	SpringBootVersion string
+	Type     SourceType
+	Metadata map[MetadataType]string
 }
 
 type SourceType string
+type MetadataType string
 
 const (
 	Java       SourceType = "java"
