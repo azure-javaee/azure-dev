@@ -299,6 +299,29 @@ func TestExecInfra(t *testing.T) {
 				},
 			},
 		},
+		// with azd add, users could add only mongo resource
+		{
+			"Only Mongo",
+			InfraSpec{
+				DbCosmosMongo: &DatabaseCosmosMongo{},
+			},
+		},
+		// with azd add, users could add only redis resource
+		{
+			"Only Redis",
+			InfraSpec{
+				DbRedis: &DatabaseRedis{},
+			},
+		},
+		// with azd add, users could add only postgresql resource
+		{
+			"Only Postgres",
+			InfraSpec{
+				DbPostgres: &DatabasePostgres{
+					AuthType: internal.AuthTypeUserAssignedManagedIdentity,
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
