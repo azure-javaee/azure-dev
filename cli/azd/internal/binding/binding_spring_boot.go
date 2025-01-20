@@ -107,7 +107,7 @@ func GetBindingEnvsForSpringBootToMongoDb(authType internal.AuthType) (map[strin
 func GetBindingEnvsForSpringBootToCosmosNoSQL(authType internal.AuthType) (map[string]string, error) {
 	target := Target{Type: AzureCosmosDBForNoSQL}
 	switch authType {
-	case internal.AuthTypeConnectionString:
+	case internal.AuthTypeUserAssignedManagedIdentity:
 		return map[string]string{
 			"spring.cloud.azure.cosmos.endpoint": ToBindingEnv(target, InfoTypeEndpoint),
 			"spring.cloud.azure.cosmos.database": ToBindingEnv(target, InfoTypeDatabaseName),
