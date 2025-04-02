@@ -447,13 +447,23 @@ func (p *dockerProject) packBuild(
 		return nil, err
 	}
 	builder := DefaultBuilderImage
-
-	buildContext := svc.Path()
 	environ := []string{}
 	userDefinedImage := false
+
 	if os.Getenv("AZD_BUILDER_IMAGE") != "" {
 		builder = os.Getenv("AZD_BUILDER_IMAGE")
 		userDefinedImage = true
+	}
+
+	svcPath := svc.Path()
+	buildContext := svcPath
+
+	if svc.Docker.Context != "" {
+		buildContext = svc.Docker.Context
+
+		if !filepath.IsAbs(buildContext) {
+			buildContext = filepath.Join(svcPath, buildContext)
+		}
 	}
 
 	if !userDefinedImage {
@@ -463,21 +473,13 @@ func (p *dockerProject) packBuild(
 		if svc.Language == ServiceLanguageJava {
 			environ = append(environ, "ORYX_RUNTIME_PORT=8080")
 
-			// When docker context is set
-			if svc.Docker.Context != "" {
-				buildContext = svc.Docker.Context
-				if !filepath.IsAbs(buildContext) {
-					buildContext = filepath.Join(svc.Path(), buildContext)
-				}
-
-				svcRelPath, err := filepath.Rel(buildContext, svc.Path())
+			if buildContext != svcPath {
+				svcRelPath, err := filepath.Rel(buildContext, svcPath)
 				if err != nil {
-					return nil, fmt.Errorf("calculating relative context: %w", err)
+					return nil, fmt.Errorf("calculating relative context path: %w", err)
 				}
 
-				if svcRelPath != "." {
-					environ = append(environ, fmt.Sprintf("BP_MAVEN_BUILT_MODULE=%s", filepath.ToSlash(svcRelPath)))
-				}
+				environ = append(environ, fmt.Sprintf("BP_MAVEN_BUILT_MODULE=%s", filepath.ToSlash(svcRelPath)))
 			}
 		}
 
