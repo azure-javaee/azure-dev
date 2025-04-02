@@ -463,14 +463,21 @@ func (p *dockerProject) packBuild(
 		if svc.Language == ServiceLanguageJava {
 			environ = append(environ, "ORYX_RUNTIME_PORT=8080")
 
-			// Specify parent context and build module for multi-module project when pack build
-			if svc.RootPath != "" {
-				buildContext = svc.RootPath
+			// When docker context is set
+			if svc.Docker.Context != "" {
+				buildContext = svc.Docker.Context
+				if !filepath.IsAbs(buildContext) {
+					buildContext = filepath.Join(svc.Path(), buildContext)
+				}
+
 				svcRelPath, err := filepath.Rel(buildContext, svc.Path())
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("calculating relative context: %w", err)
 				}
-				environ = append(environ, fmt.Sprintf("BP_MAVEN_BUILT_MODULE=%s", filepath.ToSlash(svcRelPath)))
+
+				if svcRelPath != "." {
+					environ = append(environ, fmt.Sprintf("BP_MAVEN_BUILT_MODULE=%s", filepath.ToSlash(svcRelPath)))
+				}
 			}
 		}
 
